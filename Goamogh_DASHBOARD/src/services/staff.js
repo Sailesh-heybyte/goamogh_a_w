@@ -1,0 +1,75 @@
+import { customFetch } from "./api"
+
+/**
+ * Fetch list of onboarded staff members.
+ * @param {number} skip
+ * @param {number} limit
+ * @returns {Promise<Response>}
+ */
+export const getStaff = async (skip = 0, limit = 50) => {
+  return customFetch(`/api/v1/auth/staff?skip=${skip}&limit=${limit}`)
+}
+
+/**
+ * Register/Onboard a new staff member.
+ * @param {Object} staffData - { email, password, first_name, last_name, phone, role_id }
+ * @returns {Promise<Response>}
+ */
+export const onboardStaff = async (staffData) => {
+  return customFetch("/api/v1/auth/staff", {
+    method: "POST",
+    body: JSON.stringify(staffData),
+  })
+}
+
+/**
+ * Update staff details.
+ * @param {string} staffId
+ * @param {Object} staffData - { first_name, last_name, phone, role_id, password, is_active }
+ * @returns {Promise<Response>}
+ */
+export const updateStaff = async (staffId, staffData) => {
+  return customFetch(`/api/v1/auth/staff/${staffId}`, {
+    method: "PUT",
+    body: JSON.stringify(staffData),
+  })
+}
+
+/**
+ * Activate staff member account.
+ * @param {string} staffId
+ * @returns {Promise<Response>}
+ */
+export const activateStaff = async (staffId) => {
+  return customFetch(`/api/v1/auth/staff/${staffId}/activate`, {
+    method: "PATCH",
+  })
+}
+
+/**
+ * Deactivate staff member account.
+ * @param {string} staffId
+ * @returns {Promise<Response>}
+ */
+export const deactivateStaff = async (staffId) => {
+  return customFetch(`/api/v1/auth/staff/${staffId}/deactivate`, {
+    method: "PATCH",
+  })
+}
+
+/**
+ * Fetches details of a specific staff member by ID
+ * @param {string} staffId - The UUID of the staff member
+ * @returns {Promise<Response>} The API response container
+ */
+export const getStaffById = async (staffId) => {
+  try {
+    const response = await customFetch(`/api/v1/auth/staff/${staffId}`, {
+      method: "GET",
+    })
+    return response
+  } catch (error) {
+    console.error(`Error fetching staff member ${staffId}:`, error)
+    throw error
+  }
+}

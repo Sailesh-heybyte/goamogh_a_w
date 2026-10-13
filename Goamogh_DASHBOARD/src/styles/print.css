@@ -1,0 +1,18 @@
+@media print {
+  /* Hide sidebar and all other page layout containers */
+  aside, nav, header, .no-print, button, a {
+    display: none !important;
+  }
+  main, div.flex-grow, body {
+    background-color: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+}
