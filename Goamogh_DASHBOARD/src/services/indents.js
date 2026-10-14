@@ -7,17 +7,10 @@ export const createIndent = async (indentData) => {
   })
 }
 
-export const confirmIndent = async (indentId) => {
-  return customFetch(`/api/v1/sales/indents/${indentId}/confirm`, {
+export const updateIndentStatus = async (indentId, action) => {
+  return customFetch(`/api/v1/sales/indents/${indentId}/status`, {
     method: "POST",
-  })
-}
-
-
-
-export const cancelIndent = async (indentId) => {
-  return customFetch(`/api/v1/sales/indents/${indentId}/cancel`, {
-    method: "POST",
+    body: JSON.stringify({ action }),
   })
 }
 

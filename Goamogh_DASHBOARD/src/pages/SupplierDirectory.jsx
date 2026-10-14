@@ -3,6 +3,8 @@ import { Plus, Edit2, Trash2, ShieldAlert, X, Truck, Search, Phone, Mail, MapPin
 import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails } from "@/services/suppliers"
 import Spinner from "@/components/ui/Spinner"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 const GSTIN_STATE_MAP = {
   "01": "Jammu & Kashmir",
   "02": "Himachal Pradesh",
@@ -63,6 +65,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function SupplierDirectory() {
+  const confirm = useConfirm()
   const [suppliersList, setSuppliersList] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(true)
@@ -440,7 +443,9 @@ function SupplierDirectory() {
         }
 
         if (field === "gstin") {
-          if (value && !validateGSTIN(value)) {
+          if (prev.supplier_type === "business" && !value) {
+            newErrs.gstin = "GSTIN is required for business suppliers"
+          } else if (value && !validateGSTIN(value)) {
             newErrs.gstin = "Must be a valid 15-character Indian GSTIN with correct state code"
           } else {
             delete newErrs.gstin
@@ -506,9 +511,18 @@ function SupplierDirectory() {
         }
 
         if (field === "cin") {
-          if (value && !validateCIN(value)) {
+          if (prev.supplier_type === "business" && !value) {
+            newErrs.cin = "CIN is required for business suppliers"
+          } else if (value && !validateCIN(value)) {
             newErrs.cin = "CIN must match Indian CIN format (21 chars)"
           } else {
+            delete newErrs.cin
+          }
+        }
+
+        if (field === "supplier_type") {
+          if (value === "individual") {
+            delete newErrs.gstin
             delete newErrs.cin
           }
         }
@@ -585,7 +599,9 @@ function SupplierDirectory() {
         }
 
         if (field === "gstin") {
-          if (value && !validateGSTIN(value)) {
+          if (prev.supplier_type === "business" && !value) {
+            newErrs.gstin = "GSTIN is required for business suppliers"
+          } else if (value && !validateGSTIN(value)) {
             newErrs.gstin = "Must be a valid 15-character Indian GSTIN with correct state code"
           } else {
             delete newErrs.gstin
@@ -651,9 +667,18 @@ function SupplierDirectory() {
         }
 
         if (field === "cin") {
-          if (value && !validateCIN(value)) {
+          if (prev.supplier_type === "business" && !value) {
+            newErrs.cin = "CIN is required for business suppliers"
+          } else if (value && !validateCIN(value)) {
             newErrs.cin = "CIN must match Indian CIN format (21 chars)"
           } else {
+            delete newErrs.cin
+          }
+        }
+
+        if (field === "supplier_type") {
+          if (value === "individual") {
+            delete newErrs.gstin
             delete newErrs.cin
           }
         }
@@ -679,7 +704,7 @@ function SupplierDirectory() {
   }
 
   // Submission validation
-  const validateForm = (form, isEdit = false) => {
+  const validateForm = (form) => {
     const errs = {}
 
 
@@ -733,8 +758,16 @@ function SupplierDirectory() {
       }
     }
 
-    if (form.gstin && !validateGSTIN(form.gstin)) {
-      errs.gstin = "Must be a valid 15-character Indian GSTIN with correct state code"
+    if (form.supplier_type === "business") {
+      if (!form.gstin) {
+        errs.gstin = "GSTIN is required for business suppliers"
+      } else if (!validateGSTIN(form.gstin)) {
+        errs.gstin = "Must be a valid 15-character Indian GSTIN with correct state code"
+      }
+    } else {
+      if (form.gstin && !validateGSTIN(form.gstin)) {
+        errs.gstin = "Must be a valid 15-character Indian GSTIN with correct state code"
+      }
     }
 
     if (form.bank_ifsc_code) {
@@ -745,6 +778,12 @@ function SupplierDirectory() {
     }
 
     if (form.supplier_type === "business") {
+      if (!form.cin) {
+        errs.cin = "CIN is required for business suppliers"
+      } else if (!validateCIN(form.cin)) {
+        errs.cin = "CIN must match Indian CIN format (21 chars)"
+      }
+
       if (form.tan_no && !validateTAN(form.tan_no)) {
         errs.tan_no = "TAN must match Indian TAN format (e.g. HYDA12345B)"
       }
@@ -752,7 +791,7 @@ function SupplierDirectory() {
       if (form.iec && !validateIEC(form.iec)) {
         errs.iec = "IEC must be exactly 10 digits"
       }
-
+    } else {
       if (form.cin && !validateCIN(form.cin)) {
         errs.cin = "CIN must match Indian CIN format (21 chars)"
       }
@@ -783,6 +822,12 @@ function SupplierDirectory() {
       setCreateErrors(errs)
       return
     }
+
+    const ok = await confirm({
+      title: `Onboard supplier ${createForm.name || "this supplier"}?`,
+      confirmLabel: "Onboard supplier",
+    })
+    if (!ok) return
 
     setIsSaving(true)
     try {
@@ -987,11 +1032,17 @@ function SupplierDirectory() {
   const handleEditSubmit = async (e) => {
     e.preventDefault()
     setEditErrors({})
-    const errs = validateForm(editForm, true)
+    const errs = validateForm(editForm)
     if (Object.keys(errs).length > 0) {
       setEditErrors(errs)
       return
     }
+
+    const ok = await confirm({
+      title: `Save changes for ${editForm.name || "this supplier"}?`,
+      confirmLabel: "Save changes",
+    })
+    if (!ok) return
 
     setIsSaving(true)
     try {
@@ -1090,7 +1141,7 @@ function SupplierDirectory() {
             setSelectedSupplier(detailJson.data)
           }
         }
-      } catch (e) {
+      } catch {
         // Fallback merge
         setSelectedSupplier((prev) => (prev ? { ...prev, ...payload } : prev))
       }
@@ -1106,6 +1157,14 @@ function SupplierDirectory() {
   }
 
   const handleToggleActiveStatus = async (checked) => {
+    const action = checked ? "Activate" : "Deactivate"
+    const ok = await confirm({
+      title: `${action} supplier ${selectedSupplier?.name || "this supplier"}?`,
+      confirmLabel: action,
+      tone: !checked ? "danger" : undefined,
+    })
+    if (!ok) return
+
     setEditForm((prev) => ({ ...prev, is_active: checked }))
 
     try {
@@ -1253,7 +1312,7 @@ function SupplierDirectory() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
 
       {/* Page Title Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Suppliers Directory</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Onboard and manage coffee bean importers, packaging supplies, and utility vendors.</p>
@@ -1297,7 +1356,7 @@ function SupplierDirectory() {
             setCreateSameAsBilling(false)
             setIsCreateOpen(true)
           }}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Onboard Supplier</span>
@@ -1306,19 +1365,19 @@ function SupplierDirectory() {
 
       {/* Search and Filters toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
-        <div className="relative flex-1 w-full">
+        <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search suppliers by name, code, or email..."
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
           />
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center select-none">
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-650 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer">
             <input
               type="checkbox"
               checked={showActiveOnly}
@@ -1332,27 +1391,27 @@ function SupplierDirectory() {
 
       {/* Directory Table */}
       {filteredSuppliers.length === 0 ? (
-        <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-450 font-semibold shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 font-semibold shadow-sm">
           No suppliers found in directory.
         </div>
       ) : (
         <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <table className="w-full text-left border-collapse table-fixed text-xs">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                  <th className="px-3.5 py-3.5 w-[32%]">Supplier & Code</th>
-                  <th className="px-3 py-3.5 w-[28%]">Contact & Phone/Email</th>
-                  <th className="px-3 py-3.5 w-[16%]">GSTIN</th>
-                  <th className="px-3 py-3.5 w-[12%]">Status</th>
-                  <th className="px-3 py-3.5 w-[12%] text-right">Actions</th>
+                  <th className="px-3.5 py-3.5 w-[56%] md:w-[42%] lg:w-[32%]">Supplier & Code</th>
+                  <th className="px-3.5 py-3.5 hidden md:table-cell md:w-[32%] lg:w-[28%]">Contact & Phone/Email</th>
+                  <th className="px-3.5 py-3.5 hidden lg:table-cell lg:w-[16%]">GSTIN</th>
+                  <th className="px-3.5 py-3.5 w-[22%] md:w-[13%] lg:w-[12%]">Status</th>
+                  <th className="px-3.5 py-3.5 w-[22%] md:w-[13%] lg:w-[12%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {filteredSuppliers.map((vendor) => (
                   <tr key={vendor.id} className="hover:bg-slate-50/70 transition-colors group">
                     {/* Column 1: Supplier Name & Code */}
-                    <td className="px-3.5 py-3">
+                    <td className="px-3.5 py-3 min-w-0">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold shrink-0 border border-slate-200/60 shadow-2xs">
                           <Truck className="w-4 h-4 text-slate-600" />
@@ -1361,15 +1420,23 @@ function SupplierDirectory() {
                           <p className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate" title={vendor.name || vendor.contact_name}>
                             {vendor.name || vendor.contact_name || "—"}
                           </p>
-                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded inline-block mt-0.5 font-medium border border-slate-200/50">
+                          <span className="text-[10px] tabular-nums text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded inline-block mt-0.5 font-medium border border-slate-200/50">
                             {vendor.vendor_code}
                           </span>
+                          <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5" title={vendor.contact_name || vendor.phone || ""}>
+                            {vendor.contact_name ? `${vendor.contact_name} ` : ""}{vendor.phone ? `• ${vendor.phone}` : ""}
+                          </div>
+                          {vendor.gstin && (
+                            <div className="text-[10px] text-slate-400 truncate lg:hidden mt-0.5">
+                              GST: {vendor.gstin}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     {/* Column 2: Contact Person, Phone & Email */}
-                    <td className="px-3 py-3">
+                    <td className="px-3.5 py-3 min-w-0 hidden md:table-cell">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 text-xs truncate" title={vendor.contact_name || "—"}>
                           {vendor.contact_name || "—"}
@@ -1382,7 +1449,7 @@ function SupplierDirectory() {
                             </span>
                           )}
                           {vendor.phone && (
-                            <span className="flex items-center gap-1 text-[11px] font-mono text-slate-500">
+                            <span className="flex items-center gap-1 text-[11px] tabular-nums text-slate-500">
                               <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                               <span>{vendor.phone}</span>
                             </span>
@@ -1392,14 +1459,17 @@ function SupplierDirectory() {
                     </td>
 
                     {/* Column 3: GSTIN */}
-                    <td className="px-3 py-3">
-                      <span className="font-mono text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-150 inline-block">
+                    <td className="px-3 py-3 whitespace-nowrap hidden lg:table-cell">
+                      <span
+                        className="text-[11px] xl:text-xs tabular-nums font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 inline-block truncate max-w-full"
+                        title={vendor.gstin || "—"}
+                      >
                         {vendor.gstin || "—"}
                       </span>
                     </td>
 
                     {/* Column 4: Status Badge */}
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       {vendor.is_active ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                           <span className="w-1 h-1 rounded-full mr-1 bg-emerald-500 shrink-0" />
@@ -1414,11 +1484,11 @@ function SupplierDirectory() {
                     </td>
 
                     {/* Column 5: Action Tools */}
-                    <td className="px-3 py-3 text-right">
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1.5">
                         <button
                           onClick={() => handleEditOpen(vendor)}
-                          className="p-1.5 border border-slate-200 hover:border-brand-300 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center"
+                          className="p-1.5 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center"
                           title="Edit Supplier"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -1444,19 +1514,19 @@ function SupplierDirectory() {
 
       {/* Onboard Supplier Modal Overlay */}
       {isCreateOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Onboard Supplier</h3>
               <button
                 onClick={() => setIsCreateOpen(false)}
-                className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-655 transition-all"
+                className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto bg-slate-50/30">
+            <form onSubmit={handleCreateSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col">
               {createErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -1473,13 +1543,13 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Supplier Type <span className="text-error-500 font-bold">*</span>
                     </label>
                     <select
                       value={createForm.supplier_type}
                       onChange={(e) => handleCreateChange("supplier_type", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
                     >
                       <option value="business">Business / Corporate</option>
                       <option value="individual">Individual / Farmer</option>
@@ -1487,13 +1557,13 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Business Type
                     </label>
                     <select
                       value={createForm.business_type}
                       onChange={(e) => handleCreateChange("business_type", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
                     >
                       <option value="">Select Business Type</option>
                       <option value="sole proprietorship">Sole Proprietorship</option>
@@ -1509,7 +1579,7 @@ function SupplierDirectory() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Business/Vendor Name <span className="text-error-500 font-bold">*</span>
                   </label>
                   <div className="relative">
@@ -1519,7 +1589,7 @@ function SupplierDirectory() {
                       value={createForm.name}
                       onChange={(e) => handleCreateChange("name", e.target.value)}
                       placeholder="E.g., Mahindra Farms"
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                     />
                   </div>
                   {createErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>}
@@ -1527,7 +1597,7 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       PAN Number
                     </label>
                     <input
@@ -1535,14 +1605,16 @@ function SupplierDirectory() {
                       value={createForm.pan}
                       onChange={(e) => handleCreateChange("pan", e.target.value)}
                       placeholder="E.g., ABCDE1234F"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                     />
                     {createErrors.pan && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.pan}</p>}
                   </div>
 
                   {createForm.supplier_type === "business" ? (
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">GSTIN Number</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        GSTIN Number <span className="text-error-500 font-bold">*</span>
+                      </label>
                       <div className="relative">
                         <FileSpreadsheet className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                         <input
@@ -1550,14 +1622,14 @@ function SupplierDirectory() {
                           value={createForm.gstin}
                           onChange={(e) => handleCreateChange("gstin", e.target.value)}
                           placeholder="E.g., 37AAAAA0000A1Z1"
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                         />
                       </div>
                       {createErrors.gstin && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.gstin}</p>}
                     </div>
                   ) : (
                     <div className="flex flex-col animate-in slide-in-from-top-2 duration-150">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Aadhaar Last 4 Digits <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1566,7 +1638,7 @@ function SupplierDirectory() {
                         value={createForm.aadhaar_last_four}
                         onChange={(e) => handleCreateChange("aadhaar_last_four", e.target.value)}
                         placeholder="E.g., 9876"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                       {createErrors.aadhaar_last_four && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.aadhaar_last_four}</p>}
                     </div>
@@ -1575,7 +1647,7 @@ function SupplierDirectory() {
 
                 {createForm.supplier_type === "business" && createForm.gstin.trim() && (
                   <div className="flex flex-col animate-in fade-in duration-200">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Billing State</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing State</label>
                     <input
                       type="text"
                       readOnly
@@ -1595,7 +1667,7 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Email Address {createForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
                     </label>
                     <div className="relative">
@@ -1605,14 +1677,14 @@ function SupplierDirectory() {
                         value={createForm.email}
                         onChange={(e) => handleCreateChange("email", e.target.value)}
                         placeholder="info@globalcoffee.com"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
                     {createErrors.email && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.email}</p>}
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Phone Number</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                       <input
@@ -1620,7 +1692,7 @@ function SupplierDirectory() {
                         value={createForm.phone}
                         onChange={(e) => handleCreateChange("phone", e.target.value)}
                         placeholder="E.g., 9876543210"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
                     {createErrors.phone && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.phone}</p>}
@@ -1628,7 +1700,7 @@ function SupplierDirectory() {
                 </div>
 
                 {/* Contact Person 1 */}
-                <div className="border border-slate-150 rounded-2xl p-4 bg-slate-50/40 space-y-4">
+                <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <span className="w-2 h-2 rounded-full bg-brand-500" />
                     <h5 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
@@ -1637,7 +1709,7 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-550 uppercase tracking-wide mb-1">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
                         Full Name <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1649,7 +1721,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Email Address</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
                       <input
                         type="email"
                         value={createForm.contact_persons?.[0]?.email || ""}
@@ -1661,7 +1733,7 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Mobile Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.mobile || ""}
@@ -1671,7 +1743,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Desk Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.desk_number || ""}
@@ -1681,7 +1753,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Location</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.location || ""}
@@ -1692,12 +1764,12 @@ function SupplierDirectory() {
                     </div>
                   </div>
                   {createErrors.contact_persons && (
-                    <p className="text-xs text-error-850 font-semibold mt-1">{createErrors.contact_persons}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.contact_persons}</p>
                   )}
                 </div>
 
                 {/* Contact Person 2 */}
-                <div className="border border-slate-150 rounded-2xl p-4 bg-slate-50/40 space-y-4">
+                <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <span className="w-2 h-2 rounded-full bg-slate-400" />
                     <h5 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
@@ -1706,7 +1778,7 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Full Name</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Full Name</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.name || ""}
@@ -1716,7 +1788,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Email Address</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
                       <input
                         type="email"
                         value={createForm.contact_persons?.[1]?.email || ""}
@@ -1728,7 +1800,7 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Mobile Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.mobile || ""}
@@ -1738,7 +1810,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Desk Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.desk_number || ""}
@@ -1748,7 +1820,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Location</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.location || ""}
@@ -1769,7 +1841,7 @@ function SupplierDirectory() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">General / Registered Address</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">General / Registered Address</label>
                   <div className="relative">
                     <MapPin className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
                     <textarea
@@ -1777,7 +1849,7 @@ function SupplierDirectory() {
                       onChange={(e) => handleCreateChange("address", e.target.value)}
                       placeholder="Enter general/registered address..."
                       rows="2"
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                     />
                   </div>
                   {createErrors.address && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.address}</p>}
@@ -1785,7 +1857,7 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Pincode</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Pincode</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -1793,7 +1865,7 @@ function SupplierDirectory() {
                         value={createForm.pincode}
                         onChange={(e) => handleCreateChange("pincode", e.target.value)}
                         placeholder="522001"
-                        className="w-full pr-10 px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full pr-10 px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                       {isPincodeLoadingCreate && (
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -1808,42 +1880,42 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">City</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">City</label>
                     <input
                       type="text"
                       value={createForm.city}
                       onChange={(e) => handleCreateChange("city", e.target.value)}
                       placeholder="Guntur"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                     />
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">State</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">State</label>
                     <input
                       type="text"
                       value={createForm.state}
                       onChange={(e) => handleCreateChange("state", e.target.value)}
                       placeholder="Andhra Pradesh"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Billing Address</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing Address</label>
                     <textarea
                       value={createForm.billing_address}
                       onChange={(e) => handleCreateChange("billing_address", e.target.value)}
                       placeholder="Enter specific billing address..."
                       rows="2"
-                      className="w-full px-4 py-2 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                      className="w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                     />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550">Shipping Address</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Shipping Address</label>
                       <label className="flex items-center gap-1.5 text-xs text-brand-600 font-bold cursor-pointer select-none">
                         <input
                           type="checkbox"
@@ -1860,7 +1932,7 @@ function SupplierDirectory() {
                       disabled={createSameAsBilling}
                       placeholder={createSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."}
                       rows="2"
-                      className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${createSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
+                      className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${createSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
                     />
                   </div>
                 </div>
@@ -1877,59 +1949,61 @@ function SupplierDirectory() {
                   {createForm.supplier_type === "business" && (
                     <>
                       <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">TAN Number</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">TAN Number</label>
                         <input
                           type="text"
                           placeholder="e.g., ABCD12345E"
                           value={createForm.tan_no}
                           onChange={(e) => handleCreateChange("tan_no", e.target.value)}
-                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                         />
                         {createErrors.tan_no && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.tan_no}</p>}
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">CIN Number</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          CIN Number <span className="text-error-500 font-bold">*</span>
+                        </label>
                         <input
                           type="text"
                           placeholder="e.g., U12345AP2026PTC123456"
                           value={createForm.cin}
                           onChange={(e) => handleCreateChange("cin", e.target.value)}
-                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                         />
                         {createErrors.cin && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.cin}</p>}
                       </div>
                     </>
                   )}
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">MSME Udyam No.</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">MSME Udyam No.</label>
                     <input
                       type="text"
                       placeholder="e.g., UDYAM-AP-01-12345"
                       value={createForm.msme}
                       onChange={(e) => handleCreateChange("msme", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">FSSAI Licence No.</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">FSSAI Licence No.</label>
                     <input
                       type="text"
                       placeholder="e.g., 12345678901234"
                       value={createForm.fssai}
                       onChange={(e) => handleCreateChange("fssai", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                     />
                     {createErrors.fssai && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.fssai}</p>}
                   </div>
                   {createForm.supplier_type === "business" && (
                     <div className="flex flex-col md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Import Export Code (IEC)</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Import Export Code (IEC)</label>
                       <input
                         type="text"
                         placeholder="e.g., 1234567890"
                         value={createForm.iec}
                         onChange={(e) => handleCreateChange("iec", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                       />
                       {createErrors.iec && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.iec}</p>}
                     </div>
@@ -1946,7 +2020,7 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Account Holder Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Holder Name</label>
                     <input
                       type="text"
                       value={createForm.bank_account_holder_name}
@@ -1956,7 +2030,7 @@ function SupplierDirectory() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Bank Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Bank Name</label>
                     <input
                       type="text"
                       value={createForm.bank_name}
@@ -1969,28 +2043,28 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Account Number</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Number</label>
                     <input
                       type="text"
                       value={createForm.bank_account_number}
                       onChange={(e) => handleCreateChange("bank_account_number", e.target.value)}
                       placeholder="1234567890"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">IFSC Code</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">IFSC Code</label>
                     <input
                       type="text"
                       value={createForm.bank_ifsc_code}
                       onChange={(e) => handleCreateChange("bank_ifsc_code", e.target.value)}
                       placeholder="SBIN0001234"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                     />
                     {createErrors.bank_ifsc_code && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.bank_ifsc_code}</p>}
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Branch Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Branch Name</label>
                     <input
                       type="text"
                       value={createForm.bank_branch_name}
@@ -2010,30 +2084,30 @@ function SupplierDirectory() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Notes</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Notes</label>
                   <textarea
                     value={createForm.notes}
                     onChange={(e) => handleCreateChange("notes", e.target.value)}
                     placeholder="Payment cycles, lead times, or contract agreements..."
                     rows="2"
-                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                   />
                   {createErrors.notes && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.notes}</p>}
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6 bg-white -mx-6 -mb-6 p-6">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6 bg-white -mx-6 -mb-6 p-6 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="border border-slate-200 hover:border-slate-355 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-655 transition-all"
+                  className="border border-slate-200 hover:border-slate-400 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 transition-all w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isSaving ? <Spinner size="sm" /> : null}
                   <span>Onboard Supplier</span>
@@ -2041,16 +2115,18 @@ function SupplierDirectory() {
               </div>
             </form>
           </div>
-        </div>
-      )}          {/* Edit Supplier Modal Overlay */}
+        </Modal>
+      )}
+
+      {/* Edit Supplier Modal Overlay */}
       {isEditOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <Modal onClose={() => setIsEditOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Edit Supplier Details</h3>
               <button
                 onClick={() => setIsEditOpen(false)}
-                className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-650 transition-all"
+                className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2061,7 +2137,7 @@ function SupplierDirectory() {
                 <Spinner size="lg" />
               </div>
             ) : (
-              <form onSubmit={handleEditSubmit} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto bg-slate-50/30">
+              <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col">
                 {editErrors.global && (
                   <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                     <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -2083,18 +2159,18 @@ function SupplierDirectory() {
                         type="text"
                         disabled
                         value={selectedSupplier ? selectedSupplier.vendor_code : ""}
-                        className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm text-slate-500 font-mono font-semibold select-none"
+                        className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm text-slate-500 tabular-nums font-semibold select-none"
                       />
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Supplier Type <span className="text-error-500 font-bold">*</span>
                       </label>
                       <select
                         value={editForm.supplier_type}
                         onChange={(e) => handleEditChange("supplier_type", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
                       >
                         <option value="business">Business / Corporate</option>
                         <option value="individual">Individual / Farmer</option>
@@ -2102,13 +2178,13 @@ function SupplierDirectory() {
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Business Type
                       </label>
                       <select
                         value={editForm.business_type}
                         onChange={(e) => handleEditChange("business_type", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
                       >
                         <option value="">Select Business Type</option>
                         <option value="sole proprietorship">Sole Proprietorship</option>
@@ -2124,7 +2200,7 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Business Name <span className="text-error-500 font-bold">*</span>
                     </label>
                     <div className="relative">
@@ -2134,7 +2210,7 @@ function SupplierDirectory() {
                         value={editForm.name}
                         onChange={(e) => handleEditChange("name", e.target.value)}
                         placeholder="E.g., Global Coffee Traders"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
                     {editErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.name}</p>}
@@ -2142,7 +2218,7 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         PAN Number
                       </label>
                       <input
@@ -2150,14 +2226,16 @@ function SupplierDirectory() {
                         value={editForm.pan}
                         onChange={(e) => handleEditChange("pan", e.target.value)}
                         placeholder="E.g., ABCDE1234F"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                       />
                       {editErrors.pan && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.pan}</p>}
                     </div>
 
                     {editForm.supplier_type === "business" ? (
                       <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">GSTIN Number</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          GSTIN Number <span className="text-error-500 font-bold">*</span>
+                        </label>
                         <div className="relative">
                           <FileSpreadsheet className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                           <input
@@ -2165,14 +2243,14 @@ function SupplierDirectory() {
                             value={editForm.gstin}
                             onChange={(e) => handleEditChange("gstin", e.target.value)}
                             placeholder="E.g., 37AAAAA0000A1Z1"
-                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
+                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                           />
                         </div>
                         {editErrors.gstin && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.gstin}</p>}
                       </div>
                     ) : (
                       <div className="flex flex-col animate-in slide-in-from-top-2 duration-150">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                           Aadhaar Last 4 Digits <span className="text-error-500 font-bold">*</span>
                         </label>
                         <input
@@ -2181,7 +2259,7 @@ function SupplierDirectory() {
                           value={editForm.aadhaar_last_four}
                           onChange={(e) => handleEditChange("aadhaar_last_four", e.target.value)}
                           placeholder="E.g., 9876"
-                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                         {editErrors.aadhaar_last_four && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.aadhaar_last_four}</p>}
                       </div>
@@ -2190,7 +2268,7 @@ function SupplierDirectory() {
 
                   {editForm.supplier_type === "business" && editForm.gstin.trim() && (
                     <div className="flex flex-col animate-in fade-in duration-200">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Billing State</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing State</label>
                       <input
                         type="text"
                         readOnly
@@ -2210,7 +2288,7 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Email Address {editForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
                       </label>
                       <div className="relative">
@@ -2220,14 +2298,14 @@ function SupplierDirectory() {
                           value={editForm.email}
                           onChange={(e) => handleEditChange("email", e.target.value)}
                           placeholder="info@globalcoffee.com"
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </div>
                       {editErrors.email && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.email}</p>}
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Phone Number</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Phone Number</label>
                       <div className="relative">
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                         <input
@@ -2235,7 +2313,7 @@ function SupplierDirectory() {
                           value={editForm.phone}
                           onChange={(e) => handleEditChange("phone", e.target.value)}
                           placeholder="E.g., +919876543210"
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </div>
                       {editErrors.phone && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.phone}</p>}
@@ -2243,7 +2321,7 @@ function SupplierDirectory() {
                   </div>
 
                   {/* Contact Person 1 */}
-                  <div className="border border-slate-150 rounded-2xl p-4 bg-slate-50/40 space-y-4">
+                  <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <span className="w-2 h-2 rounded-full bg-brand-500" />
                       <h5 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
@@ -2252,7 +2330,7 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-550 uppercase tracking-wide mb-1">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
                           Full Name <span className="text-error-500 font-bold">*</span>
                         </label>
                         <input
@@ -2264,7 +2342,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Email Address</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
                         <input
                           type="email"
                           value={editForm.contact_persons?.[0]?.email || ""}
@@ -2276,7 +2354,7 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Mobile Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.mobile || ""}
@@ -2286,7 +2364,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Desk Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.desk_number || ""}
@@ -2296,7 +2374,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Location</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.location || ""}
@@ -2307,12 +2385,12 @@ function SupplierDirectory() {
                       </div>
                     </div>
                     {editErrors.contact_persons && (
-                      <p className="text-xs text-error-850 font-semibold mt-1">{editErrors.contact_persons}</p>
+                      <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.contact_persons}</p>
                     )}
                   </div>
 
                   {/* Contact Person 2 */}
-                  <div className="border border-slate-150 rounded-2xl p-4 bg-slate-50/40 space-y-4">
+                  <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <span className="w-2 h-2 rounded-full bg-slate-400" />
                       <h5 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
@@ -2321,7 +2399,7 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Full Name</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Full Name</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.name || ""}
@@ -2331,7 +2409,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Email Address</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
                         <input
                           type="email"
                           value={editForm.contact_persons?.[1]?.email || ""}
@@ -2343,7 +2421,7 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Mobile Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.mobile || ""}
@@ -2353,7 +2431,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Desk Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.desk_number || ""}
@@ -2363,7 +2441,7 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-555 uppercase tracking-wide mb-1">Location</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.location || ""}
@@ -2383,7 +2461,7 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">General / Registered Address</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">General / Registered Address</label>
                     <div className="relative">
                       <MapPin className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
                       <textarea
@@ -2391,7 +2469,7 @@ function SupplierDirectory() {
                         onChange={(e) => handleEditChange("address", e.target.value)}
                         placeholder="Enter general/registered address..."
                         rows="2"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                       />
                     </div>
                     {editErrors.address && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.address}</p>}
@@ -2399,7 +2477,7 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Pincode</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Pincode</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -2407,7 +2485,7 @@ function SupplierDirectory() {
                           value={editForm.pincode}
                           onChange={(e) => handleEditChange("pincode", e.target.value)}
                           placeholder="522001"
-                          className="w-full pr-10 px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                          className="w-full pr-10 px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                         {isPincodeLoadingEdit && (
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -2422,42 +2500,42 @@ function SupplierDirectory() {
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">City</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">City</label>
                       <input
                         type="text"
                         value={editForm.city}
                         onChange={(e) => handleEditChange("city", e.target.value)}
                         placeholder="Guntur"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">State</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">State</label>
                       <input
                         type="text"
                         value={editForm.state}
                         onChange={(e) => handleEditChange("state", e.target.value)}
                         placeholder="Andhra Pradesh"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Billing Address</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing Address</label>
                       <textarea
                         value={editForm.billing_address}
                         onChange={(e) => handleEditChange("billing_address", e.target.value)}
                         placeholder="Enter specific billing address..."
                         rows="2"
-                        className="w-full px-4 py-2 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                        className="w-full px-4 py-2 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                       />
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550">Shipping Address</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Shipping Address</label>
                         <label className="flex items-center gap-1.5 text-xs text-brand-600 font-bold cursor-pointer select-none">
                           <input
                             type="checkbox"
@@ -2474,7 +2552,7 @@ function SupplierDirectory() {
                         disabled={editSameAsBilling}
                         placeholder={editSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."}
                         rows="2"
-                        className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${editSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
+                        className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${editSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
                       />
                     </div>
                   </div>
@@ -2491,59 +2569,61 @@ function SupplierDirectory() {
                     {editForm.supplier_type === "business" && (
                       <>
                         <div className="flex flex-col">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">TAN Number</label>
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">TAN Number</label>
                           <input
                             type="text"
                             placeholder="e.g., ABCD12345E"
                             value={editForm.tan_no}
                             onChange={(e) => handleEditChange("tan_no", e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                           />
                           {editErrors.tan_no && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.tan_no}</p>}
                         </div>
                         <div className="flex flex-col">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">CIN Number</label>
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            CIN Number <span className="text-error-500 font-bold">*</span>
+                          </label>
                           <input
                             type="text"
                             placeholder="e.g., U12345AP2026PTC123456"
                             value={editForm.cin}
                             onChange={(e) => handleEditChange("cin", e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                           />
                           {editErrors.cin && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.cin}</p>}
                         </div>
                       </>
                     )}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">MSME Udyam No.</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">MSME Udyam No.</label>
                       <input
                         type="text"
                         placeholder="e.g., UDYAM-AP-01-12345"
                         value={editForm.msme}
                         onChange={(e) => handleEditChange("msme", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">FSSAI Licence No.</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">FSSAI Licence No.</label>
                       <input
                         type="text"
                         placeholder="e.g., 12345678901234"
                         value={editForm.fssai}
                         onChange={(e) => handleEditChange("fssai", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                       />
                       {editErrors.fssai && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.fssai}</p>}
                     </div>
                     {editForm.supplier_type === "business" && (
                       <div className="flex flex-col md:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Import Export Code (IEC)</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Import Export Code (IEC)</label>
                         <input
                           type="text"
                           placeholder="e.g., 1234567890"
                           value={editForm.iec}
                           onChange={(e) => handleEditChange("iec", e.target.value)}
-                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                         />
                         {editErrors.iec && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.iec}</p>}
                       </div>
@@ -2560,7 +2640,7 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Account Holder Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Holder Name</label>
                       <input
                         type="text"
                         value={editForm.bank_account_holder_name}
@@ -2570,7 +2650,7 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Bank Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Bank Name</label>
                       <input
                         type="text"
                         value={editForm.bank_name}
@@ -2583,28 +2663,28 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Account Number</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Number</label>
                       <input
                         type="text"
                         value={editForm.bank_account_number}
                         onChange={(e) => handleEditChange("bank_account_number", e.target.value)}
                         placeholder="1234567890"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-mono font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">IFSC Code</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">IFSC Code</label>
                       <input
                         type="text"
                         value={editForm.bank_ifsc_code}
                         onChange={(e) => handleEditChange("bank_ifsc_code", e.target.value)}
                         placeholder="SBIN0001234"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-mono font-semibold text-slate-700"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                       />
                       {editErrors.bank_ifsc_code && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.bank_ifsc_code}</p>}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Branch Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Branch Name</label>
                       <input
                         type="text"
                         value={editForm.bank_branch_name}
@@ -2624,13 +2704,13 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">Notes</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Notes</label>
                     <textarea
                       value={editForm.notes}
                       onChange={(e) => handleEditChange("notes", e.target.value)}
                       placeholder="Payment cycles, lead times, or contract agreements..."
                       rows="2"
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                     />
                     {editErrors.notes && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.notes}</p>}
                   </div>
@@ -2639,7 +2719,7 @@ function SupplierDirectory() {
                 {/* Active Status Switch - Immediate trigger */}
                 <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-850">Active Status</span>
+                    <span className="text-sm font-bold text-slate-800">Active Status</span>
                     <span className="text-xs text-slate-500 mt-0.5">Toggle to activate or deactivate this supplier</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -2653,18 +2733,18 @@ function SupplierDirectory() {
                   </label>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6 bg-white -mx-6 -mb-6 p-6">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6 bg-white -mx-6 -mb-6 p-6 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsEditOpen(false)}
-                    className="border border-slate-200 hover:border-slate-355 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-655 transition-all"
+                    className="border border-slate-200 hover:border-slate-400 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 transition-all w-full sm:w-auto"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {isSaving ? <Spinner size="sm" /> : null}
                     <span>Save Changes</span>
@@ -2673,15 +2753,15 @@ function SupplierDirectory() {
               </form>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Deactivate/Delete Warning Confirmation Dialog */}
       {isDeleteOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-error-50 text-error-600 rounded-full flex items-center justify-center mb-4">
+        <Modal onClose={() => setIsDeleteOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 flex flex-col items-center text-center flex-1 overflow-y-auto">
+              <div className="w-12 h-12 bg-error-50 text-error-500 rounded-full flex items-center justify-center mb-4 shrink-0">
                 <AlertTriangle className="w-6 h-6 animate-pulse" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Deactivate Supplier</h3>
@@ -2689,12 +2769,12 @@ function SupplierDirectory() {
                 Are you sure you want to deactivate this supplier? They will no longer be available for new Purchase Orders.
               </p>
 
-              <div className="flex w-full gap-3">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end w-full gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsDeleteOpen(false)}
                   disabled={isSaving}
-                  className="flex-1 border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95"
+                  className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95"
                 >
                   Cancel
                 </button>
@@ -2702,7 +2782,7 @@ function SupplierDirectory() {
                   type="button"
                   onClick={handleDeleteConfirm}
                   disabled={isSaving}
-                  className="flex-1 bg-error-600 hover:bg-error-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-error-500/10 active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full sm:w-auto bg-error-500 hover:bg-error-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-error-500/10 active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   {isSaving ? <Spinner size="sm" /> : null}
                   <span>Confirm Deactivate</span>
@@ -2710,7 +2790,7 @@ function SupplierDirectory() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

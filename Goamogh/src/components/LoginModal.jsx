@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { addToDbCart } from '../services/api';
 import { useRouter } from 'next/navigation';
 import { X, ArrowRight, Phone, Lock } from 'lucide-react';
@@ -17,6 +18,7 @@ export default function LoginModal() {
         setLoginPendingItem,
         openLegalModal
     } = useAuth();
+    const { reloadCart } = useCart();
 
     const [phone, setPhone] = useState('');
     const [otpCode, setOtpCode] = useState('');
@@ -169,7 +171,7 @@ export default function LoginModal() {
                             origin: loginPendingItem.origin || 'India'
                         };
                         await addToDbCart(token, dbItem);
-                        window.dispatchEvent(new Event('cart-updated'));
+                        reloadCart();
                     } catch (cartErr) {
                         console.error('Failed to sync pending item to database cart:', cartErr);
                     }
@@ -372,7 +374,7 @@ export default function LoginModal() {
                                     />
                                     <p className="text-[10px] text-[#d6cca9]/45 font-mono text-center mt-1">
                                         {expiryTimer > 0 
-                                            ? "Simulated OTP is printed in the backend server console logs." 
+                                            ? " " 
                                             : "OTP has expired. Please click Resend Code."}
                                     </p>
                                 </div>

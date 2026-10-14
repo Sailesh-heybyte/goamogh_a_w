@@ -2,14 +2,10 @@ import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeft,
-  Search,
   Plus,
   Trash2,
   AlertCircle,
   Save,
-  CheckCircle,
-  Wheat,
-  Package,
   Layers3,
   Calculator,
   MapPin
@@ -18,6 +14,7 @@ import { getIndentDetails, createIndent, updateIndent } from "@/services/indents
 import { searchCustomerByPhone } from "@/services/customers"
 import { getPricingPanel } from "@/services/products"
 import Spinner from "@/components/ui/Spinner"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -29,6 +26,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function CreateIndent() {
+  const confirm = useConfirm()
   const navigate = useNavigate()
   const { id } = useParams()
   const isEditMode = !!id
@@ -301,6 +299,13 @@ function CreateIndent() {
     e.preventDefault()
     if (!validateForm()) return
 
+    const ok = await confirm({
+      title: isEditMode ? `Update indent #${id}?` : `Create sales indent for ${customerName.trim() || phone.trim()}?`,
+      message: isEditMode ? "This will update the existing sales indent." : "This will create a new sales indent order.",
+      confirmLabel: isEditMode ? "Update indent" : "Create indent",
+    })
+    if (!ok) return
+
     setIsSaving(true)
     try {
       const payload = {
@@ -375,7 +380,7 @@ function CreateIndent() {
           onClick={() => navigate("/dashboard/indents")}
           className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
         >
-          <ArrowLeft className="w-4 h-4 text-slate-550" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
         </button>
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
@@ -393,19 +398,19 @@ function CreateIndent() {
       </div>
 
       {(error || validationError) && (
-        <div className="p-4 bg-error-50 border border-error-200 rounded-2xl text-sm font-semibold text-error-800 flex items-start gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 text-error-600 shrink-0 mt-0.5" />
+        <div className="p-4 bg-error-50 border border-error-100 rounded-2xl text-sm font-semibold text-error-800 flex items-start gap-2.5 animate-in fade-in">
+          <AlertCircle className="w-5 h-5 text-error-500 shrink-0 mt-0.5" />
           <p>{error || validationError}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6 text-xs font-semibold">
-        <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4">
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 uppercase tracking-wider">Customer Lookup</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-650 mb-1">Customer Phone Number <span className="text-error-500">*</span></label>
+              <label className="text-xs font-bold text-slate-600 mb-1">Customer Phone Number <span className="text-error-500">*</span></label>
               <div className="relative">
                 <input
                   type="text"
@@ -431,7 +436,7 @@ function CreateIndent() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-650 mb-1">Customer Name</label>
+              <label className="text-xs font-bold text-slate-600 mb-1">Customer Name</label>
               <input
                 type="text"
                 value={customerName}
@@ -443,18 +448,18 @@ function CreateIndent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">GSTIN (Optional)</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">GSTIN (Optional)</label>
               <input
                 type="text"
                 value={customerGstin}
                 onChange={(e) => setCustomerGstin(e.target.value)}
                 placeholder="B2B triggers auto B2B price"
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none font-mono"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none tabular-nums"
               />
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Company / Business Name</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Company / Business Name</label>
               <input
                 type="text"
                 value={companyName}
@@ -464,7 +469,7 @@ function CreateIndent() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Customer Classification</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Customer Classification</label>
               <div className="py-2.5 px-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-800">
                 {isB2b ? (
                   <span className="text-purple-700 font-extrabold uppercase text-[10px]">B2B Wholesale Partner</span>
@@ -477,7 +482,7 @@ function CreateIndent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Shipping Address / Destination</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Shipping Address / Destination</label>
               <select
                 value={addressId}
                 onChange={(e) => {
@@ -518,7 +523,7 @@ function CreateIndent() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Place of Supply (State)</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Place of Supply (State)</label>
               <input
                 type="text"
                 value={customerState}
@@ -529,7 +534,7 @@ function CreateIndent() {
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-bold text-slate-655 mb-1">Additional Delivery Notes</label>
+            <label className="text-xs font-bold text-slate-700 mb-1">Additional Delivery Notes</label>
             <textarea
               rows="2"
               value={notes}
@@ -541,7 +546,7 @@ function CreateIndent() {
         </div>
 
         {/* ITEMS GRID */}
-        <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4">
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Indent Specifications</h3>
             <button
@@ -568,7 +573,7 @@ function CreateIndent() {
 
                     {/* Product selection */}
                     <div className="sm:col-span-4 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Product Variant</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Product Variant</label>
                       <select
                         required
                         value={item.variant_id}
@@ -586,7 +591,7 @@ function CreateIndent() {
 
                     {/* Quantity */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Quantity</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Quantity</label>
                       <input
                         type="number"
                         step="0.0001"
@@ -594,13 +599,13 @@ function CreateIndent() {
                         required
                         value={item.quantity}
                         onChange={(e) => handleItemFieldChange(idx, "quantity", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Rate */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Rate (₹)</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Rate (₹)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -608,13 +613,13 @@ function CreateIndent() {
                         required
                         value={item.rate}
                         onChange={(e) => handleItemFieldChange(idx, "rate", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-right font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Discount */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Discount %</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Discount %</label>
                       <input
                         type="number"
                         step="0.1"
@@ -623,14 +628,14 @@ function CreateIndent() {
                         required
                         value={item.discount_percent}
                         onChange={(e) => handleItemFieldChange(idx, "discount_percent", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Total */}
                     <div className="sm:col-span-1.5 flex flex-col justify-center text-right pr-6 min-h-[45px]">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">Total</span>
-                      <span className="font-mono font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
+                      <span className="tabular-nums font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
                     </div>
 
                     {/* Trash action */}
@@ -669,20 +674,20 @@ function CreateIndent() {
         )}
 
         {showPreview && (
-          <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4 w-full">
+          <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4 w-full">
             <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 uppercase tracking-wider">Indent Estimate</h3>
 
             {/* Items Preview Table */}
-            <div className="border border-slate-150 rounded-xl overflow-hidden mb-4 bg-white shadow-sm w-full">
-              <table className="w-full text-left border-collapse table-fixed">
+            <div className="border border-slate-100 rounded-xl overflow-hidden mb-4 bg-white shadow-sm w-full">
+              <table className="w-full text-left border-collapse table-fixed text-xs">
                 <thead>
-                  <tr className="border-b border-slate-150 bg-slate-100/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Unit Price</th>
-                    <th className="px-3 py-2 text-right">Gross</th>
-                    <th className="px-3 py-2 text-center">Discount</th>
-                    <th className="px-3 py-2 text-right">Total</th>
+                  <tr className="border-b border-slate-100 bg-slate-100/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    <th className="px-3 py-2 w-[50%] md:w-[35%] lg:w-[30%] xl:w-[28%]">Item</th>
+                    <th className="px-3 py-2 text-right w-[22%] md:w-[15%] lg:w-[12%] xl:w-[12%]">Qty</th>
+                    <th className="hidden md:table-cell px-3 py-2 text-right w-[16%] lg:w-[14%] xl:w-[14%]">Unit Price</th>
+                    <th className="hidden xl:table-cell px-3 py-2 text-right w-[16%]">Gross</th>
+                    <th className="hidden lg:table-cell px-3 py-2 text-center w-[12%] xl:w-[12%]">Discount</th>
+                    <th className="px-3 py-2 text-right w-[28%] md:w-[18%] lg:w-[16%] xl:w-[18%]">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-semibold bg-white">
@@ -699,12 +704,20 @@ function CreateIndent() {
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50">
-                        <td className="px-3 py-2 font-bold text-slate-800">{itemName}</td>
-                        <td className="px-3 py-2 text-right font-mono">{qty}</td>
-                        <td className="px-3 py-2 text-right font-mono">₹{rate.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-right font-mono">₹{lineGross.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-center font-mono text-rose-700">{discPct}%</td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">₹{lineTotal.toFixed(2)}</td>
+                        <td className="px-3 py-2 font-bold text-slate-800">
+                          <div className="truncate" title={itemName}>{itemName}</div>
+                          <div className="md:hidden text-[10px] text-slate-400 font-normal truncate">
+                            Rate: ₹{rate.toFixed(2)}
+                          </div>
+                          <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
+                            {discPct > 0 ? `Disc: ${discPct}%` : ""}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{qty}</td>
+                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{rate.toFixed(2)}</td>
+                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{lineGross.toFixed(2)}</td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">{discPct}%</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">₹{lineTotal.toFixed(2)}</td>
                       </tr>
                     )
                   })}
@@ -715,15 +728,15 @@ function CreateIndent() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Gross Subtotal</span>
-                <p className="text-base font-extrabold text-slate-800 font-mono">₹{subtotal.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{subtotal.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Discount Allowed</span>
-                <p className="text-base font-extrabold text-rose-700 font-mono">-₹{totalDiscount.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-rose-700 tabular-nums">-₹{totalDiscount.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Estimated Total</span>
-                <p className="text-lg font-black text-brand-700 font-mono">₹{grandTotal.toFixed(2)}</p>
+                <p className="text-lg font-extrabold text-brand-700 tabular-nums">₹{grandTotal.toFixed(2)}</p>
               </div>
             </div>
 

@@ -1,4 +1,3 @@
-import React from "react"
 import { Clock, AlertTriangle, XCircle, CheckCircle2, Info, X } from "lucide-react"
 
 export function Toast({ type = "error", title, message, onClose }) {

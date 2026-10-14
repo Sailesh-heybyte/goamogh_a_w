@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { addToDbCart } from '../services/api';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Phone, Lock, X, ArrowLeft } from 'lucide-react';
@@ -18,6 +19,7 @@ export default function LoginPage() {
         setLoginPendingItem,
         openLegalModal
     } = useAuth();
+    const { reloadCart } = useCart();
 
     const [phone, setPhone] = useState('');
     const [otpCode, setOtpCode] = useState('');
@@ -169,7 +171,7 @@ export default function LoginPage() {
                         await addToDbCart(verifiedToken, dbItem, loginPendingItem.quantity || 1);
                         // Clear pending item state
                         setLoginPendingItem(null);
-                        window.dispatchEvent(new Event('cart-updated'));
+                        reloadCart();
                     } catch (cartErr) {
                         console.error('Failed to sync pending item to database cart:', cartErr);
                     }

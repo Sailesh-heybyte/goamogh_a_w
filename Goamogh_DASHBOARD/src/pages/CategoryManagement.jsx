@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { Plus, Edit2, ShieldAlert, X, FolderOpen, AlertTriangle, Calendar, Search } from "lucide-react"
 import { getCategories, createCategory, updateCategory, getCategoryDetails } from "@/services/categories"
 import Spinner from "@/components/ui/Spinner"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -13,6 +15,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function CategoryManagement() {
+  const confirm = useConfirm()
   const [categoriesList, setCategoriesList] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -123,6 +126,13 @@ function CategoryManagement() {
       return
     }
 
+    const ok = await confirm({
+      title: `Create category "${createForm.name.trim()}"?`,
+      message: "This will add the new product category to the catalog.",
+      confirmLabel: "Create",
+    })
+    if (!ok) return
+
     setIsCreating(true)
     try {
       const payload = {
@@ -192,6 +202,13 @@ function CategoryManagement() {
       setEditErrors(errs)
       return
     }
+
+    const ok = await confirm({
+      title: `Save changes to category "${selectedCategory.name}"?`,
+      message: "This will update the category details.",
+      confirmLabel: "Save changes",
+    })
+    if (!ok) return
 
     setIsEditing(true)
     try {
@@ -264,7 +281,7 @@ function CategoryManagement() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
       
       {/* Title Header Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Product Categories</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Configure classifications for catalog products and materials.</p>
@@ -276,7 +293,7 @@ function CategoryManagement() {
             setCreateErrors({})
             setIsCreateOpen(true)
           }}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Create Category</span>
@@ -285,7 +302,7 @@ function CategoryManagement() {
 
       {/* Toolbar Search Input */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
-        <div className="relative flex-1 w-full">
+        <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
@@ -299,15 +316,15 @@ function CategoryManagement() {
 
       {/* Directory Table Grid Card */}
       <div className="bg-white border border-slate-100 shadow-lg rounded-2xl overflow-hidden w-full">
-        <div className="w-full overflow-hidden">
+        <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <th className="px-6 py-4 w-[24%]">Category Name</th>
-                <th className="px-6 py-4 w-[38%]">Description</th>
-                <th className="px-6 py-4 w-[16%]">Created Date</th>
-                <th className="px-6 py-4 w-[10%]">Status</th>
-                <th className="px-6 py-4 w-[12%] text-right">Actions</th>
+                <th className="px-3 md:px-6 py-4 w-[55%] md:w-[35%] lg:w-[25%]">Category Name</th>
+                <th className="hidden md:table-cell px-3 md:px-6 py-4 w-[40%] lg:w-[35%]">Description</th>
+                <th className="hidden lg:table-cell px-3 md:px-6 py-4 w-[16%]">Created Date</th>
+                <th className="px-3 md:px-6 py-4 w-[25%] md:w-[15%] lg:w-[12%]"><span className="hidden md:inline">Status</span></th>
+                <th className="px-3 md:px-6 py-4 w-[20%] md:w-[10%] lg:w-[12%] text-right"><span className="hidden md:inline">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
@@ -320,31 +337,39 @@ function CategoryManagement() {
               ) : (
                 filteredCategories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-slate-700 shrink-0">
-                        {cat.image ? (
-                          <img
-                            src={cat.image}
-                            alt={cat.name}
-                            className="w-full h-full rounded-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = "none"
-                            }}
-                          />
-                        ) : (
-                          <FolderOpen className="w-4 h-4 text-slate-500" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-slate-800 font-bold uppercase tracking-wider text-xs">
-                          {cat.name}
-                        </p>
+                    <td className="px-3 md:px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-slate-700 shrink-0">
+                          {cat.image ? (
+                            <img
+                              src={cat.image}
+                              alt={cat.name}
+                              className="w-full h-full rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <FolderOpen className="w-4 h-4 text-slate-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate" title={cat.name}>
+                            {cat.name}
+                          </p>
+                          <p className="md:hidden text-[10px] text-slate-400 truncate mt-0.5" title={cat.description || undefined}>
+                            {cat.description || "—"}
+                          </p>
+                          <p className="lg:hidden text-[10px] text-slate-400 truncate">
+                            {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : ""}
+                          </p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-normal text-slate-500 max-w-xs truncate">
+                    <td className="hidden md:table-cell px-3 md:px-6 py-4 font-normal text-slate-500 truncate" title={cat.description || undefined}>
                       {cat.description || "—"}
                     </td>
-                    <td className="px-6 py-4 font-normal text-slate-500">
+                    <td className="hidden lg:table-cell px-3 md:px-6 py-4 font-normal text-slate-500 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
                         <span>
@@ -352,27 +377,30 @@ function CategoryManagement() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       {cat.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-success-50 text-success-700 border-success-100">
-                          <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-success-500" />
-                          Active
+                        <span title="Active" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-success-500" aria-hidden="true" />
+                          <span className="sr-only md:hidden">Active</span>
+                          <span className="hidden md:inline">Active</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-error-50 text-error-800 border-error-100">
-                          <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-error-500" />
-                          Inactive
+                        <span title="Inactive" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-error-50 text-error-800 border-error-100 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-error-500" aria-hidden="true" />
+                          <span className="sr-only md:hidden">Inactive</span>
+                          <span className="hidden md:inline">Inactive</span>
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => handleEditOpen(cat)}
                         className="p-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-lg text-slate-500 transition-colors active:scale-95 inline-flex items-center gap-1.5"
                         title="Edit Category"
+                        aria-label="Edit category"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
-                        <span className="text-xs font-semibold">Edit</span>
+                        <span className="hidden md:inline text-xs font-semibold">Edit</span>
                       </button>
                     </td>
                   </tr>
@@ -385,9 +413,9 @@ function CategoryManagement() {
 
       {/* Create Category Modal Overlay */}
       {isCreateOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Create Product Category</h3>
               <button
                 onClick={() => setIsCreateOpen(false)}
@@ -397,7 +425,7 @@ function CategoryManagement() {
               </button>
             </div>
             
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 overflow-y-auto">
               {createErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -444,20 +472,18 @@ function CategoryManagement() {
                 />
               </div>
 
-
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isCreating ? <Spinner size="sm" /> : null}
                   <span>Create Category</span>
@@ -465,14 +491,14 @@ function CategoryManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit Category Modal Overlay */}
       {isEditOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsEditOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Edit Category Details</h3>
               <button
                 onClick={() => setIsEditOpen(false)}
@@ -487,7 +513,7 @@ function CategoryManagement() {
                 <Spinner size="lg" />
               </div>
             ) : (
-              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto">
                 {editErrors.global && (
                   <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                     <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -534,8 +560,6 @@ function CategoryManagement() {
                   />
                 </div>
 
-
-
                 {/* Active Status Switch and Warning Callout */}
                 <div className="flex flex-col gap-2 mt-2">
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
@@ -558,18 +582,18 @@ function CategoryManagement() {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6">
                   <button
                     type="button"
                     onClick={() => setIsEditOpen(false)}
-                    className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                    className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all w-full sm:w-auto"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isEditing}
-                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {isEditing ? <Spinner size="sm" /> : null}
                     <span>Save Changes</span>
@@ -578,7 +602,7 @@ function CategoryManagement() {
               </form>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

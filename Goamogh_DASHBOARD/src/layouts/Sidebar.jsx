@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
-import { LayoutDashboard, Users, Shield, Layers, Package, IndianRupee, Wheat, Truck, ShoppingCart, ChevronDown, ChevronRight, Settings, ClipboardList, Layers3, FileText, Star, MessageSquare, Inbox } from "lucide-react"
+import { LayoutDashboard, Users, Shield, Layers, Package, IndianRupee, Truck, ShoppingCart, ChevronDown, ChevronRight, Settings, ClipboardList, Layers3, FileText, Star, Inbox, X } from "lucide-react"
 
-function Sidebar() {
+function Sidebar({ isOpen, onClose }) {
   const { user, isSuperAdmin } = useAuth()
   const location = useLocation()
 
@@ -68,13 +68,16 @@ function Sidebar() {
   )
 
   return (
-    <aside className="w-[280px] bg-white border-r border-slate-200/80 flex flex-col shrink-0 h-screen sticky top-0 z-30 animate-in fade-in slide-in-from-left duration-200">
+    <aside className={`fixed inset-y-0 left-0 z-40 w-[280px] h-dvh bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0`}>
       {/* Branding header block */}
-      <div className="h-16 flex items-center px-8 border-b border-slate-100 gap-3 shrink-0">
+      <div className="h-16 flex items-center px-6 lg:px-8 border-b border-slate-100 gap-3 shrink-0">
         <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shadow-md shadow-brand-500/10">
           <LayoutDashboard className="w-4 h-4 text-white" />
         </div>
         <span className="font-extrabold text-slate-900 text-lg tracking-tight">Goamogh</span>
+        <button type="button" onClick={onClose} className="lg:hidden ml-auto p-2 -mr-2 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Close menu">
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Scrollable Nav Link list */}
@@ -86,6 +89,7 @@ function Sidebar() {
               <NavLink
                 key={item.name}
                 to={item.to}
+                onClick={onClose}
                 end={item.to === "/dashboard"}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
@@ -105,7 +109,7 @@ function Sidebar() {
             <div className="space-y-1">
               <button
                 onClick={() => setIsPurchasesOpen(!isPurchasesOpen)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-855 hover:bg-slate-55 ${location.pathname.startsWith("/dashboard/purchase") ? "text-slate-800 font-bold" : ""
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-900 hover:bg-slate-50 ${location.pathname.startsWith("/dashboard/purchase") ? "text-slate-800 font-bold" : ""
                   }`}
               >
                 <div className="flex items-center gap-3">
@@ -124,6 +128,7 @@ function Sidebar() {
                   {showPO && (
                     <NavLink
                       to="/dashboard/purchase/orders"
+                      onClick={onClose}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive
                           ? "bg-brand-50 text-brand-700 font-bold"
@@ -138,6 +143,7 @@ function Sidebar() {
                   {showPE && (
                     <NavLink
                       to="/dashboard/purchase/entries"
+                      onClick={onClose}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive
                           ? "bg-brand-50 text-brand-700 font-bold"
@@ -160,6 +166,7 @@ function Sidebar() {
               <NavLink
                 key={item.name}
                 to={item.to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
                     ? "bg-brand-50 text-brand-700 font-bold"

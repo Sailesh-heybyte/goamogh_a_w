@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, Loader, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addToDbCart, getCategoriesOnce, fetchProducts, fetchDbCart, updateDbCartQty, removeFromDbCart } from '../services/api';
+import { useCart } from '../context/CartContext';
+import { getCategoriesOnce, fetchProducts } from '../services/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -22,11 +23,11 @@ export default function ShopPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedWeights, setSelectedWeights] = useState({});
 
-  const [cartItems, setCartItems] = useState([]);
   const [showCartNotif, setShowCartNotif] = useState(false);
   const [addedProductName, setAddedProductName] = useState('');
   const [cartError, setCartError] = useState(null);
   const { user, token, setLoginPendingItem } = useAuth();
+  const { cartItems, addCartItem, updateCartItemQty, removeCartItem, reloadCart } = useCart();
 
   // Handle URL change for category navigation
   const setActiveCategory = (id) => {
@@ -66,30 +67,6 @@ export default function ShopPage() {
   useEffect(() => {
     loadCategories();
   }, []);
-
-  // Fetch and sync cart items
-  const loadCartItems = async () => {
-    if (user && token) {
-      try {
-        const response = await fetchDbCart(token);
-        if (response.success && response.data && Array.isArray(response.data.items)) {
-          setCartItems(response.data.items);
-        } else {
-          setCartItems([]);
-        }
-      } catch (err) {
-        console.error('Failed to load cart items in ShopPage:', err);
-      }
-    } else {
-      setCartItems([]);
-    }
-  };
-
-  useEffect(() => {
-    loadCartItems();
-    window.addEventListener('cart-updated', loadCartItems);
-    return () => window.removeEventListener('cart-updated', loadCartItems);
-  }, [user, token]);
 
   // Fetch products dynamically based on category and search query
   useEffect(() => {
@@ -176,8 +153,7 @@ export default function ShopPage() {
     }
 
     try {
-      await addToDbCart(token, itemData);
-      window.dispatchEvent(new Event('cart-updated'));
+      await addCartItem(itemData);
       setAddedProductName(product.name);
       setShowCartNotif(true);
       setTimeout(() => setShowCartNotif(false), 2000);
@@ -186,7 +162,7 @@ export default function ShopPage() {
       const msg = err.message || 'Failed to add item to cart.';
       setCartError(msg);
       if (err.status === 409 || msg.toLowerCase().includes('available') || msg.toLowerCase().includes('unit') || msg.toLowerCase().includes('stock')) {
-        window.dispatchEvent(new Event('cart-updated'));
+        reloadCart();
       }
       setTimeout(() => setCartError(null), 8000);
     }
@@ -196,11 +172,10 @@ export default function ShopPage() {
     if (!token) return;
     try {
       if (newQty <= 0) {
-        await removeFromDbCart(token, cartItemId);
+        await removeCartItem(cartItemId);
       } else {
-        await updateDbCartQty(token, cartItemId, newQty);
+        await updateCartItemQty(cartItemId, newQty);
       }
-      window.dispatchEvent(new Event('cart-updated'));
     } catch (err) {
       console.error('Failed to update cart quantity on ShopPage:', err);
       setCartError(err.message);

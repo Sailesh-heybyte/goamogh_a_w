@@ -24,6 +24,8 @@ import {
   previewPurchaseEntry
 } from "@/services/purchases"
 import Spinner from "@/components/ui/Spinner"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -77,6 +79,7 @@ const GSTIN_STATE_MAP = {
 }
 
 function CreatePurchaseEntry() {
+  const confirm = useConfirm()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const poId = searchParams.get("po_id")
@@ -167,8 +170,9 @@ function CreatePurchaseEntry() {
             : item.product_name || item.product?.name,
           unit_code: item.unit_code || "KG",
           po_quantity: item.quantity,
+          remaining_quantity: item.remaining_quantity,
           po_unit_price: item.unit_price,
-          quantity_received: item.quantity.toString(),
+          quantity_received: item.remaining_quantity.toString(),
           unit_price: item.unit_price.toString(),
           gst_percent: item.gst_percent !== undefined && item.gst_percent !== null ? item.gst_percent.toString() : "",
           gst_amount: item.gst_amount !== undefined && item.gst_amount !== null ? item.gst_amount.toString() : "",
@@ -561,6 +565,14 @@ function CreatePurchaseEntry() {
       setValidationError("Supplier Invoice Number is required to save draft.")
       return
     }
+
+    const ok = await confirm({
+      title: `Save draft for invoice ${invoiceNumber.trim()}?`,
+      message: "This will save the purchase entry as draft without committing to stock.",
+      confirmLabel: "Save Draft",
+    })
+    if (!ok) return
+
     setIsSavingDraft(true)
     try {
       await submitDraftToBackend()
@@ -571,15 +583,6 @@ function CreatePurchaseEntry() {
       setIsSavingDraft(false)
     }
   }
-
-  const formatWeight = (grams) => {
-    if (grams >= 1000) {
-      const kg = grams / 1000
-      return `${kg} KG`
-    }
-    return `${grams} GM`
-  }
-
   const handleAuthorizeAndCommit = async () => {
     setShowAuthorizeConfirmModal(false)
     setValidationError("")
@@ -630,6 +633,14 @@ function CreatePurchaseEntry() {
       setOverrideError("Please provide an override authorization reason.")
       return
     }
+
+    const ok = await confirm({
+      title: "Force authorize purchase entry?",
+      message: "This will bypass tolerance thresholds, commit goods to warehouse stock, and record an audit justification.",
+      confirmLabel: "Force Authorize",
+      tone: "danger",
+    })
+    if (!ok) return
 
     setIsOverriding(true)
     setOverrideError("")
@@ -686,7 +697,7 @@ function CreatePurchaseEntry() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(peId ? "/dashboard/purchase/entries" : "/dashboard/purchase/orders")}
-          className="p-2 border border-slate-200 hover:border-slate-350 hover:bg-white rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+          className="p-2 border border-slate-200 hover:border-slate-300 hover:bg-white rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
           title="Go back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -699,7 +710,7 @@ function CreatePurchaseEntry() {
 
       {/* Authorization Error Warning Banner */}
       {authError && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3.5 p-4 bg-amber-50 border border-amber-250 rounded-2xl text-sm font-semibold text-amber-955 animate-in slide-in-from-top-2 duration-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3.5 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-semibold text-amber-950 animate-in slide-in-from-top-2 duration-200 shadow-sm">
           <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="font-extrabold text-amber-950">Authorization Alert</h4>
@@ -721,7 +732,7 @@ function CreatePurchaseEntry() {
             )}
             <button
               onClick={() => setAuthError("")}
-              className="text-xs font-bold text-amber-600 hover:text-amber-850 transition-all hover:bg-amber-100/50 px-2.5 py-1.5 rounded-xl"
+              className="text-xs font-bold text-amber-600 hover:text-amber-800 transition-all hover:bg-amber-100/50 px-2.5 py-1.5 rounded-xl"
             >
               Dismiss
             </button>
@@ -731,10 +742,10 @@ function CreatePurchaseEntry() {
 
       {/* PO Context Header or Supplier Dropdown for Direct Purchase */}
       {poDetails ? (
-        <div className="bg-slate-100/60 border border-slate-200/50 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-655">
+        <div className="bg-slate-100/60 border border-slate-200/50 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ref Purchase Order</span>
-            <span className="text-sm font-bold text-brand-700 font-mono mt-1 block">{poDetails.po_number}</span>
+            <span className="text-sm font-bold text-brand-700 tabular-nums mt-1 block">{poDetails.po_number}</span>
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Supplier</span>
@@ -754,7 +765,7 @@ function CreatePurchaseEntry() {
       ) : (
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5 block">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
               Select Supplier <span className="text-error-500 font-bold">*</span>
             </label>
             <select
@@ -764,7 +775,7 @@ function CreatePurchaseEntry() {
                 if (previewData) setPreviewData(null)
               }}
               disabled={!!createdPeId}
-              className="w-full max-w-md px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
+              className="w-full max-w-md px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
             >
               <option value="">Choose Supplier...</option>
               {suppliers.map((s) => (
@@ -774,7 +785,7 @@ function CreatePurchaseEntry() {
               ))}
             </select>
           </div>
-          <div className="bg-indigo-50 border border-indigo-150 p-4 rounded-xl text-xs font-semibold text-indigo-800 self-start md:self-center">
+          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs font-semibold text-indigo-800 self-start md:self-center">
             <span>Direct Purchase Mode</span>
             <p className="text-[10px] text-indigo-600 mt-0.5">Logging inventory receipt without linking a prior Purchase Order.</p>
           </div>
@@ -802,7 +813,7 @@ function CreatePurchaseEntry() {
         <div className="flex flex-col gap-2 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs font-semibold text-amber-900 animate-in slide-in-from-top-2 duration-200 shadow-sm">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-            <h4 className="font-extrabold text-amber-955 text-sm">Discrepancy Warnings & Tax Mismatches</h4>
+            <h4 className="font-extrabold text-amber-950 text-sm">Discrepancy Warnings & Tax Mismatches</h4>
           </div>
           <ul className="list-disc pl-5 space-y-1 mt-1 text-[11px] text-amber-800">
             {warnings.map((warn, wIdx) => (
@@ -816,7 +827,7 @@ function CreatePurchaseEntry() {
       <form onSubmit={handlePreviewTax} className="space-y-6">        {/* Invoice Metadata form */}
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Supplier Invoice Number <span className="text-error-500 font-bold">*</span>
             </label>
             <div className="relative">
@@ -831,13 +842,13 @@ function CreatePurchaseEntry() {
                   setWarnings([])
                 }}
                 placeholder="E.g., INV/2026/089"
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Invoice Date
             </label>
             <div className="relative">
@@ -851,18 +862,18 @@ function CreatePurchaseEntry() {
                   if (previewData) setPreviewData(null) // clear preview if date changes
                   setWarnings([])
                 }}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
 
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Others / Shipping Charges (INR)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold font-mono">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
               <input
                 type="number"
                 step="0.01"
@@ -874,14 +885,14 @@ function CreatePurchaseEntry() {
                   setWarnings([])
                 }}
                 placeholder="0.00"
-                className="w-full pl-8 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed font-mono"
+                className="w-full pl-8 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed tabular-nums"
               />
             </div>
           </div>
 
           {/* Place of Supply (Ship to State) */}
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Place of Supply (Ship To State) <span className="text-error-500 font-bold">*</span>
             </label>
             <select
@@ -892,7 +903,7 @@ function CreatePurchaseEntry() {
                 if (previewData) setPreviewData(null)
                 setWarnings([])
               }}
-              className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
             >
               {Object.values(GSTIN_STATE_MAP).map((stateName) => (
                 <option key={stateName} value={stateName}>
@@ -910,20 +921,20 @@ function CreatePurchaseEntry() {
             <span>Match Arriving Quantities</span>
           </h3>
 
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <table className="w-full text-left border-collapse table-fixed">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                  <th className="px-4 py-3">Received Item</th>
-                  {poDetails && <th className="px-4 py-3 text-right">PO Terms</th>}
-                  <th className="px-4 py-3 w-[110px]">Qty Received</th>
-                  <th className="px-4 py-3 w-[120px]">Unit Price Received</th>
-                  <th className="px-4 py-3 w-[95px]">GST %</th>
-                  <th className="px-4 py-3 w-[95px]">GST Amt</th>
-                  <th className="px-4 py-3 w-[125px]">Batch Date</th>
-                  <th className="px-4 py-3 w-[125px]">Expiry Date</th>
-                  <th className="px-4 py-3 text-right">Est. Subtotal</th>
-                  {!poDetails && <th className="px-4 py-3 text-center w-[60px]">Action</th>}
+                  <th className={`px-2 sm:px-4 py-3 ${poDetails ? "w-[44%] md:w-[28%] lg:w-[22%]" : "w-[40%] md:w-[28%] lg:w-[24%]"}`}>Received Item</th>
+                  {poDetails && <th className="hidden md:table-cell px-2 sm:px-4 py-3 w-[12%] text-right">PO Terms</th>}
+                  <th className="px-2 sm:px-4 py-3 w-[26%] md:w-[15%] lg:w-[11%]">Qty Received</th>
+                  <th className="px-2 sm:px-4 py-3 w-[26%] md:w-[15%] lg:w-[11%]">Unit Price Received</th>
+                  <th className="hidden lg:table-cell px-2 sm:px-4 py-3 w-[8%]">GST %</th>
+                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[8%]">GST Amt</th>
+                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[10%]">Batch Date</th>
+                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[10%]">Expiry Date</th>
+                  <th className="hidden md:table-cell px-2 sm:px-4 py-3 text-right w-[14%] lg:w-[10%]">Est. Subtotal</th>
+                  {!poDetails && <th className="px-1 sm:px-2 py-3 text-center w-[8%] md:w-[6%]">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
@@ -947,8 +958,9 @@ function CreatePurchaseEntry() {
                   const poQty = parseFloat(row.po_quantity) || 0
                   const poPrice = parseFloat(row.po_unit_price) || 0
 
-                  const minQty = poQty * (1 - qtyTolerance / 100)
-                  const maxQty = poQty * (1 + qtyTolerance / 100)
+                  const remainingQty = parseFloat(row.remaining_quantity) || 0
+                  const minQty = remainingQty * (1 - qtyTolerance / 100)
+                  const maxQty = remainingQty + poQty * (qtyTolerance / 100)
                   const minPrice = poPrice * (1 - priceTolerance / 100)
                   const maxPrice = poPrice * (1 + priceTolerance / 100)
 
@@ -958,21 +970,21 @@ function CreatePurchaseEntry() {
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/20 align-top">
                       {/* Name Details / Selection */}
-                      <td className="px-4 py-3">
+                      <td className="px-2 sm:px-4 py-3">
                         {poDetails ? (
                           <div className="flex items-center gap-2">
                             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRM ? "bg-amber-400" : "bg-blue-400"}`} />
-                            <div>
-                              <p className="font-bold text-slate-800 leading-snug">{row.name || "Unknown Item"}</p>
-                              <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-800 leading-snug truncate" title={row.name || "Unknown Item"}>{row.name || "Unknown Item"}</p>
+                              <p className="text-[9px] text-slate-400 font-bold mt-0.5 truncate">
                                 Type: {isRM ? "Raw Material" : "Finished Product"}
                               </p>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col gap-2 min-w-[200px]">
-                            <div className="flex gap-2.5">
-                              <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
+                          <div className="flex flex-col gap-2 min-w-0">
+                            <div className="flex gap-2.5 flex-wrap">
+                              <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`item-type-${row.id}`}
@@ -981,9 +993,9 @@ function CreatePurchaseEntry() {
                                   onChange={() => handleItemTypeChange(row.id, "raw_material")}
                                   className="text-brand-600 focus:ring-brand-500 w-3 h-3"
                                 />
-                                <span>Raw Material</span>
+                                <span>Raw</span>
                               </label>
-                              <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
+                              <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`item-type-${row.id}`}
@@ -992,7 +1004,7 @@ function CreatePurchaseEntry() {
                                   onChange={() => handleItemTypeChange(row.id, "product")}
                                   className="text-brand-600 focus:ring-brand-500 w-3 h-3"
                                 />
-                                <span>Finished Product</span>
+                                <span>Finished</span>
                               </label>
                             </div>
 
@@ -1000,7 +1012,7 @@ function CreatePurchaseEntry() {
                               <select
                                 value={row.raw_material_id || ""}
                                 onChange={(e) => handleDirectItemSelect(row.id, "raw_material", e.target.value)}
-                                className="w-full px-2.5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700"
+                                className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
                               >
                                 <option value="">Select Raw Material...</option>
                                 {rawMaterialsList.map((rm) => (
@@ -1013,7 +1025,7 @@ function CreatePurchaseEntry() {
                               <select
                                 value={row.product_id || ""}
                                 onChange={(e) => handleDirectItemSelect(row.id, "product", e.target.value)}
-                                className="w-full px-2.5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700"
+                                className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
                               >
                                 <option value="">Select Finished Product...</option>
                                 {productsList.map((p) => (
@@ -1025,18 +1037,27 @@ function CreatePurchaseEntry() {
                             )}
                           </div>
                         )}
+                        <div className="md:hidden text-[10px] text-slate-400 font-normal truncate mt-1">
+                          {poDetails ? `PO: ${poQty.toFixed(2)} ${row.unit_code} @ ₹${poPrice.toFixed(2)} • ` : ""}Est: ₹{estSubtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
+                          GST: {row.gst_percent || 0}% {row.gst_amount ? `(₹${row.gst_amount})` : ""}
+                        </div>
+                        <div className="xl:hidden text-[10px] text-slate-400 font-normal truncate">
+                          {row.batch_date ? `Batch: ${row.batch_date}` : ""} {row.expiry_date ? `• Exp: ${row.expiry_date}` : ""}
+                        </div>
                       </td>
 
                       {/* PO Qty / Price */}
                       {poDetails && (
-                        <td className="px-4 py-3 text-right font-mono text-slate-600 text-xs">
+                        <td className="hidden md:table-cell px-2 sm:px-4 py-3 text-right tabular-nums text-slate-600 text-xs whitespace-nowrap">
                           <div className="font-bold">{poQty.toFixed(2)} {row.unit_code}</div>
                           <div className="text-[10px] text-slate-400 mt-0.5">@ ₹{poPrice.toFixed(2)}</div>
                         </td>
                       )}
 
                       {/* Received Qty */}
-                      <td className="px-4 py-3">
+                      <td className="px-2 sm:px-4 py-3">
                         <div className="relative">
                           <input
                             type="number"
@@ -1044,10 +1065,10 @@ function CreatePurchaseEntry() {
                             disabled={poDetails?.status === "cancelled"}
                             value={row.quantity_received}
                             onChange={(e) => handleItemChange(row.id, "quantity_received", e.target.value)}
-                            className={`w-full pl-2 pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isQtyWarning ? "border-error-300 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-350"
+                            className={`w-full pl-1.5 pr-7 sm:pl-2 sm:pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isQtyWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
                               }`}
                           />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
+                          <span className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
                             {row.unit_code}
                           </span>
                         </div>
@@ -1059,16 +1080,16 @@ function CreatePurchaseEntry() {
                       </td>
 
                       {/* Received Unit Price */}
-                      <td className="px-4 py-3">
+                      <td className="px-2 sm:px-4 py-3">
                         <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold font-mono">₹</span>
+                          <span className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
                           <input
                             type="number"
                             step="0.01"
                             disabled={poDetails?.status === "cancelled"}
                             value={row.unit_price}
                             onChange={(e) => handleItemChange(row.id, "unit_price", e.target.value)}
-                            className={`w-full pl-5 pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isPriceWarning ? "border-error-300 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-350"
+                            className={`w-full pl-4 pr-1 sm:pl-5 sm:pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isPriceWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
                               }`}
                           />
                         </div>
@@ -1080,7 +1101,7 @@ function CreatePurchaseEntry() {
                       </td>
 
                       {/* GST % manual override */}
-                      <td className="px-4 py-3">
+                      <td className="hidden lg:table-cell px-2 sm:px-4 py-3">
                         <div className="relative">
                           <input
                             type="number"
@@ -1091,16 +1112,16 @@ function CreatePurchaseEntry() {
                             value={row.gst_percent}
                             onChange={(e) => handleItemChange(row.id, "gst_percent", e.target.value)}
                             placeholder="GST %"
-                            className="w-full pl-2 pr-5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full pl-2 pr-5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">%</span>
                         </div>
                       </td>
 
                       {/* GST Amt manual override */}
-                      <td className="px-4 py-3">
+                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
                         <div className="relative">
-                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold font-mono">₹</span>
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold tabular-nums">₹</span>
                           <input
                             type="number"
                             step="0.01"
@@ -1109,43 +1130,41 @@ function CreatePurchaseEntry() {
                             value={row.gst_amount}
                             onChange={(e) => handleItemChange(row.id, "gst_amount", e.target.value)}
                             placeholder="Auto"
-                            className="w-full pl-4 pr-1.5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full pl-4 pr-1.5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
                       </td>
 
-
-
                       {/* Batch Date */}
-                      <td className="px-4 py-3">
+                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
                         <input
                           type="date"
                           disabled={poDetails?.status === "cancelled"}
                           value={row.batch_date}
                           onChange={(e) => handleItemChange(row.id, "batch_date", e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-705"
+                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </td>
 
                       {/* Expiry Date */}
-                      <td className="px-4 py-3">
+                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
                         <input
                           type="date"
                           disabled={poDetails?.status === "cancelled"}
                           value={row.expiry_date}
                           onChange={(e) => handleItemChange(row.id, "expiry_date", e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-705"
+                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </td>
 
                       {/* Est Subtotal */}
-                      <td className="px-4 py-3 text-right font-mono font-bold text-slate-750">
+                      <td className="hidden md:table-cell px-2 sm:px-4 py-3 text-right tabular-nums font-bold text-slate-700 whitespace-nowrap">
                         ₹{estSubtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
 
                       {/* Row Deletion Action */}
                       {!poDetails && (
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-1 sm:px-2 py-3 text-center whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => handleRemoveDirectItem(row.id)}
@@ -1168,7 +1187,7 @@ function CreatePurchaseEntry() {
               <button
                 type="button"
                 onClick={handleAddDirectItem}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-600 bg-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 bg-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5 text-slate-500" />
                 <span>Add Item Row</span>
@@ -1206,12 +1225,12 @@ function CreatePurchaseEntry() {
         <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-6 space-y-6 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex justify-start">
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 w-full max-w-md space-y-3 shadow-sm">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-150 pb-1.5">Tax Summary Details</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1.5">Tax Summary Details</h4>
 
               <div className="space-y-1.5 text-xs font-semibold text-slate-600">
                 <div className="flex justify-between">
                   <span>Taxable Subtotal</span>
-                  <span className="font-mono text-slate-800 font-bold">
+                  <span className="tabular-nums text-slate-800 font-bold">
                     ₹{((previewData.total_amount || 0) - (previewData.total_tax || 0) - (parseFloat(previewData.total_cess || previewData.cess_amount) || 0) - (parseFloat(previewData.others) || 0) - (parseFloat(previewData.rounding_adjustment) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -1219,7 +1238,7 @@ function CreatePurchaseEntry() {
                 {previewData.is_interstate ? (
                   <div className="flex justify-between">
                     <span>IGST Amount</span>
-                    <span className="font-mono text-slate-850 font-bold">
+                    <span className="tabular-nums text-slate-800 font-bold">
                       ₹{(previewData.igst_amount !== undefined ? previewData.igst_amount : (previewData.total_tax || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1227,13 +1246,13 @@ function CreatePurchaseEntry() {
                   <>
                     <div className="flex justify-between">
                       <span>CGST Amount</span>
-                      <span className="font-mono text-slate-850 font-bold">
+                      <span className="tabular-nums text-slate-800 font-bold">
                         ₹{(previewData.cgst_amount !== undefined ? previewData.cgst_amount : ((previewData.total_tax || 0) / 2)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>SGST Amount</span>
-                      <span className="font-mono text-slate-850 font-bold">
+                      <span className="tabular-nums text-slate-800 font-bold">
                         ₹{(previewData.sgst_amount !== undefined ? previewData.sgst_amount : ((previewData.total_tax || 0) / 2)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -1243,7 +1262,7 @@ function CreatePurchaseEntry() {
                 {parseFloat(previewData.total_cess || previewData.cess_amount || 0) > 0 && (
                   <div className="flex justify-between">
                     <span>Cess Amount</span>
-                    <span className="font-mono text-slate-850 font-bold">
+                    <span className="tabular-nums text-slate-800 font-bold">
                       ₹{parseFloat(previewData.total_cess || previewData.cess_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1252,7 +1271,7 @@ function CreatePurchaseEntry() {
                 {parseFloat(previewData.others || 0) > 0 && (
                   <div className="flex justify-between">
                     <span>Shipping / Other Charges</span>
-                    <span className="font-mono text-slate-850 font-bold">
+                    <span className="tabular-nums text-slate-800 font-bold">
                       ₹{parseFloat(previewData.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1261,7 +1280,7 @@ function CreatePurchaseEntry() {
                 {parseFloat(previewData.rounding_adjustment || 0) !== 0 && (
                   <div className="flex justify-between">
                     <span>Rounding Adjustment</span>
-                    <span className="font-mono text-slate-850 font-bold">
+                    <span className="tabular-nums text-slate-800 font-bold">
                       ₹{parseFloat(previewData.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1269,7 +1288,7 @@ function CreatePurchaseEntry() {
 
                 <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-800">
                   <span>Grand Total</span>
-                  <span className="font-mono text-brand-700 text-base">
+                  <span className="tabular-nums text-brand-700 text-base">
                     ₹{(previewData.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -1278,21 +1297,21 @@ function CreatePurchaseEntry() {
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4 bg-slate-50/50 p-4 -m-6 rounded-b-2xl mt-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 pt-4 bg-slate-50/50 p-4 -m-6 rounded-b-2xl mt-4">
             <button
               onClick={() => setPreviewData(null)}
               disabled={isAuthorizing}
-              className="px-4 py-2.5 border border-slate-200 hover:border-slate-350 hover:bg-white rounded-xl text-xs font-bold text-slate-600 transition-all active:scale-95"
+              className="px-4 py-2.5 border border-slate-200 hover:border-slate-300 hover:bg-white rounded-xl text-xs font-bold text-slate-600 transition-all active:scale-95 w-full sm:w-auto"
             >
               Re-edit Quantities
             </button>
 
             {previewData.status === "draft" && (
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
                 <button
                   onClick={handleSaveAsDraft}
                   disabled={isSavingDraft || isAuthorizing || poDetails?.status === "cancelled"}
-                  className="px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isSavingDraft ? <Spinner size="xs" /> : null}
                   <span>Save Draft Only</span>
@@ -1300,7 +1319,7 @@ function CreatePurchaseEntry() {
                 <button
                   onClick={() => setShowAuthorizeConfirmModal(true)}
                   disabled={isSavingDraft || isAuthorizing || poDetails?.status === "cancelled"}
-                  className="px-5 py-2.5 bg-success-500 hover:bg-success-700 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-success-500/10 active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-success-500 hover:bg-success-700 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-success-500/10 active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isAuthorizing ? (
                     <>
@@ -1322,8 +1341,8 @@ function CreatePurchaseEntry() {
 
       {/* Success Animation Modal Overlay */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-3xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300 p-8 text-center flex flex-col items-center space-y-5">
+        <Modal onClose={handleSuccessConfirm} zIndex="z-[100]">
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-3xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden p-8 text-center items-center space-y-5">
             <div className="w-16 h-16 bg-success-50 text-success-500 rounded-full flex items-center justify-center border-2 border-success-100 animate-bounce">
               <CheckCircle2 className="w-10 h-10 text-success-500" />
             </div>
@@ -1342,17 +1361,18 @@ function CreatePurchaseEntry() {
               Back to Dashboard
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Manager Override Modal Overlay */}
       {showOverrideModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <form
-            onSubmit={handleOverrideSubmit}
-            className="bg-white border border-slate-105 shadow-2xl rounded-3xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-300 p-6 flex flex-col space-y-4"
-          >
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+        <Modal onClose={() => {
+          setShowOverrideModal(false)
+          setOverrideReason("")
+          setOverrideError("")
+        }} zIndex="z-[100]">
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-slate-100 p-6 pb-3 shrink-0">
               <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
@@ -1362,75 +1382,80 @@ function CreatePurchaseEntry() {
               </div>
             </div>
 
-            <div className="p-3.5 bg-amber-50/50 border border-amber-150 rounded-2xl text-xs font-semibold text-amber-900 leading-relaxed">
-              ⚠️ <strong>Tolerance Limits Exceeded:</strong> The received quantities/prices in this Goods Receipt exceed the 5% threshold compared to the original PO.
-              To proceed, a manager must explicitly force-authorize this entry and record an audit justification.
-            </div>
-
-            {overrideError && (
-              <div className="p-3 bg-error-50 border border-error-100 text-error-800 text-xs font-bold rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
-                <span>{overrideError}</span>
+            <form
+              onSubmit={handleOverrideSubmit}
+              className="p-6 pt-3 space-y-4 overflow-y-auto flex-1 flex flex-col"
+            >
+              <div className="p-3.5 bg-amber-50/50 border border-amber-100 rounded-2xl text-xs font-semibold text-amber-900 leading-relaxed">
+                ⚠️ <strong>Tolerance Limits Exceeded:</strong> The received quantities/prices in this Goods Receipt exceed the 5% threshold compared to the original PO.
+                To proceed, a manager must explicitly force-authorize this entry and record an audit justification.
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-550 block">
-                Authorization Override Reason <span className="text-error-500 font-bold">*</span>
-              </label>
-              <textarea
-                value={overrideReason}
-                onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="e.g. Approved by Warehouse Manager. Received excess items due to vendor promotion."
-                className="w-full px-3.5 py-2.5 border border-slate-200 hover:border-slate-350 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none transition-all resize-none min-h-[80px]"
-                maxLength={255}
-                required
-              />
-              <span className="text-[9px] text-slate-405 font-bold tracking-wide text-right block mt-0.5">
-                {255 - overrideReason.length} characters remaining
-              </span>
-            </div>
+              {overrideError && (
+                <div className="p-3 bg-error-50 border border-error-100 text-error-800 text-xs font-bold rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
+                  <span>{overrideError}</span>
+                </div>
+              )}
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowOverrideModal(false)
-                  setOverrideReason("")
-                  setOverrideError("")
-                }}
-                disabled={isOverriding}
-                className="flex-1 py-2.5 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-655 rounded-xl text-xs font-bold transition-all active:scale-95 text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isOverriding || !overrideReason.trim()}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md shadow-amber-500/10 flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                {isOverriding ? (
-                  <>
-                    <Spinner size="xs" />
-                    <span>Overriding...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>Force Authorize</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                  Authorization Override Reason <span className="text-error-500 font-bold">*</span>
+                </label>
+                <textarea
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="e.g. Approved by Warehouse Manager. Received excess items due to vendor promotion."
+                  className="w-full px-3.5 py-2.5 border border-slate-200 hover:border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none transition-all resize-none min-h-[80px]"
+                  maxLength={255}
+                  required
+                />
+                <span className="text-[10px] text-slate-400 font-bold tracking-wide text-right block mt-0.5">
+                  {255 - overrideReason.length} characters remaining
+                </span>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOverrideModal(false)
+                    setOverrideReason("")
+                    setOverrideError("")
+                  }}
+                  disabled={isOverriding}
+                  className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isOverriding || !overrideReason.trim()}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md shadow-amber-500/10 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isOverriding ? (
+                    <>
+                      <Spinner size="xs" />
+                      <span>Overriding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Force Authorize</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
       )}
 
       {/* Authorize & Commit Confirmation Overlay */}
       {showAuthorizeConfirmModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setShowAuthorizeConfirmModal(false)} zIndex="z-[60]">
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
                   <ShieldAlert className="w-4.5 h-4.5 text-emerald-600" />
@@ -1447,7 +1472,7 @@ function CreatePurchaseEntry() {
               </button>
             </div>
 
-            <div className="p-6 space-y-3">
+            <div className="p-6 space-y-3 overflow-y-auto">
               <p className="text-sm font-semibold text-slate-700 leading-relaxed">
                 Are you sure you want to authorize and commit this Purchase Entry to warehouse stock?
               </p>
@@ -1456,12 +1481,12 @@ function CreatePurchaseEntry() {
               </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 bg-slate-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowAuthorizeConfirmModal(false)}
                 disabled={isAuthorizing}
-                className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-650 transition-all bg-white disabled:opacity-50"
+                className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 transition-all bg-white disabled:opacity-50 w-full sm:w-auto"
               >
                 Cancel
               </button>
@@ -1469,14 +1494,14 @@ function CreatePurchaseEntry() {
                 type="button"
                 onClick={handleAuthorizeAndCommit}
                 disabled={isAuthorizing}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-emerald-500/10 flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-emerald-500/10 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
               >
                 {isAuthorizing ? <Spinner size="sm" /> : null}
                 <span>{isAuthorizing ? "Committing..." : "Confirm & Commit Stock"}</span>
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

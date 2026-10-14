@@ -5,6 +5,8 @@ import useAuth from "@/hooks/useAuth"
 import { getStaff, onboardStaff, updateStaff, activateStaff, deactivateStaff } from "@/services/staff"
 import { getRoles } from "@/services/roles"
 import Spinner from "@/components/ui/Spinner"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -18,6 +20,7 @@ function parseErrorDetail(detail, defaultMsg) {
 function StaffManagement() {
   const { user: currentUser, isSuperAdmin, isLoading: isAuthLoading } = useAuth()
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   const [staffList, setStaffList] = useState([])
   const [roles, setRoles] = useState([])
@@ -263,6 +266,12 @@ function StaffManagement() {
       return
     }
 
+    const ok = await confirm({
+      title: `Onboard staff ${onboardForm.first_name} ${onboardForm.last_name}?`,
+      confirmLabel: "Onboard staff",
+    })
+    if (!ok) return
+
     setIsOnboarding(true)
     setSuccessBanner("")
     try {
@@ -335,6 +344,12 @@ function StaffManagement() {
       return
     }
 
+    const ok = await confirm({
+      title: `Save changes for ${editForm.first_name} ${editForm.last_name}?`,
+      confirmLabel: "Save changes",
+    })
+    if (!ok) return
+
     setIsEditing(true)
     try {
       const payload = {
@@ -367,6 +382,14 @@ function StaffManagement() {
 
   const handleToggleStatus = async (staff) => {
     if (staff.id === currentUser?.id) return
+
+    const action = staff.is_active ? "Deactivate" : "Activate"
+    const ok = await confirm({
+      title: `${action} staff ${staff.first_name} ${staff.last_name}?`,
+      confirmLabel: action,
+      tone: staff.is_active ? "danger" : undefined,
+    })
+    if (!ok) return
 
     try {
       const res = staff.is_active
@@ -412,7 +435,7 @@ function StaffManagement() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
 
       {/* Title Header Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Staff Directory</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Manage platform administrators and access privileges.</p>
@@ -423,7 +446,7 @@ function StaffManagement() {
             setSuccessBanner("")
             setIsOnboardOpen(true)
           }}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Onboard Staff</span>
@@ -436,7 +459,7 @@ function StaffManagement() {
             <UserCheck className="w-5 h-5 text-success-500 shrink-0" />
             <p className="flex-1">{successBanner}</p>
           </div>
-          <button onClick={() => setSuccessBanner("")} className="text-success-600 hover:text-success-800 transition-colors">
+          <button onClick={() => setSuccessBanner("")} className="text-success-500 hover:text-success-700 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -444,52 +467,69 @@ function StaffManagement() {
 
       {/* Directory Table Grid Card */}
       <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse table-fixed min-w-[1100px] text-xs">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed text-xs">
             <thead>
               <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                <th className="pl-4 pr-2 py-3.5 w-[15%] min-w-[140px]">Full Name</th>
-                <th className="px-2 py-3.5 w-[13%] min-w-[130px]">Employee ID</th>
-                <th className="px-2 py-3.5 w-[24%] min-w-[220px]">Email</th>
-                <th className="px-2 py-3.5 w-[11%] min-w-[110px]">Phone</th>
-                <th className="px-2 py-3.5 w-[18%] min-w-[180px]">Assigned Role</th>
-                <th className="px-2 py-3.5 w-[9%] min-w-[90px]">Status</th>
-                <th className="pl-2 pr-6 py-3.5 w-[10%] min-w-[100px] text-right">Actions</th>
+                <th className="pl-4 pr-2 py-3.5 w-[56%] md:w-[40%] lg:w-[28%]">Staff</th>
+                <th className="px-2 py-3.5 hidden md:table-cell md:w-[30%] lg:w-[28%]">Contact</th>
+                <th className="px-2 py-3.5 hidden lg:table-cell lg:w-[18%]">Assigned Role</th>
+                <th className="px-2 py-3.5 w-[24%] md:w-[16%] lg:w-[14%]">Status</th>
+                <th className="pl-2 pr-6 py-3.5 w-[20%] md:w-[14%] lg:w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
               {staffList.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-12 text-slate-400 font-medium">
+                  <td colSpan="5" className="text-center py-12 text-slate-400 font-medium">
                     No staff members found.
                   </td>
                 </tr>
               ) : (
                 staffList.map((staff) => (
                   <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="pl-4 pr-2 py-3.5">
+                    <td className="pl-4 pr-2 py-3.5 min-w-0">
                       <div className="min-w-0">
                         <p className="text-slate-800 font-semibold truncate" title={`${staff.first_name} ${staff.last_name}`}>
                           {staff.first_name} {staff.last_name}
                           {staff.id === currentUser?.id && (
-                            <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-brand-50 text-brand-700 rounded-md font-bold inline-block text-xs font-sans">
+                            <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-brand-50 text-brand-700 rounded-md font-bold inline-block font-sans">
                               You
                             </span>
                           )}
                         </p>
+                        {staff.employee_id && (
+                          <p className="text-[10px] text-slate-400 tabular-nums truncate" title={staff.employee_id}>
+                            {staff.employee_id}
+                          </p>
+                        )}
+                        <div className="lg:hidden mt-0.5">
+                          <span
+                            className="inline-block max-w-full truncate text-[11px] xl:text-xs tabular-nums font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200"
+                            title={staff.role?.name || staff.role_name || staff.role || "—"}
+                          >
+                            {staff.role?.name || staff.role_name || staff.role || "—"}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-2 py-3.5 font-mono text-slate-500 whitespace-nowrap" title={staff.employee_id}>
-                      {staff.employee_id || "—"}
+                    <td className="px-2 py-3.5 hidden md:table-cell min-w-0">
+                      <div className="min-w-0">
+                        <p className="font-normal text-slate-700 truncate" title={staff.email}>
+                          {staff.email}
+                        </p>
+                        {staff.phone && (
+                          <p className="text-[10px] text-slate-400 tabular-nums truncate" title={staff.phone}>
+                            {staff.phone}
+                          </p>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-2 py-3.5 font-normal text-slate-700 whitespace-nowrap" title={staff.email}>
-                      {staff.email}
-                    </td>
-                    <td className="px-2 py-3.5 font-normal text-slate-500 whitespace-nowrap" title={staff.phone || "—"}>
-                      {staff.phone || "—"}
-                    </td>
-                    <td className="px-2 py-3.5 whitespace-nowrap">
-                      <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <td className="px-2 py-3.5 whitespace-nowrap hidden lg:table-cell">
+                      <span
+                        className="inline-block max-w-full truncate text-[11px] xl:text-xs tabular-nums font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200"
+                        title={staff.role?.name || staff.role_name || staff.role || "—"}
+                      >
                         {staff.role?.name || staff.role_name || staff.role || "—"}
                       </span>
                     </td>
@@ -510,7 +550,7 @@ function StaffManagement() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleEditOpen(staff)}
-                          className="p-2 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95 inline-flex items-center"
+                          className="p-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95 inline-flex items-center"
                           title="Edit Staff"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -519,7 +559,7 @@ function StaffManagement() {
                           onClick={() => handleToggleStatus(staff)}
                           disabled={staff.id === currentUser?.id}
                           className={`p-2 border rounded-xl transition-all active:scale-95 inline-flex items-center ${staff.is_active
-                            ? "border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-400 hover:text-slate-655 disabled:opacity-40 disabled:hover:bg-transparent"
+                            ? "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-transparent"
                             : "border-success-100 bg-success-50 hover:bg-success-100 text-success-700"
                             }`}
                           title={staff.is_active ? "Deactivate Staff" : "Activate Staff"}
@@ -538,9 +578,9 @@ function StaffManagement() {
 
       {/* Onboard Modal Overlay */}
       {isOnboardOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsOnboardOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Onboard Staff Member</h3>
               <button
                 onClick={() => setIsOnboardOpen(false)}
@@ -550,7 +590,7 @@ function StaffManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleOnboardSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleOnboardSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               {onboardErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -558,7 +598,7 @@ function StaffManagement() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     First Name <span className="text-error-500 font-bold">*</span>
@@ -645,7 +685,7 @@ function StaffManagement() {
                 {onboardErrors.role_id && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.role_id}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Password <span className="text-error-500 font-bold">*</span>
@@ -681,18 +721,18 @@ function StaffManagement() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsOnboardOpen(false)}
-                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isOnboarding}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isOnboarding ? <Spinner size="sm" /> : null}
                   <span>Onboard Member</span>
@@ -700,14 +740,14 @@ function StaffManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit Modal Overlay */}
       {isEditOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsEditOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Edit Staff Details</h3>
               <button
                 onClick={() => setIsEditOpen(false)}
@@ -717,7 +757,7 @@ function StaffManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               {editErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -725,7 +765,7 @@ function StaffManagement() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     First Name <span className="text-error-500 font-bold">*</span>
@@ -822,18 +862,18 @@ function StaffManagement() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isEditing}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isEditing ? <Spinner size="sm" /> : null}
                   <span>Save Changes</span>
@@ -841,7 +881,7 @@ function StaffManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

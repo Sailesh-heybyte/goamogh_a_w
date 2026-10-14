@@ -67,7 +67,7 @@ export async function fetchProductDetails(productId) {
 
 
 export async function fetchProductVariants(productId) {
-    const response = await apiFetch(`${API_PREFIX}/inventory/products/${productId}/variants`, {
+    const response = await apiFetch(`${API_PREFIX}/inventory/items/${productId}/variants`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'

@@ -22,26 +22,10 @@ export const createDirectSale = async (saleData) => {
   })
 }
 
-export const confirmSalesOrder = async (saleId) => {
-  return customFetch(`/api/v1/sales/orders/${saleId}/confirm`, {
+export const updateSalesOrderStatus = async (saleId, action) => {
+  return customFetch(`/api/v1/sales/orders/${saleId}/status`, {
     method: "POST",
+    body: JSON.stringify({ action }),
   })
 }
 
-export const dispatchSalesOrder = async (saleId) => {
-  return customFetch(`/api/v1/sales/orders/${saleId}/dispatch`, {
-    method: "POST",
-  })
-}
-
-export const deliverSalesOrder = async (saleId) => {
-  return customFetch(`/api/v1/sales/orders/${saleId}/deliver`, {
-    method: "POST",
-  })
-}
-
-export const failSalesOrderDelivery = async (saleId) => {
-  return customFetch(`/api/v1/sales/orders/${saleId}/fail-delivery`, {
-    method: "POST",
-  })
-}

@@ -4,6 +4,8 @@ import { Plus, Edit2, ShieldAlert, X, Shield, FileText } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
 import { getRoles, createRole, updateRole, getPermissions } from "@/services/roles"
 import Spinner from "@/components/ui/Spinner"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 
 // Fallback permissions definition
@@ -13,15 +15,6 @@ const DEFAULT_PERMISSIONS = [
   { value: "production_manage", label: "Production Management", category: "Production", description: "Permission to manage and close work orders" },
   { value: "pricing_manage", label: "Pricing Management", category: "Pricing", description: "Permission to configure daily B2C/B2B selling prices" }
 ]
-
-function parseErrorDetail(detail, defaultMsg) {
-  if (!detail) return defaultMsg
-  if (Array.isArray(detail)) {
-    const messages = detail.map((d) => d.msg).filter(Boolean)
-    return messages.length > 0 ? messages.join(", ") : defaultMsg
-  }
-  return typeof detail === "string" ? detail : defaultMsg
-}
 
 function getPermissionLabel(permValue, permissionsList = []) {
   if (permValue === "all") return "Full Access"
@@ -35,6 +28,7 @@ function getPermissionLabel(permValue, permissionsList = []) {
 
 
 function RoleManagement() {
+  const confirm = useConfirm()
   const { isSuperAdmin, isLoading: isAuthLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -184,6 +178,13 @@ function RoleManagement() {
       return
     }
 
+    const ok = await confirm({
+      title: `Create role ${createForm.name.trim()}?`,
+      message: `Are you sure you want to create the role "${createForm.name.trim()}"?`,
+      confirmLabel: "Create role"
+    })
+    if (!ok) return
+
     setIsCreating(true)
     try {
       const res = await createRole({
@@ -254,6 +255,13 @@ function RoleManagement() {
       return
     }
 
+    const ok = await confirm({
+      title: `Save changes for role ${editForm.name.trim()}?`,
+      message: `Are you sure you want to update the role "${editForm.name.trim()}"?`,
+      confirmLabel: "Save changes"
+    })
+    if (!ok) return
+
     setIsEditing(true)
     try {
       const res = await updateRole(selectedRole.id, {
@@ -312,7 +320,7 @@ function RoleManagement() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
 
       {/* Header title block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Access Control Roles</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Configure role descriptions and assign granular feature permissions.</p>
@@ -320,7 +328,7 @@ function RoleManagement() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Create Role</span>
@@ -329,15 +337,15 @@ function RoleManagement() {
 
       {/* Roles list table */}
       <div className="bg-white border border-slate-100 shadow-lg rounded-2xl overflow-hidden w-full">
-        <div className="w-full overflow-hidden">
+        <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <th className="px-6 py-4 w-[18%]">Role Name</th>
-                <th className="px-6 py-4 w-[30%]">Description</th>
-                <th className="px-6 py-4 w-[26%]">Assigned Permissions</th>
-                <th className="px-6 py-4 w-[11%]">Status</th>
-                <th className="pl-2 pr-6 py-4 w-[15%] text-right">Actions</th>
+                <th className="px-6 py-4 w-[55%] md:w-[35%] lg:w-[22%]">Role Name</th>
+                <th className="hidden md:table-cell px-6 py-4 w-[35%] lg:w-[28%]">Description</th>
+                <th className="hidden lg:table-cell px-6 py-4 w-[28%]">Assigned Permissions</th>
+                <th className="px-6 py-4 w-[25%] md:w-[15%] lg:w-[10%]"><span className="hidden md:inline">Status</span></th>
+                <th className="pl-2 pr-6 py-4 w-[20%] md:w-[15%] lg:w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
@@ -353,22 +361,28 @@ function RoleManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-brand-600 shrink-0" />
-                        <span className="text-slate-800 font-bold uppercase tracking-wider text-xs">
+                        <span className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate" title={role.name}>
                           {role.name}
                         </span>
                       </div>
+                      <div className="md:hidden text-[10px] text-slate-400 truncate mt-0.5" title={role.description}>
+                        {role.description || "—"}
+                      </div>
+                      <div className="lg:hidden text-[10px] text-slate-400 truncate">
+                        {role.permissions && role.permissions.length > 0 ? `${role.permissions.length} permissions` : "No permissions"}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 font-normal text-slate-500 max-w-xs truncate">
+                    <td className="hidden md:table-cell px-6 py-4 font-normal text-slate-500 truncate" title={role.description}>
                       {role.description || "—"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden lg:table-cell px-6 py-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {role.permissions && role.permissions.length > 0 ? (
                           <>
                             {role.permissions.slice(0, 2).map((perm) => (
                               <span
                                 key={perm}
-                                className="px-2 py-0.5 text-[10px] bg-slate-50 text-slate-650 border border-slate-200 rounded-md font-semibold"
+                                className="px-2 py-0.5 text-[10px] bg-slate-50 text-slate-600 border border-slate-200 rounded-md font-semibold whitespace-nowrap"
                               >
                                 {getPermissionLabel(perm, systemPermissions)}
                               </span>
@@ -376,7 +390,7 @@ function RoleManagement() {
                             {role.permissions.length > 2 && (
                               <span
                                 onClick={() => setSelectedRolePermissions(role)}
-                                className="px-2 py-0.5 text-[10px] bg-brand-50 text-brand-700 border border-brand-200 rounded-md font-bold cursor-pointer select-none hover:bg-brand-100 transition-colors"
+                                className="px-2 py-0.5 text-[10px] bg-brand-50 text-brand-700 border border-brand-200 rounded-md font-bold cursor-pointer select-none hover:bg-brand-100 transition-colors whitespace-nowrap"
                               >
                                 +{role.permissions.length - 2} more
                               </span>
@@ -387,16 +401,18 @@ function RoleManagement() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {role.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-success-50 text-success-700 border-success-100">
-                          <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-success-500" />
-                          Active
+                        <span title="Active" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-success-500" aria-hidden="true" />
+                          <span className="sr-only md:hidden">Active</span>
+                          <span className="hidden md:inline">Active</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-slate-50 text-slate-500 border-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-slate-400" />
-                          Inactive
+                        <span title="Inactive" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-slate-50 text-slate-500 border-slate-200 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-slate-400" aria-hidden="true" />
+                          <span className="sr-only md:hidden">Inactive</span>
+                          <span className="hidden md:inline">Inactive</span>
                         </span>
                       )}
                     </td>
@@ -419,9 +435,9 @@ function RoleManagement() {
 
       {/* Create Role Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Create Custom Role</h3>
               <button
                 onClick={() => setIsCreateOpen(false)}
@@ -431,7 +447,8 @@ function RoleManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
               {createErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -492,7 +509,7 @@ function RoleManagement() {
                       />
                       <div>
                         <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                        <p className="text-[10px] font-semibold text-slate-450 uppercase">{perm.category}</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase">{perm.category}</p>
                       </div>
                     </label>
                   ))}
@@ -500,18 +517,20 @@ function RoleManagement() {
                 {createErrors.permissions && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.permissions}</p>}
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+              </div>
+
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                  className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isCreating ? <Spinner size="sm" /> : null}
                   <span>Create Role</span>
@@ -519,14 +538,14 @@ function RoleManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit Role Modal */}
       {isEditOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsEditOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Edit Access Role</h3>
               <button
                 onClick={() => setIsEditOpen(false)}
@@ -536,7 +555,8 @@ function RoleManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
               {editErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -597,7 +617,7 @@ function RoleManagement() {
                       />
                       <div>
                         <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                        <p className="text-[10px] font-semibold text-slate-450 uppercase">{perm.category}</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase">{perm.category}</p>
                       </div>
                     </label>
                   ))}
@@ -617,18 +637,20 @@ function RoleManagement() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+              </div>
+
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
+                  className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isEditing}
-                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isEditing ? <Spinner size="sm" /> : null}
                   <span>Save Changes</span>
@@ -636,14 +658,14 @@ function RoleManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* View Permissions Modal */}
       {selectedRolePermissions && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setSelectedRolePermissions(null)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Shield className="w-4.5 h-4.5 text-brand-600 shrink-0" />
                 <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
@@ -658,7 +680,7 @@ function RoleManagement() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
               <p className="text-xs font-semibold text-slate-500">
                 All permissions assigned to this security role:
               </p>
@@ -666,7 +688,7 @@ function RoleManagement() {
                 {selectedRolePermissions.permissions.map((perm) => (
                   <div
                     key={perm}
-                    className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl text-slate-805 font-bold text-xs animate-in fade-in slide-in-from-bottom-1 duration-150"
+                    className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold text-xs"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-brand-500 shrink-0" />
                     <span>{getPermissionLabel(perm, systemPermissions)}</span>
@@ -675,16 +697,16 @@ function RoleManagement() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0">
               <button
                 onClick={() => setSelectedRolePermissions(null)}
-                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10"
+                className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 text-center"
               >
                 Close
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

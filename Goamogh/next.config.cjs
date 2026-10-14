@@ -1,6 +1,6 @@
 /** Next.js minimal config (CommonJS) */
 module.exports = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

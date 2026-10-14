@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react"
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { AuthProvider } from "@/context/AuthProvider"
+import { ConfirmProvider } from "@/context/ConfirmProvider"
 import { ToastProvider } from "@/context/ToastContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import PermissionRoute from "@/components/PermissionRoute"
@@ -311,9 +312,11 @@ function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <AuthProvider>
-          <RouterProvider router={router} />
-        </AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </ErrorBoundary>
   )

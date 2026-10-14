@@ -23,12 +23,6 @@ export const updateItem = async (itemId, itemData) => {
   })
 }
 
-export const toggleItemSellable = async (itemId) => {
-  return customFetch(`/api/v1/inventory/items/${itemId}/sellable`, {
-    method: "PATCH",
-  })
-}
-
 export const authorizeItem = async (itemId) => {
   return customFetch(`/api/v1/inventory/items/${itemId}/authorize`, {
     method: "POST",
@@ -36,7 +30,7 @@ export const authorizeItem = async (itemId) => {
 }
 
 export const addItemVariant = async (itemId, variantData) => {
-  return customFetch(`/api/v1/inventory/products/${itemId}/variants`, {
+  return customFetch(`/api/v1/inventory/items/${itemId}/variants`, {
     method: "POST",
     body: JSON.stringify(variantData),
   })
@@ -50,7 +44,7 @@ export const updateItemVariant = async (variantId, variantData) => {
 }
 
 export const updateItemPrices = async (itemId, pricingData) => {
-  return customFetch(`/api/v1/inventory/products/${itemId}/prices`, {
+  return customFetch(`/api/v1/inventory/items/${itemId}/prices`, {
     method: "POST",
     body: JSON.stringify(pricingData),
   })

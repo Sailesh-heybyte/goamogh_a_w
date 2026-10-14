@@ -4,6 +4,8 @@ import { Settings, Save, AlertCircle, CheckCircle2, Sliders, FileText } from "lu
 import useAuth from "@/hooks/useAuth"
 import { getSettings, updateSetting } from "@/services/settings"
 import Spinner from "@/components/ui/Spinner"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -81,6 +83,7 @@ const getSettingMeta = (key) => {
 function SystemSettings() {
   const { isSuperAdmin, isLoading: isAuthLoading } = useAuth()
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   const [settings, setSettings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -180,9 +183,15 @@ function SystemSettings() {
       return
     }
 
+    const meta = getSettingMeta(editingSetting.key)
+    const ok = await confirm({
+      title: `Update ${meta.title}?`,
+      confirmLabel: "Save Config",
+    })
+    if (!ok) return
+
     setIsUpdating(true)
     try {
-      const meta = getSettingMeta(editingSetting.key)
       const payloadVal = meta.isPct ? parseFloat(editValue).toFixed(2) : String(parseInt(editValue, 10))
 
       const res = await updateSetting(editingSetting.key, payloadVal)
@@ -255,7 +264,7 @@ function SystemSettings() {
             >
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center font-bold text-brand-650">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center font-bold text-brand-600">
                     <IconComp className="w-5 h-5 text-brand-600" />
                   </div>
                   <div>
@@ -273,14 +282,14 @@ function SystemSettings() {
               <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Value</span>
-                  <span className="text-2xl font-black text-slate-800">
+                  <span className="text-2xl font-extrabold text-slate-800">
                     {setting.value}{meta.unit}
                   </span>
                 </div>
 
                 <button
                   onClick={() => handleEditClick(setting)}
-                  className="px-3.5 py-2 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-650 transition-colors active:scale-95 flex items-center gap-1.5"
+                  className="px-3.5 py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-colors active:scale-95 flex items-center gap-1.5"
                 >
                   Configure
                 </button>
@@ -294,9 +303,9 @@ function SystemSettings() {
       {editingSetting && (() => {
         const meta = getSettingMeta(editingSetting.key)
         return (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <Modal onClose={() => setEditingSetting(null)}>
+            <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <Settings className="w-5 h-5 text-brand-600 shrink-0" />
                   <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
@@ -305,49 +314,51 @@ function SystemSettings() {
                 </div>
                 <button
                   onClick={() => setEditingSetting(null)}
-                  className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-650 transition-all"
+                  className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
                 >
                   Cancel
                 </button>
               </div>
 
-              <form onSubmit={handleSaveSubmit} className="p-6 space-y-4">
-                {editError && (
-                  <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
-                    <AlertCircle className="w-5 h-5 text-error-800 shrink-0" />
-                    <p className="flex-1">{editError}</p>
-                  </div>
-                )}
+              <form onSubmit={handleSaveSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto flex flex-col justify-between">
+                <div>
+                  {editError && (
+                    <div className="flex items-start gap-2.5 p-4 mb-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
+                      <AlertCircle className="w-5 h-5 text-error-800 shrink-0" />
+                      <p className="flex-1">{editError}</p>
+                    </div>
+                  )}
 
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    {meta.isPct ? "Percentage Value (%)" : "Configured Value"}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      placeholder={meta.isPct ? "E.g., 10.00" : "E.g., 1"}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
-                      disabled={isUpdating}
-                    />
-                    {meta.unit && (
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
-                        {meta.unit}
-                      </span>
-                    )}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      {meta.isPct ? "Percentage Value (%)" : "Configured Value"}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        placeholder={meta.isPct ? "E.g., 10.00" : "E.g., 1"}
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
+                        disabled={isUpdating}
+                      />
+                      {meta.unit && (
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                          {meta.unit}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1.5 leading-relaxed">
+                      {meta.isPct ? "Enter a value between 0.00 and 100.00." : "Enter a non-negative integer."}
+                    </p>
                   </div>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1.5 leading-relaxed">
-                    {meta.isPct ? "Enter a value between 0.00 and 100.00." : "Enter a non-negative integer."}
-                  </p>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-6">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6 shrink-0">
                   <button
                     type="button"
                     onClick={() => setEditingSetting(null)}
-                    className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-650 transition-all"
+                    className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all w-full sm:w-auto"
                     disabled={isUpdating}
                   >
                     Cancel
@@ -355,7 +366,7 @@ function SystemSettings() {
                   <button
                     type="submit"
                     disabled={isUpdating}
-                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {isUpdating ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
                     <span>Save Config</span>
@@ -363,7 +374,7 @@ function SystemSettings() {
                 </div>
               </form>
             </div>
-          </div>
+          </Modal>
         )
       })()}
 

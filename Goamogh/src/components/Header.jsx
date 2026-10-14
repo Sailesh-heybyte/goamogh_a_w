@@ -6,33 +6,28 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { fetchDbCart } from '../services/api';
+import { useCart } from '../context/CartContext';
 
 // verified caching fix with webpack memory cache
 export default function Header() {
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [cartCount, setCartCount] = useState(0);
+    const [guestCartCount, setGuestCartCount] = useState(0);
     const { user, token, logout, triggerLoginModal } = useAuth();
+    const { cartCount } = useCart();
 
     useEffect(() => {
-        const updateCount = async () => {
+        if (user && token) return;
+
+        const updateCount = () => {
             try {
-                if (user && token) {
-                    const dbCart = await fetchDbCart(token);
-                    if (dbCart && dbCart.success && dbCart.data && Array.isArray(dbCart.data.items)) {
-                        const count = dbCart.data.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-                        setCartCount(count);
-                        return;
-                    }
-                }
                 const saved = localStorage.getItem('spiceCart');
                 const items = saved ? JSON.parse(saved) : [];
                 const count = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-                setCartCount(count);
+                setGuestCartCount(count);
             } catch (e) {
-                setCartCount(0);
+                setGuestCartCount(0);
             }
         };
 
@@ -242,9 +237,9 @@ export default function Header() {
                             aria-label="View Cart"
                         >
                             <ShoppingBag size={18} strokeWidth={2} />
-                            {cartCount > 0 && (
+                            {(user && token ? cartCount : guestCartCount) > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-[#d8b66a] text-[#0b150d] text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center border border-[#1a2b21] px-1">
-                                    {cartCount}
+                                    {user && token ? cartCount : guestCartCount}
                                 </span>
                             )}
                         </Link>
@@ -281,9 +276,9 @@ export default function Header() {
                         aria-label="View Cart"
                     >
                         <ShoppingBag size={18} strokeWidth={2} />
-                        {cartCount > 0 && (
+                        {(user && token ? cartCount : guestCartCount) > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 bg-[#d8b66a] text-[#0b150d] text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center border border-[#1a2416] px-1">
-                                {cartCount}
+                                {user && token ? cartCount : guestCartCount}
                             </span>
                         )}
                     </Link>

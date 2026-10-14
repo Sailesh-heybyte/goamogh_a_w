@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { fetchProductDetails, fetchProductVariants, addToDbCart } from '../services/api';
+import { useCart } from '../context/CartContext';
+import { fetchProductDetails, fetchProductVariants } from '../services/api';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Loader, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductDetailPage({ id }) {
     const router = useRouter();
     const { user, token, setLoginPendingItem } = useAuth();
+    const { addCartItem, reloadCart } = useCart();
 
     const [product, setProduct] = useState(null);
     const [variants, setVariants] = useState([]);
@@ -167,15 +169,14 @@ export default function ProductDetailPage({ id }) {
         try {
             setLoading(true);
             setCartError(null);
-            await addToDbCart(token, itemData, quantity);
-            window.dispatchEvent(new Event('cart-updated'));
+            await addCartItem(itemData, quantity);
             setShowCartNotif(true);
             setTimeout(() => setShowCartNotif(false), 2000);
         } catch (err) {
             const msg = err.message || 'Failed to add item to cart.';
             setCartError(msg);
             if (err.status === 409 || msg.toLowerCase().includes('available') || msg.toLowerCase().includes('unit') || msg.toLowerCase().includes('stock')) {
-                window.dispatchEvent(new Event('cart-updated'));
+                reloadCart();
             }
         } finally {
             setLoading(false);

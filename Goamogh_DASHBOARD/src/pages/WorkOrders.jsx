@@ -4,14 +4,12 @@ import {
   Plus,
   Search,
   Eye,
-  Calendar,
   X,
   Play,
   CheckCircle,
   XCircle,
   AlertTriangle,
   ClipboardList,
-  Layers,
   Wheat,
   Package,
   Clock,
@@ -24,14 +22,13 @@ import {
   getWorkOrders,
   getWorkOrderDetails,
   createWorkOrder,
-  startWorkOrder,
-  closeWorkOrder,
-  cancelWorkOrder,
-  authorizeWorkOrder
+  updateWorkOrderStatus
 } from "@/services/workOrders"
-import { getProducts } from "@/services/products"
-import { getRawMaterials } from "@/services/rawMaterials"
+import { getItems } from "@/services/items"
 import Spinner from "@/components/ui/Spinner"
+import Pagination from "@/components/ui/Pagination"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 // Parse error response helpers
 function parseErrorDetail(detail, defaultMsg) {
@@ -44,6 +41,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function WorkOrders() {
+  const confirm = useConfirm()
   const [searchParams] = useSearchParams()
   const woId = searchParams.get("wo_id")
   const openedWoIdRef = useRef(null)
@@ -59,13 +57,16 @@ function WorkOrders() {
   const [selectedRawMaterialId, setSelectedRawMaterialId] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [skip, setSkip] = useState(0)
-  const [limit, setLimit] = useState(50)
+  const limit = 50
+  const [total, setTotal] = useState(0)
+  const latestRequestRef = useRef(0)
 
   // Modal Visibility States
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isCloseFormOpen, setIsCloseFormOpen] = useState(false)
   const [isStockErrorOpen, setIsStockErrorOpen] = useState(false)
+  const [stockErrorMessage, setStockErrorMessage] = useState("")
   const [isAuthorizeConfirmOpen, setIsAuthorizeConfirmOpen] = useState(false)
 
   // Selected Item for detail/action
@@ -104,8 +105,8 @@ function WorkOrders() {
   const fetchBaselineData = useCallback(async () => {
     try {
       const [prodRes, rmRes] = await Promise.all([
-        getProducts({ active_only: true, limit: 1000 }),
-        getRawMaterials({ active_only: true, limit: 1000 })
+        getItems({ item_type: "finished_good", active_only: true, limit: 1000 }),
+        getItems({ item_type: "raw_material", active_only: true, limit: 1000 })
       ])
       if (prodRes.ok) {
         const prodJson = await prodRes.json()
@@ -121,6 +122,7 @@ function WorkOrders() {
   }, [])
 
   const fetchWorkOrdersList = useCallback(async () => {
+    const requestId = ++latestRequestRef.current
     setIsLoading(true)
     setError("")
     try {
@@ -133,16 +135,22 @@ function WorkOrders() {
       if (selectedStatus) params.status = selectedStatus
 
       const res = await getWorkOrders(params)
+      if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(errJson.message || `Failed to fetch work orders list (Status ${res.status})`)
       }
       const json = await res.json()
+      if (requestId !== latestRequestRef.current) return
       setWorkOrdersList(json.data || [])
+      setTotal(json.meta.total)
     } catch (err) {
+      if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred while fetching work orders.")
     } finally {
-      setIsLoading(false)
+      if (requestId === latestRequestRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [selectedProductId, selectedRawMaterialId, selectedStatus, skip, limit])
 
@@ -184,8 +192,10 @@ function WorkOrders() {
   const handleAuthorizeWorkOrder = async (woId) => {
     setActionLoading(true)
     try {
-      const res = await authorizeWorkOrder(woId)
-      if (res.status === 400) {
+      const res = await updateWorkOrderStatus(woId, "authorize")
+      if (res.status === 409) {
+        const errJson = await res.json()
+        setStockErrorMessage(errJson.detail)
         setIsStockErrorOpen(true)
         setIsAuthorizeConfirmOpen(false)
         return
@@ -209,10 +219,18 @@ function WorkOrders() {
 
   // Handle Start Work Order
   const handleStartWorkOrder = async (woId) => {
+    const ok = await confirm({
+      title: "Start work order?",
+      confirmLabel: "Start production",
+    })
+    if (!ok) return
+
     setActionLoading(true)
     try {
-      const res = await startWorkOrder(woId)
-      if (res.status === 400) {
+      const res = await updateWorkOrderStatus(woId, "start")
+      if (res.status === 409) {
+        const errJson = await res.json()
+        setStockErrorMessage(errJson.detail)
         setIsStockErrorOpen(true)
         return
       }
@@ -234,10 +252,16 @@ function WorkOrders() {
 
   // Handle Cancel Work Order
   const handleCancelWorkOrder = async (woId) => {
-    if (!window.confirm("Are you sure you want to cancel this work order? This action cannot be undone.")) return
+    const ok = await confirm({
+      title: "Cancel work order?",
+      message: "Are you sure you want to cancel this work order? This action cannot be undone.",
+      confirmLabel: "Cancel work order",
+      tone: "danger",
+    })
+    if (!ok) return
     setActionLoading(true)
     try {
-      const res = await cancelWorkOrder(woId)
+      const res = await updateWorkOrderStatus(woId, "cancel")
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(parseErrorDetail(errJson.detail, "Failed to cancel work order"))
@@ -372,9 +396,6 @@ function WorkOrders() {
     if (isNaN(otherCostTaxNum) || otherCostTaxNum < 0) {
       errors.other_cost_tax = "Please enter a valid overhead cost tax (>= 0)"
     }
-    if (!closeForm.batch_date) {
-      errors.batch_date = "Batch date is required"
-    }
 
     if (Object.keys(errors).length > 0) {
       setCloseErrors(errors)
@@ -390,6 +411,12 @@ function WorkOrders() {
       })
       return
     }
+
+    const ok = await confirm({
+      title: "Close work order and record output?",
+      confirmLabel: "Close work order",
+    })
+    if (!ok) return
 
     setIsClosing(true)
     try {
@@ -410,7 +437,7 @@ function WorkOrders() {
         other_cost_tax: otherCostTaxNum
       }
 
-      const res = await closeWorkOrder(selectedWorkOrder.id, payload)
+      const res = await updateWorkOrderStatus(selectedWorkOrder.id, "close", payload)
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(parseErrorDetail(errJson.detail, "Failed to close work order"))
@@ -497,6 +524,12 @@ function WorkOrders() {
       return
     }
 
+    const ok = await confirm({
+      title: "Create work order?",
+      confirmLabel: "Create work order",
+    })
+    if (!ok) return
+
     setIsCreating(true)
     try {
       const res = await createWorkOrder({
@@ -539,43 +572,50 @@ function WorkOrders() {
     switch (status) {
       case "open":
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-yellow-50 text-yellow-700 border-yellow-250 whitespace-nowrap">
-            <Clock className="w-3.5 h-3.5 mr-1 text-yellow-500" />
-            Open
+          <span title="Open" className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-yellow-50 text-yellow-700 border-yellow-200 whitespace-nowrap">
+            <Clock className="w-3.5 h-3.5 md:mr-1 text-yellow-500" />
+            <span className="sr-only md:hidden">Open</span>
+            <span className="hidden md:inline">Open</span>
           </span>
         )
       case "confirmed":
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200 whitespace-nowrap">
-            <CheckCircle className="w-3.5 h-3.5 mr-1 text-indigo-500" />
-            Confirmed
+          <span title="Confirmed" className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200 whitespace-nowrap">
+            <CheckCircle className="w-3.5 h-3.5 md:mr-1 text-indigo-500" />
+            <span className="sr-only md:hidden">Confirmed</span>
+            <span className="hidden md:inline">Confirmed</span>
           </span>
         )
       case "inprogress":
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
-            <Play className="w-3.5 h-3.5 mr-1 text-blue-500 fill-blue-500" />
-            In Progress
+          <span title="In Progress" className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">
+            <Play className="w-3.5 h-3.5 md:mr-1 text-blue-500 fill-blue-500" />
+            <span className="sr-only md:hidden">In Progress</span>
+            <span className="hidden md:inline">In Progress</span>
           </span>
         )
       case "closed":
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
-            <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-            Closed
+          <span title="Closed" className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+            <CheckCircle className="w-3.5 h-3.5 md:mr-1 text-emerald-600" />
+            <span className="sr-only md:hidden">Closed</span>
+            <span className="hidden md:inline">Closed</span>
           </span>
         )
       case "cancelled":
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-rose-50 text-rose-700 border-rose-200 whitespace-nowrap">
-            <XCircle className="w-3.5 h-3.5 mr-1 text-rose-500" />
-            Cancelled
+          <span title="Cancelled" className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-rose-50 text-rose-700 border-rose-200 whitespace-nowrap">
+            <XCircle className="w-3.5 h-3.5 md:mr-1 text-rose-500" />
+            <span className="sr-only md:hidden">Cancelled</span>
+            <span className="hidden md:inline">Cancelled</span>
           </span>
         )
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-800 border-slate-200 whitespace-nowrap">
-            {status}
+          <span title={status} className="inline-flex items-center px-1.5 md:px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-800 border-slate-200 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-current md:hidden" aria-hidden="true" />
+            <span className="sr-only md:hidden">{status}</span>
+            <span className="hidden md:inline">{status}</span>
           </span>
         )
     }
@@ -590,7 +630,7 @@ function WorkOrders() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
 
       {/* Title Header Block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Work Orders</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Manage production conversion, FIFO warehouse depletion, and batch compliance.</p>
@@ -605,7 +645,7 @@ function WorkOrders() {
             setCreateErrors({})
             setIsCreateOpen(true)
           }}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>New Work Order</span>
@@ -613,17 +653,17 @@ function WorkOrders() {
       </div>
 
       {/* Toolbar Filter Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
 
         {/* Text search */}
-        <div className="relative">
+        <div className="relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search number or names..."
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -631,8 +671,11 @@ function WorkOrders() {
         <div className="relative">
           <select
             value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
+            onChange={(e) => {
+              setSelectedProductId(e.target.value)
+              setSkip(0)
+            }}
+            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
           >
             <option value="">All Finished Products</option>
             {productsList.map((prod) => (
@@ -647,8 +690,11 @@ function WorkOrders() {
         <div className="relative">
           <select
             value={selectedRawMaterialId}
-            onChange={(e) => setSelectedRawMaterialId(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
+            onChange={(e) => {
+              setSelectedRawMaterialId(e.target.value)
+              setSkip(0)
+            }}
+            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
           >
             <option value="">All Consumed Raw Materials</option>
             {rawMaterialsList.map((rm) => (
@@ -663,8 +709,11 @@ function WorkOrders() {
         <div className="relative">
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
+            onChange={(e) => {
+              setSelectedStatus(e.target.value)
+              setSkip(0)
+            }}
+            className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
           >
             <option value="">All Statuses</option>
             <option value="open">Open</option>
@@ -700,41 +749,52 @@ function WorkOrders() {
         </div>
       ) : (
         <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <table className="w-full text-left border-collapse table-fixed">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                  <th className="px-3 py-3.5 w-[14%]">Work Order Number</th>
-                  <th className="px-3 py-3.5 w-[19%]">Finished Product</th>
-                  <th className="px-3 py-3.5 w-[19%]">Consumed Raw Material</th>
-                  <th className="px-3 py-3.5 w-[9%] text-right">Input Qty</th>
-                  <th className="px-3 py-3.5 w-[13%]">Status</th>
-                  <th className="px-3 py-3.5 w-[14%]">Created Date</th>
-                  <th className="pl-2 pr-5 py-3.5 w-[12%] text-right">Actions</th>
+                  <th className="px-3 py-3.5 w-[56%] md:w-[28%] lg:w-[20%] xl:w-[18%]">Work Order Number</th>
+                  <th className="px-3 py-3.5 hidden md:table-cell md:w-[28%] lg:w-[20%] xl:w-[18%]">Finished Product</th>
+                  <th className="px-3 py-3.5 hidden xl:table-cell xl:w-[18%]">Consumed Raw Material</th>
+                  <th className="px-3 py-3.5 text-right hidden lg:table-cell lg:w-[12%] xl:w-[10%]">Input Qty</th>
+                  <th className="px-3 py-3.5 w-[24%] md:w-[22%] lg:w-[16%] xl:w-[12%]"><span className="hidden md:inline">Status</span></th>
+                  <th className="px-3 py-3.5 hidden lg:table-cell lg:w-[18%] xl:w-[13%]">Created Date</th>
+                  <th className="pl-2 pr-5 py-3.5 w-[20%] md:w-[22%] lg:w-[14%] xl:w-[11%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
                 {filteredWorkOrders.map((wo) => (
                   <tr key={wo.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-3 py-3 font-bold text-slate-900 tracking-tight font-mono text-[11px] min-w-0 truncate" title={wo.work_order_number}>{wo.work_order_number}</td>
-                    <td className="px-3 py-3 font-semibold text-slate-900 min-w-0 truncate" title={wo.product_name}>{wo.product_name || "—"}</td>
-                    <td className="px-3 py-3 font-medium text-slate-650 min-w-0 truncate" title={wo.raw_materials && wo.raw_materials.length > 0 ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ") : wo.raw_material_name}>
+                    <td className="px-3 py-3 font-bold text-slate-900 tracking-tight tabular-nums text-[11px] min-w-0">
+                      <div className="truncate" title={wo.work_order_number}>{wo.work_order_number}</div>
+                      <div className="text-[10px] text-slate-400 font-normal truncate md:hidden" title={wo.product_name}>
+                        {wo.product_name || "—"}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 font-semibold text-slate-900 min-w-0 truncate hidden md:table-cell" title={wo.product_name}>{wo.product_name || "—"}</td>
+                    <td className="px-3 py-3 font-medium text-slate-600 min-w-0 truncate hidden xl:table-cell" title={wo.raw_materials && wo.raw_materials.length > 0 ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ") : wo.raw_material_name}>
                       {wo.raw_materials && wo.raw_materials.length > 0
                         ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ")
                         : wo.raw_material_name || "—"}
                     </td>
-                    <td className="px-3 py-3 text-right font-extrabold text-slate-900 min-w-0 whitespace-nowrap">{parseFloat(wo.total_input_qty ?? 0).toFixed(2)} KG</td>
+                    <td className="px-3 py-3 text-right font-extrabold text-slate-900 min-w-0 whitespace-nowrap tabular-nums hidden lg:table-cell">{parseFloat(wo.total_input_qty ?? 0).toFixed(2)} KG</td>
                     <td className="px-3 py-3 whitespace-nowrap min-w-0">{renderStatusBadge(wo.status)}</td>
-                    <td className="px-3 py-3 whitespace-nowrap text-slate-500 min-w-0 text-xs font-normal">
-                      {new Date(wo.created_at).toLocaleDateString()} {new Date(wo.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <td className="px-3 py-3 whitespace-nowrap text-slate-500 min-w-0 text-xs font-normal tabular-nums hidden lg:table-cell">
+                      {wo.created_at ? (
+                        <div className="leading-tight">
+                          <div>{new Date(wo.created_at).toLocaleDateString()}</div>
+                          <div className="text-[10px] text-slate-400">{new Date(wo.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                      ) : "—"}
                     </td>
                     <td className="pl-2 pr-5 py-3 whitespace-nowrap text-right min-w-0">
                       <button
                         onClick={() => handleViewDetails(wo.id)}
+                        aria-label="View work order"
                         className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 hover:border-slate-300 rounded-lg text-xs font-bold text-slate-700 transition-all hover:bg-white bg-slate-50 active:scale-95"
                       >
                         <Eye className="w-3 h-3" />
-                        <span>View</span>
+                        <span className="hidden md:inline">View</span>
                       </button>
                     </td>
                   </tr>
@@ -742,13 +802,14 @@ function WorkOrders() {
               </tbody>
             </table>
           </div>
+          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
         </div>
       )}
 
       {/* CREATE WORK ORDER MODAL */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex justify-center p-4 items-start animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-lg w-full shadow-2xl p-6 relative flex flex-col my-4 md:my-8 max-h-[calc(100vh-4rem)] gap-4 animate-in zoom-in-95 duration-200 overflow-hidden">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-lg w-full shadow-2xl p-6 relative flex flex-col my-4 md:my-8 max-h-[90vh] gap-4 overflow-hidden">
 
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -764,8 +825,8 @@ function WorkOrders() {
             </div>
 
             {createErrors.api && (
-              <div className="p-3.5 bg-error-50 border border-error-200 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0">
-                <AlertTriangle className="w-4 h-4 text-error-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0">
+                <AlertTriangle className="w-4 h-4 text-error-500 shrink-0 mt-0.5" />
                 <span>{createErrors.api}</span>
               </div>
             )}
@@ -782,7 +843,7 @@ function WorkOrders() {
                     <select
                       value={createForm.product_id}
                       onChange={(e) => handleCreateChange("product_id", e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-750 font-medium transition-all"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
                     >
                       <option value="">Select target product...</option>
                       {productsList.map((p) => (
@@ -793,7 +854,7 @@ function WorkOrders() {
                     </select>
                   </div>
                   {createErrors.product_id && (
-                    <p className="text-xs text-error-850 font-semibold mt-1">{createErrors.product_id}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.product_id}</p>
                   )}
                 </div>
 
@@ -829,7 +890,7 @@ function WorkOrders() {
                               <select
                                 value={row.raw_material_id}
                                 onChange={(e) => handleRawMaterialRowChange(index, "raw_material_id", e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-200 hover:border-slate-350 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-750 font-medium transition-all"
+                                className="w-full px-3 py-2 border border-slate-200 hover:border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-medium transition-all"
                               >
                                 <option value="">Select raw material...</option>
                                 {rawMaterialsList.map((rm) => {
@@ -852,7 +913,7 @@ function WorkOrders() {
                                 value={row.input_qty}
                                 onChange={(e) => handleRawMaterialRowChange(index, "input_qty", e.target.value)}
                                 placeholder={`Qty (${unitCode})`}
-                                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 transition-all ${isStockExceeded ? "border-error-300 focus:ring-error-500 bg-error-50/40 text-error-900 font-bold" : "border-slate-200 hover:border-slate-350 focus:ring-brand-500 bg-white"
+                                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 transition-all ${isStockExceeded ? "border-error-100 focus:ring-error-500 bg-error-50/40 text-error-800 font-bold" : "border-slate-200 hover:border-slate-300 focus:ring-brand-500 bg-white"
                                   }`}
                               />
                             </div>
@@ -873,7 +934,7 @@ function WorkOrders() {
                           {selectedRm && (
                             <div className="flex items-center justify-between text-[11px] font-semibold px-1 pt-0.5">
                               <span className="text-slate-500">
-                                Live Stock: <span className="font-mono font-bold text-slate-700">{availableStock != null ? `${availableStock} ${unitCode}` : "—"}</span>
+                                Live Stock: <span className="tabular-nums font-bold text-slate-700">{availableStock != null ? `${availableStock} ${unitCode}` : "—"}</span>
                               </span>
                               {isStockExceeded && (
                                 <span className="text-error-800 font-bold bg-error-50 border border-error-100 px-2 py-0.5 rounded text-[10px] flex items-center gap-1">
@@ -888,24 +949,24 @@ function WorkOrders() {
                   </div>
 
                   {createErrors.raw_materials && (
-                    <p className="text-xs text-error-850 font-semibold mt-1">{createErrors.raw_materials}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.raw_materials}</p>
                   )}
                 </div>
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 mt-4 shrink-0">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-4 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2.5 border border-slate-200 text-slate-550 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors active:scale-95"
+                  className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 text-slate-500 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center min-w-[120px]"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center min-w-[120px]"
                 >
                   {isCreating ? <Spinner size="sm" /> : "Create Order"}
                 </button>
@@ -913,13 +974,13 @@ function WorkOrders() {
             </form>
 
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* DETAIL VIEW MODAL */}
       {isDetailOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex justify-center p-4 items-start animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-2xl w-full shadow-2xl p-6 relative flex flex-col my-4 md:my-8 max-h-[calc(100vh-4rem)] gap-4 animate-in zoom-in-95 duration-200 overflow-hidden">
+        <Modal onClose={() => setIsDetailOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-2xl w-full shadow-2xl p-6 relative flex flex-col my-4 md:my-8 max-h-[90vh] gap-4 overflow-hidden">
 
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1006,7 +1067,7 @@ function WorkOrders() {
                       <div className="flex flex-col items-center">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${selectedWorkOrder.status === "closed"
                           ? "bg-brand-600 text-white shadow-md shadow-brand-500/20"
-                          : "bg-slate-250 text-slate-500"
+                          : "bg-slate-200 text-slate-500"
                           }`}>
                           4
                         </div>
@@ -1019,7 +1080,7 @@ function WorkOrders() {
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Work Order No</span>
-                      <h4 className="text-base font-extrabold text-slate-900 tracking-tight font-mono">{selectedWorkOrder.work_order_number}</h4>
+                      <h4 className="text-base font-extrabold text-slate-900 tracking-tight tabular-nums">{selectedWorkOrder.work_order_number}</h4>
                     </div>
                     <div>
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</span>
@@ -1061,10 +1122,10 @@ function WorkOrders() {
                                     {rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`}
                                   </span>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-slate-700 font-mono">{inputVal.toFixed(2)} {unit}</span>
+                                    <span className="text-slate-700 tabular-nums">{inputVal.toFixed(2)} {unit}</span>
                                     {liveVal != null && (
                                       <span
-                                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border ${hasEnoughStock
+                                        className={`text-[10px] px-1.5 py-0.5 rounded tabular-nums font-bold border ${hasEnoughStock
                                           ? "bg-success-50 text-success-700 border-success-100"
                                           : "bg-error-50 text-error-800 border-error-100"
                                           }`}
@@ -1090,8 +1151,8 @@ function WorkOrders() {
                   {/* Quantity Details Metrics grid */}
                   <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                     <div className="bg-slate-50 border-b border-slate-100 px-4 py-2.5 flex items-center gap-2">
-                      <Hash className="w-3.5 h-3.5 text-slate-450" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-550">Quantity Reconciliation (KG)</span>
+                      <Hash className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quantity Reconciliation (KG)</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 text-xs">
                       <div className="p-3">
@@ -1135,7 +1196,7 @@ function WorkOrders() {
                         <div className="border border-slate-100 rounded-xl bg-white overflow-hidden">
                           <div className="bg-slate-50 border-b border-slate-100 px-4 py-2.5 flex items-center gap-2">
                             <TrendingUp className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-555">Work Order Costing & Financials</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Work Order Costing & Financials</span>
                           </div>
                           <div className="p-4 space-y-3 text-xs">
                             <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-1.5 font-bold uppercase text-[10px] text-slate-400">
@@ -1145,46 +1206,46 @@ function WorkOrders() {
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Raw Materials:</span>
-                              <span className="text-right font-mono font-bold">₹{matCost.toFixed(2)}</span>
-                              <span className="text-right font-mono font-bold">₹{matTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{matCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{matTax.toFixed(2)}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Machinery:</span>
-                              <span className="text-right font-mono font-bold">₹{machCost.toFixed(2)}</span>
-                              <span className="text-right font-mono font-bold">₹{machTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{machCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{machTax.toFixed(2)}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Transport:</span>
-                              <span className="text-right font-mono font-bold">₹{transCost.toFixed(2)}</span>
-                              <span className="text-right font-mono font-bold">₹{transTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{transCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{transTax.toFixed(2)}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Labour:</span>
-                              <span className="text-right font-mono font-bold">₹{laborCost.toFixed(2)}</span>
-                              <span className="text-right font-mono font-bold">₹{laborTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{laborCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{laborTax.toFixed(2)}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Others:</span>
-                              <span className="text-right font-mono font-bold">₹{otherCost.toFixed(2)}</span>
-                              <span className="text-right font-mono font-bold">₹{otherTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{otherCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">₹{otherTax.toFixed(2)}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-extrabold text-slate-900 border-t border-slate-200 pt-2 text-[13px]">
                               <span>Total:</span>
-                              <span className="text-right font-mono text-brand-700">₹{calcTotalCost.toFixed(2)}</span>
-                              <span className="text-right font-mono text-brand-700">₹{calcTotalTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums text-brand-700">₹{calcTotalCost.toFixed(2)}</span>
+                              <span className="text-right tabular-nums text-brand-700">₹{calcTotalTax.toFixed(2)}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="border border-slate-100 rounded-xl bg-white overflow-hidden">
                           <div className="bg-emerald-50/50 border-b border-emerald-100 px-4 py-2.5 flex items-center gap-2">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-655" />
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-700" />
                             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Batch Compliance Metadata</span>
                           </div>
                           <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-semibold">
                             <div className="flex flex-col">
                               <span className="text-[10px] font-bold text-slate-400 mb-0.5">Batch Number</span>
-                              <span className="text-slate-800 font-bold font-mono">{selectedWorkOrder.batch_number}</span>
+                              <span className="text-slate-800 font-bold tabular-nums">{selectedWorkOrder.batch_number}</span>
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[10px] font-bold text-slate-400 mb-0.5">Batch Manufacture Date</span>
@@ -1208,17 +1269,17 @@ function WorkOrders() {
                   <div className="border border-slate-100 rounded-xl bg-white p-3.5 space-y-2.5">
                     <div className="flex items-center gap-2 border-b border-slate-50 pb-1.5">
                       <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-550">System Logs & Timestamps</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">System Logs & Timestamps</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-bold text-slate-500">
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400">Created:</span>
-                        <span className="text-slate-750">{new Date(selectedWorkOrder.created_at).toLocaleString()}</span>
+                        <span className="text-slate-700">{new Date(selectedWorkOrder.created_at).toLocaleString()}</span>
                       </div>
                       {selectedWorkOrder.authorized_at && (
                         <div className="flex items-center gap-2">
                           <span className="text-slate-400">Completed/Authorized:</span>
-                          <span className="text-slate-750">{new Date(selectedWorkOrder.authorized_at).toLocaleString()}</span>
+                          <span className="text-slate-700">{new Date(selectedWorkOrder.authorized_at).toLocaleString()}</span>
                         </div>
                       )}
                     </div>
@@ -1226,23 +1287,23 @@ function WorkOrders() {
                 </div>
 
                 {/* DYNAMIC ACTIONS CONTAINER */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4 shrink-0">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 pt-4 border-t border-slate-100 mt-4 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsDetailOpen(false)}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold active:scale-95 transition-all"
+                    className="w-full sm:w-auto px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold active:scale-95 transition-all text-center"
                   >
                     Close Modal
                   </button>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     {selectedWorkOrder.status === "open" && (
                       <>
                         <button
                           type="button"
                           disabled={actionLoading}
                           onClick={() => handleCancelWorkOrder(selectedWorkOrder.id)}
-                          className="px-4 py-2 bg-error-500 hover:bg-error-800 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-error-500/10"
+                          className="w-full sm:w-auto px-4 py-2 bg-error-500 hover:bg-error-800 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-error-500/10 text-center"
                         >
                           Cancel
                         </button>
@@ -1250,7 +1311,7 @@ function WorkOrders() {
                           type="button"
                           disabled={actionLoading}
                           onClick={() => setIsAuthorizeConfirmOpen(true)}
-                          className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-brand-500/10 flex items-center gap-1.5"
+                          className="w-full sm:w-auto px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-brand-500/10 flex items-center justify-center gap-1.5"
                         >
                           {actionLoading ? <Spinner size="sm" /> : (
                             <>
@@ -1268,7 +1329,7 @@ function WorkOrders() {
                           type="button"
                           disabled={actionLoading}
                           onClick={() => handleCancelWorkOrder(selectedWorkOrder.id)}
-                          className="px-4 py-2 bg-error-500 hover:bg-error-800 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-error-500/10"
+                          className="w-full sm:w-auto px-4 py-2 bg-error-500 hover:bg-error-800 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-error-500/10 text-center"
                         >
                           Cancel
                         </button>
@@ -1276,7 +1337,7 @@ function WorkOrders() {
                           type="button"
                           disabled={actionLoading}
                           onClick={() => handleStartWorkOrder(selectedWorkOrder.id)}
-                          className="px-4 py-2 bg-success-500 hover:bg-success-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-success-500/10 flex items-center gap-1.5"
+                          className="w-full sm:w-auto px-4 py-2 bg-success-500 hover:bg-success-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-success-500/10 flex items-center justify-center gap-1.5"
                         >
                           {actionLoading ? <Spinner size="sm" /> : (
                             <>
@@ -1292,7 +1353,7 @@ function WorkOrders() {
                       <button
                         type="button"
                         onClick={handleOpenCloseForm}
-                        className="px-4 py-2 bg-success-500 hover:bg-success-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-success-500/10 flex items-center gap-1.5"
+                        className="w-full sm:w-auto px-4 py-2 bg-success-500 hover:bg-success-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-md shadow-success-500/10 flex items-center justify-center gap-1.5"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                         <span>Complete & Close Production</span>
@@ -1300,14 +1361,14 @@ function WorkOrders() {
                     )}
 
                     {selectedWorkOrder.status === "closed" && (
-                      <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-250 px-3.5 py-1.5 rounded-xl text-xs font-bold">
+                      <div className="flex items-center justify-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-bold w-full sm:w-auto">
                         <CheckCircle className="w-3.5 h-3.5 shrink-0" />
                         <span>Production Completed</span>
                       </div>
                     )}
 
                     {selectedWorkOrder.status === "cancelled" && (
-                      <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-250 px-3.5 py-1.5 rounded-xl text-xs font-bold">
+                      <div className="flex items-center justify-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl text-xs font-bold w-full sm:w-auto">
                         <XCircle className="w-3.5 h-3.5 shrink-0" />
                         <span>Production Cancelled</span>
                       </div>
@@ -1319,13 +1380,13 @@ function WorkOrders() {
             )}
 
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* CLOSE / COMPLETE WORK ORDER MODAL */}
       {isCloseFormOpen && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex justify-center p-4 items-start animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-lg w-full shadow-2xl p-6 relative flex flex-col max-h-[85vh] gap-4 animate-in zoom-in-95 duration-200 overflow-hidden">
+        <Modal onClose={() => setIsCloseFormOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-lg w-full shadow-2xl p-6 relative flex flex-col max-h-[90vh] gap-4 overflow-hidden">
 
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -1342,8 +1403,8 @@ function WorkOrders() {
 
             {/* Error alerts banner */}
             {(isYieldMismatch || closeErrors.api) && (
-              <div className="p-3.5 bg-error-50 border border-error-200 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0 animate-in fade-in duration-200">
-                <AlertTriangle className="w-4 h-4 text-error-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0 animate-in fade-in duration-200">
+                <AlertTriangle className="w-4 h-4 text-error-500 shrink-0 mt-0.5" />
                 <span>
                   {closeErrors.api || `Error: Output (${outputNum.toFixed(2)}) + Wastage (${wastageNum.toFixed(2)}) does not equal Input (${inputNum.toFixed(2)}). Yield must be fully reconciled.`}
                 </span>
@@ -1361,7 +1422,7 @@ function WorkOrders() {
               <div className="flex-1 overflow-y-auto pr-1 space-y-4 py-1">
                 {/* Output Qty */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-550 mb-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Output Product Quantity (KG) <span className="text-error-500 font-bold">*</span>
                   </label>
                   <input
@@ -1370,16 +1431,16 @@ function WorkOrders() {
                     value={closeForm.output_qty}
                     onChange={(e) => handleOutputQtyChange(e.target.value)}
                     placeholder="Enter finished goods output qty..."
-                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
+                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
                   />
                   {closeErrors.output_qty && (
-                    <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.output_qty}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.output_qty}</p>
                   )}
                 </div>
 
                 {/* Wastage Qty */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                     Wastage Quantity (KG) <span className="text-error-500 font-bold">*</span>
                   </label>
                   <input
@@ -1394,13 +1455,13 @@ function WorkOrders() {
                     Automatically calculated as: Input Qty - Output Qty
                   </span>
                   {closeErrors.wastage_qty && (
-                    <p className="text-xs text-error-850 font-semibold mt-1">{closeErrors.wastage_qty}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.wastage_qty}</p>
                   )}
                 </div>
 
                 {/* Batch Number */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                     Batch Number Code <span className="text-error-500 font-bold">*</span>
                   </label>
                   <input
@@ -1408,42 +1469,42 @@ function WorkOrders() {
                     value={closeForm.batch_number}
                     onChange={(e) => setCloseForm({ ...closeForm, batch_number: e.target.value })}
                     placeholder="E.g., BATCH-CHILI-0012"
-                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
+                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold"
                   />
                   {closeErrors.batch_number && (
-                    <p className="text-xs text-error-850 font-semibold mt-1">{closeErrors.batch_number}</p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.batch_number}</p>
                   )}
                 </div>
 
                 {/* Batch Date & Expiry Date row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
-                      Batch Date <span className="text-error-500 font-bold">*</span>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Batch Date
                     </label>
                     <input
                       type="datetime-local"
                       value={closeForm.batch_date}
                       onChange={(e) => setCloseForm({ ...closeForm, batch_date: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all text-slate-700 bg-white font-semibold"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all text-slate-700 bg-white font-semibold"
                     />
                     {closeErrors.batch_date && (
-                      <p className="text-xs text-error-850 font-semibold mt-1">{closeErrors.batch_date}</p>
+                      <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.batch_date}</p>
                     )}
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                       Expiry Date <span className="text-error-500 font-bold">*</span>
                     </label>
                     <input
                       type="datetime-local"
                       value={closeForm.expiry_date}
                       onChange={(e) => setCloseForm({ ...closeForm, expiry_date: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all text-slate-700 bg-white font-semibold"
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all text-slate-700 bg-white font-semibold"
                     />
                     {closeErrors.expiry_date && (
-                      <p className="text-xs text-error-850 font-semibold mt-1">{closeErrors.expiry_date}</p>
+                      <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.expiry_date}</p>
                     )}
                   </div>
                 </div>
@@ -1452,7 +1513,7 @@ function WorkOrders() {
                   {/* Machinery Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Machinery Cost (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1462,14 +1523,14 @@ function WorkOrders() {
                         value={closeForm.machinery_cost}
                         onChange={(e) => setCloseForm({ ...closeForm, machinery_cost: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.machinery_cost && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.machinery_cost}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.machinery_cost}</p>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Machinery Cost Tax (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1479,10 +1540,10 @@ function WorkOrders() {
                         value={closeForm.machinery_cost_tax}
                         onChange={(e) => setCloseForm({ ...closeForm, machinery_cost_tax: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.machinery_cost_tax && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.machinery_cost_tax}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.machinery_cost_tax}</p>
                       )}
                     </div>
                   </div>
@@ -1490,7 +1551,7 @@ function WorkOrders() {
                   {/* Transport Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Transport Cost (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1500,14 +1561,14 @@ function WorkOrders() {
                         value={closeForm.transport_cost}
                         onChange={(e) => setCloseForm({ ...closeForm, transport_cost: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.transport_cost && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.transport_cost}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.transport_cost}</p>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Transport Cost Tax (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1517,10 +1578,10 @@ function WorkOrders() {
                         value={closeForm.transport_cost_tax}
                         onChange={(e) => setCloseForm({ ...closeForm, transport_cost_tax: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.transport_cost_tax && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.transport_cost_tax}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.transport_cost_tax}</p>
                       )}
                     </div>
                   </div>
@@ -1528,7 +1589,7 @@ function WorkOrders() {
                   {/* Labour Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Labour Cost (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1538,14 +1599,14 @@ function WorkOrders() {
                         value={closeForm.worker_cost}
                         onChange={(e) => setCloseForm({ ...closeForm, worker_cost: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.worker_cost && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.worker_cost}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.worker_cost}</p>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Labour Cost Tax (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1555,10 +1616,10 @@ function WorkOrders() {
                         value={closeForm.worker_cost_tax}
                         onChange={(e) => setCloseForm({ ...closeForm, worker_cost_tax: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.worker_cost_tax && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.worker_cost_tax}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.worker_cost_tax}</p>
                       )}
                     </div>
                   </div>
@@ -1566,7 +1627,7 @@ function WorkOrders() {
                   {/* Others Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Others Cost (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1576,14 +1637,14 @@ function WorkOrders() {
                         value={closeForm.other_cost}
                         onChange={(e) => setCloseForm({ ...closeForm, other_cost: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.other_cost && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.other_cost}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.other_cost}</p>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-555 mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Others Cost Tax (INR) <span className="text-error-500 font-bold">*</span>
                       </label>
                       <input
@@ -1593,28 +1654,28 @@ function WorkOrders() {
                         value={closeForm.other_cost_tax}
                         onChange={(e) => setCloseForm({ ...closeForm, other_cost_tax: e.target.value })}
                         placeholder="0.00"
-                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-355 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 bg-white"
                       />
                       {closeErrors.other_cost_tax && (
-                        <p className="text-xs text-error-855 font-semibold mt-1">{closeErrors.other_cost_tax}</p>
+                        <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.other_cost_tax}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Billing Live Calculations */}
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-655 space-y-1.5">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700 space-y-1.5">
                   <div className="flex justify-between">
                     <span>Raw Material Cost:</span>
-                    <span className="font-mono text-slate-700 font-bold">₹{(selectedWorkOrder.costing?.material_cost || 0).toFixed(2)}</span>
+                    <span className="tabular-nums text-slate-700 font-bold">₹{(selectedWorkOrder.costing?.material_cost || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-slate-450">
+                  <div className="flex justify-between text-slate-400">
                     <span>Raw Material Tax (Read-only):</span>
-                    <span className="font-mono text-slate-500">₹{(selectedWorkOrder.costing?.material_cost_tax || 0).toFixed(2)}</span>
+                    <span className="tabular-nums text-slate-500">₹{(selectedWorkOrder.costing?.material_cost_tax || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between border-t border-slate-100 pt-1">
                     <span>Overhead Cost:</span>
-                    <span className="font-mono text-slate-700 font-bold">
+                    <span className="tabular-nums text-slate-700 font-bold">
                       ₹{(
                         (parseFloat(closeForm.machinery_cost) || 0) +
                         (parseFloat(closeForm.transport_cost) || 0) +
@@ -1623,9 +1684,9 @@ function WorkOrders() {
                       ).toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-slate-450">
+                  <div className="flex justify-between text-slate-400">
                     <span>Overhead Tax:</span>
-                    <span className="font-mono text-slate-500">
+                    <span className="tabular-nums text-slate-500">
                       ₹{(
                         (parseFloat(closeForm.machinery_cost_tax) || 0) +
                         (parseFloat(closeForm.transport_cost_tax) || 0) +
@@ -1636,7 +1697,7 @@ function WorkOrders() {
                   </div>
                   <div className="flex justify-between text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-1.5">
                     <span>Total production cost & tax:</span>
-                    <span className="font-mono text-brand-700">
+                    <span className="tabular-nums text-brand-700">
                       ₹{(
                         (selectedWorkOrder.costing?.material_cost || 0) +
                         (selectedWorkOrder.costing?.material_cost_tax || 0) +
@@ -1655,31 +1716,31 @@ function WorkOrders() {
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 mt-4 shrink-0 font-semibold">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-4 shrink-0 font-semibold">
                 <button
                   type="button"
                   onClick={() => setIsCloseFormOpen(false)}
-                  className="px-4 py-2.5 border border-slate-200 text-slate-550 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors active:scale-95"
+                  className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 text-slate-500 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors active:scale-95 text-center"
                 >
                   Go Back
                 </button>
                 <button
                   type="submit"
                   disabled={isClosing || isYieldMismatch}
-                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isClosing ? <Spinner size="sm" /> : "Complete & Close"}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* INSUFFICIENT STOCK WARNING MODAL */}
       {isStockErrorOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-md w-full shadow-2xl p-6 relative flex flex-col gap-4 animate-in zoom-in-95 duration-200 text-center items-center">
+        <Modal onClose={() => setIsStockErrorOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-md w-full shadow-2xl p-6 relative flex flex-col gap-4 text-center items-center">
 
             <div className="p-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-full">
               <AlertTriangle className="w-8 h-8" />
@@ -1688,7 +1749,9 @@ function WorkOrders() {
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-slate-900">Insufficient Stock</h3>
               <p className="text-sm font-semibold text-slate-500 max-w-sm">
-                Failed to start production: Insufficient raw material stock in the warehouse. Please register a Purchase Entry first.
+                {stockErrorMessage}
+                <br />
+                Please register a Purchase Entry first.
               </p>
             </div>
 
@@ -1700,14 +1763,14 @@ function WorkOrders() {
             </button>
 
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Authorize Work Order Confirmation Overlay */}
       {isAuthorizeConfirmOpen && selectedWorkOrder && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <Modal onClose={() => setIsAuthorizeConfirmOpen(false)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
                   <ShieldAlert className="w-4.5 h-4.5 text-brand-600" />
@@ -1724,7 +1787,7 @@ function WorkOrders() {
               </button>
             </div>
 
-            <div className="p-6 space-y-3">
+            <div className="p-6 space-y-3 flex-1 overflow-y-auto">
               <p className="text-sm font-semibold text-slate-700 leading-relaxed">
                 Are you sure you want to authorize Work Order <span className="font-bold text-slate-900 uppercase">{selectedWorkOrder.work_order_number}</span>?
               </p>
@@ -1733,12 +1796,12 @@ function WorkOrders() {
               </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 bg-slate-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsAuthorizeConfirmOpen(false)}
                 disabled={actionLoading}
-                className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-650 transition-all bg-white disabled:opacity-50"
+                className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 transition-all bg-white disabled:opacity-50 text-center"
               >
                 Cancel
               </button>
@@ -1746,14 +1809,14 @@ function WorkOrders() {
                 type="button"
                 onClick={() => handleAuthorizeWorkOrder(selectedWorkOrder.id)}
                 disabled={actionLoading}
-                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {actionLoading ? <Spinner size="sm" /> : null}
                 <span>{actionLoading ? "Authorizing..." : "Confirm & Authorize"}</span>
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

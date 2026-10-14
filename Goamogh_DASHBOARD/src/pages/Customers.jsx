@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   Users,
   Search,
@@ -7,14 +7,9 @@ import {
   MapPin,
   History,
   AlertCircle,
-  CheckCircle2,
   Trash2,
-  XCircle,
   ToggleLeft,
   ToggleRight,
-  Eye,
-  Info,
-  Calendar,
   X
 } from "lucide-react"
 import {
@@ -30,6 +25,9 @@ import {
   getCustomerOrders
 } from "@/services/customers"
 import Spinner from "@/components/ui/Spinner"
+import Pagination from "@/components/ui/Pagination"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -80,15 +78,19 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function Customers() {
+  const confirm = useConfirm()
   const [customers, setCustomers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
   // Filter & Pagination States
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [skip, setSkip] = useState(0)
-  const [limit, setLimit] = useState(50)
+  const limit = 50
+  const [total, setTotal] = useState(0)
+  const latestRequestRef = useRef(0)
 
   // Current Operations
   const [selectedCustomer, setSelectedCustomer] = useState(null)
@@ -138,22 +140,41 @@ function Customers() {
   const [modalError, setModalError] = useState("")
   const [formErrors, setFormErrors] = useState({})
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+      setSkip(0)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   const fetchCustomers = useCallback(async () => {
+    const requestId = ++latestRequestRef.current
     setIsLoading(true)
     setError("")
     try {
-      const res = await getCustomers({ search: searchQuery, skip, limit })
+      const params = { search: debouncedSearch, skip, limit }
+      if (statusFilter !== "all") {
+        params.is_active = statusFilter === "active"
+      }
+      const res = await getCustomers(params)
+      if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         throw new Error("Failed to load customers catalog.")
       }
       const json = await res.json()
+      if (requestId !== latestRequestRef.current) return
       setCustomers(json.data || [])
+      setTotal(json.meta.total)
     } catch (err) {
+      if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred.")
     } finally {
-      setIsLoading(false)
+      if (requestId === latestRequestRef.current) {
+        setIsLoading(false)
+      }
     }
-  }, [searchQuery, skip, limit])
+  }, [debouncedSearch, statusFilter, skip, limit])
 
   useEffect(() => {
     fetchCustomers()
@@ -183,6 +204,13 @@ function Customers() {
       setFormErrors(errors)
       return
     }
+
+    const fullName = `${(createForm.first_name || "").trim()} ${(createForm.last_name || "").trim()}`.trim()
+    const ok = await confirm({
+      title: `Create customer ${fullName}?`,
+      confirmLabel: "Create"
+    })
+    if (!ok) return
 
     setModalLoading(true)
     try {
@@ -259,6 +287,13 @@ function Customers() {
       return
     }
 
+    const fullName = `${(editForm.first_name || "").trim()} ${(editForm.last_name || "").trim()}`.trim()
+    const ok = await confirm({
+      title: `Save changes to customer ${fullName}?`,
+      confirmLabel: "Save changes"
+    })
+    if (!ok) return
+
     setModalLoading(true)
     try {
       const res = await updateCustomer(selectedCustomer.id, {
@@ -281,8 +316,16 @@ function Customers() {
 
   // Toggle activation status
   const handleToggleStatus = async (customer) => {
+    const custName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || customer.phone || "customer"
+    const newStatus = !customer.is_active
+    const ok = await confirm({
+      title: newStatus ? `Activate customer ${custName}?` : `Deactivate customer ${custName}?`,
+      confirmLabel: newStatus ? "Activate" : "Deactivate",
+      ...(newStatus ? {} : { tone: "danger" })
+    })
+    if (!ok) return
+
     try {
-      const newStatus = !customer.is_active
       const res = await toggleCustomerStatus(customer.id, newStatus)
       if (!res.ok) {
         throw new Error("Failed to change activation status.")
@@ -373,6 +416,13 @@ function Customers() {
       return
     }
 
+    const custName = selectedCustomer?.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim() : "customer"
+    const ok = await confirm({
+      title: editingAddressId ? `Update address for ${custName}?` : `Add address for ${custName}?`,
+      confirmLabel: editingAddressId ? "Save changes" : "Add address"
+    })
+    if (!ok) return
+
     setModalLoading(true)
     try {
       let res
@@ -455,7 +505,14 @@ function Customers() {
 
   // Delete customer address
   const handleDeleteAddress = async (addressId) => {
-    if (!window.confirm("Are you sure you want to delete this address?")) return
+    const custName = selectedCustomer?.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim() : "customer"
+    const ok = await confirm({
+      title: `Delete address for ${custName}?`,
+      message: "Are you sure you want to delete this address?",
+      confirmLabel: "Delete",
+      tone: "danger"
+    })
+    if (!ok) return
     setModalError("")
     setModalLoading(true)
     const targetId = selectedCustomer?.id || selectedCustomer?.user_id || selectedCustomer?.user?.id
@@ -525,7 +582,7 @@ function Customers() {
             <Users className="w-6 h-6 text-brand-600" />
             <span>Customer Profile Directory</span>
           </h2>
-          <p className="text-sm font-medium text-slate-550 mt-1">
+          <p className="text-sm font-medium text-slate-500 mt-1">
             Manage profiles, verify GST registrations, configure shipping destinations, and review order histories.
           </p>
         </div>
@@ -537,7 +594,7 @@ function Customers() {
             setCreateForm({ first_name: "", last_name: "", phone: "", email: "", gstin: "", company_name: "" })
             setIsCreateOpen(true)
           }}
-          className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-brand-500/10 active:scale-95 self-start sm:self-center"
+          className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-brand-500/10 active:scale-95 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Customer</span>
@@ -546,7 +603,7 @@ function Customers() {
 
       {/* Toolbar Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
-        <div className="relative flex-1 w-full">
+        <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
@@ -557,10 +614,13 @@ function Customers() {
           />
         </div>
 
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-auto sm:min-w-[160px]">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setSkip(0)
+            }}
             className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-semibold transition-all"
           >
             <option value="all">All Statuses</option>
@@ -570,40 +630,43 @@ function Customers() {
         </div>
       </div>
 
-      {/* Main Listing Table Layout */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
+      ) : error ? (
+        <div className="bg-white border border-error-100 rounded-2xl p-12 text-center shadow-sm">
+          <p className="text-sm font-semibold text-error-800">{error}</p>
+          <button
+            onClick={fetchCustomers}
+            className="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95"
+          >
+            Retry
+          </button>
+        </div>
       ) : customers.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 font-medium shadow-sm">
           No customer records matching lookup filters.
         </div>
       ) : (
         <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <table className="w-full text-left border-collapse table-fixed">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                  <th className="px-3.5 py-3.5 w-[32%]">Customer & Business</th>
-                  <th className="px-3 py-3.5 w-[26%]">Contact Details</th>
-                  <th className="px-3 py-3.5 w-[18%]">Quick Access</th>
-                  <th className="px-3 py-3.5 w-[10%] text-center">Status</th>
-                  <th className="px-3 py-3.5 w-[14%] text-right">Actions</th>
+                  <th className="px-3.5 py-3.5 w-[56%] md:w-[42%] lg:w-[32%]">Customer & Business</th>
+                  <th className="px-3 py-3.5 hidden md:table-cell md:w-[30%] lg:w-[26%]">Contact Details</th>
+                  <th className="px-3 py-3.5 hidden lg:table-cell lg:w-[18%]">Quick Access</th>
+                  <th className="px-3 py-3.5 w-[22%] md:w-[14%] lg:w-[11%] text-center">Status</th>
+                  <th className="px-3 py-3.5 w-[22%] md:w-[14%] lg:w-[13%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
-                {customers
-                  .filter((c) => {
-                    if (statusFilter === "active" && !c.is_active) return false
-                    if (statusFilter === "inactive" && c.is_active) return false
-                    return true
-                  })
-                  .map((c) => {
+                {customers.map((c) => {
                     const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Customer"
                     const initial = (c.first_name || "C")[0].toUpperCase()
                     return (
                       <tr key={c.id} className="hover:bg-slate-50/70 transition-colors group">
                         {/* Column 1: Customer Avatar, Name & Business info */}
-                        <td className="px-3.5 py-3">
+                        <td className="px-3.5 py-3 min-w-0">
                           <div className="flex items-start gap-3 min-w-0">
                             <div className="w-8 h-8 rounded-xl bg-brand-50/80 border border-brand-100 flex items-center justify-center font-bold text-brand-700 shrink-0 text-xs shadow-2xs mt-0.5">
                               {initial}
@@ -619,7 +682,7 @@ function Customers() {
                                   </span>
                                 )}
                                 {c.gstin && (
-                                  <span className="font-mono text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60 font-medium">
+                                  <span className="tabular-nums text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60 font-medium">
                                     GST: {c.gstin}
                                   </span>
                                 )}
@@ -629,13 +692,33 @@ function Customers() {
                                   </span>
                                 )}
                               </div>
+                              <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5" title={c.phone || c.email || ""}>
+                                {c.phone ? `${c.phone} ` : ""}{c.email ? `• ${c.email}` : ""}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 lg:hidden">
+                                <button
+                                  onClick={() => loadAddresses(c)}
+                                  className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <MapPin className="w-2.5 h-2.5" />
+                                  <span>Addresses</span>
+                                </button>
+                                <span className="text-slate-300">•</span>
+                                <button
+                                  onClick={() => loadOrderHistory(c)}
+                                  className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <History className="w-2.5 h-2.5" />
+                                  <span>Orders</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Column 2: Phone & Email */}
-                        <td className="px-3 py-3 min-w-0">
-                          <p className="font-mono text-xs font-semibold text-slate-800 leading-snug">
+                        <td className="px-3 py-3 min-w-0 hidden md:table-cell">
+                          <p className="tabular-nums text-xs font-semibold text-slate-800 leading-snug truncate" title={c.phone || ""}>
                             {c.phone || "—"}
                           </p>
                           <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5" title={c.email || ""}>
@@ -644,11 +727,11 @@ function Customers() {
                         </td>
 
                         {/* Column 3: Quick Access Links (Addresses & Orders) */}
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 hidden lg:table-cell">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <button
                               onClick={() => loadAddresses(c)}
-                              className="px-2 py-1 border border-slate-200 hover:border-brand-300 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn"
+                              className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
                               title="View Addresses"
                             >
                               <MapPin className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
@@ -656,7 +739,7 @@ function Customers() {
                             </button>
                             <button
                               onClick={() => loadOrderHistory(c)}
-                              className="px-2 py-1 border border-slate-200 hover:border-brand-300 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn"
+                              className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
                               title="Order History"
                             >
                               <History className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
@@ -666,7 +749,7 @@ function Customers() {
                         </td>
 
                         {/* Column 4: Status */}
-                        <td className="px-3 py-3 text-center">
+                        <td className="px-3 py-3 text-center whitespace-nowrap">
                           {c.is_active ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                               Active
@@ -679,7 +762,7 @@ function Customers() {
                         </td>
 
                         {/* Column 5: Actions */}
-                        <td className="px-3 py-3 text-right">
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
@@ -689,14 +772,14 @@ function Customers() {
                                 setModalError("")
                                 setIsEditOpen(true)
                               }}
-                              className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg border border-slate-200/60 shadow-2xs transition-all"
+                              className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg border border-slate-200/60 shadow-2xs transition-all cursor-pointer"
                               title="Edit Profile"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleToggleStatus(c)}
-                              className={`p-1.5 rounded-lg border shadow-2xs transition-all ${c.is_active
+                              className={`p-1.5 rounded-lg border shadow-2xs transition-all cursor-pointer ${c.is_active
                                 ? "border-rose-200/60 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                                 : "border-emerald-200/60 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
                                 }`}
@@ -712,13 +795,12 @@ function Customers() {
               </tbody>
             </table>
           </div>
+          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
         </div>
-      )}
-
-      {/* MODAL 1: ADD CUSTOMER */}
+      )}      {/* MODAL 1: ADD CUSTOMER */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center p-4 items-center animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header (Fixed, Non-scrolling) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -739,7 +821,7 @@ function Customers() {
               <div className="p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 {modalError && (
                   <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-error-600 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
                     <span>{modalError}</span>
                   </div>
                 )}
@@ -747,7 +829,7 @@ function Customers() {
                 <div className="space-y-3.5">
                   <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Customer Profile Information</h4>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-slate-600 mb-1">First Name <span className="text-error-500">*</span></label>
                       <input
@@ -772,7 +854,7 @@ function Customers() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-slate-600 mb-1">Phone Number <span className="text-error-500">*</span></label>
                       <input
@@ -797,7 +879,7 @@ function Customers() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-slate-600 mb-1">GSTIN (for B2B/Wholesale)</label>
                       <input
@@ -850,7 +932,7 @@ function Customers() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-slate-600 mb-1">City</label>
                       <input
@@ -876,9 +958,9 @@ function Customers() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-slate-600 mb-1">Postal / PIN Code</label>
+                      <label className="text-xs font-bold text-slate-600 mb-1">Postal Code</label>
                       <input
                         type="text"
                         placeholder="e.g. 560001"
@@ -903,31 +985,31 @@ function Customers() {
               </div>
 
               {/* Footer Bar (Fixed, Non-scrolling) */}
-              <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-3 shrink-0">
+              <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={modalLoading}
-                  className="px-5 py-2 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center min-w-[110px]"
+                  className="w-full sm:w-auto px-5 py-2 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center min-w-[110px]"
                 >
                   {modalLoading ? <Spinner size="sm" /> : "Save Customer"}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* MODAL 2: EDIT CUSTOMER */}
       {isEditOpen && selectedCustomer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center p-4 items-center animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <Modal onClose={() => setIsEditOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -948,12 +1030,12 @@ function Customers() {
               <div className="p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 {modalError && (
                   <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-error-600 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
                     <span>{modalError}</span>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-600 mb-1">First Name <span className="text-error-500">*</span></label>
                     <input
@@ -990,31 +1072,31 @@ function Customers() {
               </div>
 
               {/* Footer Bar (Fixed) */}
-              <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-3 shrink-0">
+              <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={modalLoading}
-                  className="px-4 py-2 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center min-w-[100px]"
+                  className="w-full sm:w-auto px-4 py-2 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center min-w-[100px]"
                 >
                   {modalLoading ? <Spinner size="sm" /> : "Save Changes"}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* MODAL 3: ADDRESSES MANAGER */}
       {isAddressesOpen && selectedCustomer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center p-4 items-center animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <Modal onClose={() => setIsAddressesOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <div>
@@ -1022,7 +1104,7 @@ function Customers() {
                   <MapPin className="w-5 h-5 text-brand-600" />
                   <span>Configure Shipping Addresses</span>
                 </h3>
-                <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
               </div>
               <button
                 onClick={() => setIsAddressesOpen(false)}
@@ -1036,7 +1118,7 @@ function Customers() {
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               {modalError && (
                 <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-error-600 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
                   <span>{modalError}</span>
                 </div>
               )}
@@ -1056,12 +1138,12 @@ function Customers() {
                           <p className="font-bold text-slate-900">{addr.address_line_1}</p>
                           {addr.address_line_2 && <p>{addr.address_line_2}</p>}
                           <p>{addr.city}, {addr.state} - {addr.postal_code || "—"}</p>
-                          {addr.landmark && <p className="text-[10px] text-slate-450 mt-0.5">Landmark: {addr.landmark}</p>}
-                          {addr.phone && <p className="text-slate-900 font-mono text-[10px] mt-1">Mobile: {addr.phone}</p>}
+                          {addr.landmark && <p className="text-[10px] text-slate-400 mt-0.5">Landmark: {addr.landmark}</p>}
+                          {addr.phone && <p className="text-slate-900 tabular-nums text-[10px] mt-1">Mobile: {addr.phone}</p>}
                         </div>
                         <div className="absolute top-3 right-3 flex items-center gap-1.5">
                           {addr.is_default && (
-                            <span className="text-[9px] font-black text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded uppercase">Default</span>
+                            <span className="text-[10px] font-extrabold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded uppercase">Default</span>
                           )}
                           {addr.id && (
                             <>
@@ -1127,7 +1209,7 @@ function Customers() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-600 mb-1">City <span className="text-error-500">*</span></label>
                     <input
@@ -1153,7 +1235,7 @@ function Customers() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-600 mb-1">Postal Code</label>
                     <input
@@ -1200,7 +1282,7 @@ function Customers() {
                   <button
                     type="submit"
                     disabled={modalLoading}
-                    className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center min-w-[120px]"
+                    className="w-full sm:w-auto px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center min-w-[120px]"
                   >
                     {modalLoading ? <Spinner size="sm" /> : "Register Destination"}
                   </button>
@@ -1209,23 +1291,23 @@ function Customers() {
             </div>
 
             {/* Footer Bar (Fixed) */}
-            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex justify-end shrink-0">
+            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsAddressesOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
+                className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
               >
                 Close
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* MODAL 4: ORDER HISTORY */}
       {isHistoryOpen && selectedCustomer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center p-4 items-center animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-150 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <Modal onClose={() => setIsHistoryOpen(false)}>
+          <div className="bg-white border border-slate-100 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <div>
@@ -1233,7 +1315,7 @@ function Customers() {
                   <History className="w-5 h-5 text-brand-600" />
                   <span>Customer Orders History</span>
                 </h3>
-                <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
               </div>
               <button
                 onClick={() => setIsHistoryOpen(false)}
@@ -1247,7 +1329,7 @@ function Customers() {
             <div className="p-6 overflow-y-auto flex-1">
               {modalError && (
                 <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-4 h-4 text-error-600 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-error-500 shrink-0" />
                   <span>{modalError}</span>
                 </div>
               )}
@@ -1257,27 +1339,32 @@ function Customers() {
               ) : orderHistory.length === 0 ? (
                 <p className="text-center text-slate-400 font-bold py-12">No orders recorded for this customer.</p>
               ) : (
-                <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
-                  <table className="w-full text-left border-collapse text-xs">
+                <div className="w-full border border-slate-200/80 rounded-xl">
+                  <table className="w-full text-left border-collapse table-fixed text-xs">
                     <thead>
                       <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                        <th className="px-4 py-2.5">Order / Sale No</th>
-                        <th className="px-4 py-2.5">Type</th>
-                        <th className="px-4 py-2.5">Status</th>
-                        <th className="px-4 py-2.5">Payment</th>
-                        <th className="px-4 py-2.5 text-right">Total Amount</th>
-                        <th className="px-4 py-2.5">Date</th>
+                        <th className="px-3 py-2.5 w-[50%] md:w-[28%] lg:w-[24%]">Order / Sale No</th>
+                        <th className="px-3 py-2.5 hidden md:table-cell md:w-[16%] lg:w-[14%]">Type</th>
+                        <th className="px-3 py-2.5 w-[22%] md:w-[18%] lg:w-[16%]">Status</th>
+                        <th className="px-3 py-2.5 hidden lg:table-cell lg:w-[16%]">Payment</th>
+                        <th className="px-3 py-2.5 text-right w-[28%] md:w-[22%] lg:w-[16%]">Total Amount</th>
+                        <th className="px-3 py-2.5 hidden md:table-cell md:w-[16%] lg:w-[14%]">Date</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                       {orderHistory.map((order) => (
                         <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-4 py-3 font-mono font-bold text-brand-700">{order.sale_number}</td>
-                          <td className="px-4 py-3 uppercase text-[9px] font-extrabold">{order.sale_type}</td>
-                          <td className="px-4 py-3 uppercase text-[9px] font-extrabold">{order.status}</td>
-                          <td className="px-4 py-3 uppercase text-[9px] font-extrabold">{order.payment_status}</td>
-                          <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">₹{parseFloat(order.total_amount || 0).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-slate-400 font-mono">{formatShortDate(order.created_at)}</td>
+                          <td className="px-3 py-2.5 min-w-0">
+                            <div className="tabular-nums font-bold text-brand-700 truncate" title={order.sale_number}>{order.sale_number}</div>
+                            <div className="text-[10px] text-slate-400 truncate md:hidden">
+                              {order.sale_type} • {formatShortDate(order.created_at)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden md:table-cell">{order.sale_type}</td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap">{order.status}</td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden lg:table-cell">{order.payment_status}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">₹{parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                          <td className="px-3 py-2.5 text-slate-400 tabular-nums whitespace-nowrap hidden md:table-cell">{formatShortDate(order.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1287,17 +1374,17 @@ function Customers() {
             </div>
 
             {/* Footer Bar (Fixed) */}
-            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex justify-end shrink-0">
+            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsHistoryOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
+                className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white transition-colors"
               >
                 Close History
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

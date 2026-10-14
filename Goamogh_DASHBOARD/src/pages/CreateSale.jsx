@@ -2,13 +2,11 @@ import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
-  Search,
   Plus,
   Trash2,
   AlertCircle,
   Save,
   ShoppingCart,
-  Percent,
   Calculator,
   User,
   MapPin,
@@ -19,6 +17,7 @@ import { searchCustomerByPhone } from "@/services/customers"
 import { getItems } from "@/services/items"
 import { getPricingPanel } from "@/services/products"
 import Spinner from "@/components/ui/Spinner"
+import useConfirm from "@/hooks/useConfirm"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -30,6 +29,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function CreateSale() {
+  const confirm = useConfirm()
   const navigate = useNavigate()
 
   // Sale Type: "retail" | "wholesale"
@@ -296,7 +296,6 @@ function CreateSale() {
   const {
     subtotal,
     totalDiscount,
-    totalTaxable,
     totalGst,
     totalCgst,
     totalSgst,
@@ -357,6 +356,13 @@ function CreateSale() {
     e.preventDefault()
     if (!validateForm()) return
 
+    const ok = await confirm({
+      title: `Record direct ${saleType} sale for ${customerName.trim() || phone.trim()}?`,
+      message: `Total amount: ₹${grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}. This will create a new direct sale entry.`,
+      confirmLabel: "Record Sale",
+    })
+    if (!ok) return
+
     setIsSaving(true)
     try {
       const payload = {
@@ -402,7 +408,7 @@ function CreateSale() {
           onClick={() => navigate("/dashboard/sales")}
           className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
         >
-          <ArrowLeft className="w-4 h-4 text-slate-550" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
         </button>
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
@@ -420,14 +426,14 @@ function CreateSale() {
       </div>
 
       {(error || validationError) && (
-        <div className="p-4 bg-error-50 border border-error-200 rounded-2xl text-sm font-semibold text-error-800 flex items-start gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 text-error-600 shrink-0 mt-0.5" />
+        <div className="p-4 bg-error-50 border border-error-100 rounded-2xl text-sm font-semibold text-error-800 flex items-start gap-2.5 animate-in fade-in">
+          <AlertCircle className="w-5 h-5 text-error-500 shrink-0 mt-0.5" />
           <p>{error || validationError}</p>
         </div>
       )}
 
       {/* Sale Mode Selector */}
-      <div className="flex items-center gap-6 p-5 bg-white border border-slate-150 rounded-2xl shadow-sm">
+      <div className="flex items-center gap-6 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sale Invoice Classification:</span>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
@@ -458,15 +464,15 @@ function CreateSale() {
       <form onSubmit={handleSubmit} className="space-y-6 text-xs font-semibold">
 
         {/* Customer section */}
-        <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4">
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 uppercase tracking-wider flex items-center gap-1.5">
-            <User className="w-4.5 h-4.5 text-slate-450" />
+            <User className="w-4.5 h-4.5 text-slate-400" />
             <span>Customer Identification</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Customer Phone Number <span className="text-error-500">*</span></label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Customer Phone Number <span className="text-error-500">*</span></label>
               <div className="relative">
                 <input
                   type="text"
@@ -491,7 +497,7 @@ function CreateSale() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Customer Billing Name</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Customer Billing Name</label>
               <input
                 type="text"
                 value={customerName}
@@ -503,7 +509,7 @@ function CreateSale() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">
+              <label className="text-xs font-bold text-slate-700 mb-1">
                 GSTIN Tax ID {saleType === "wholesale" && <span className="text-error-500">*</span>}
               </label>
               <input
@@ -511,12 +517,12 @@ function CreateSale() {
                 value={customerGstin}
                 onChange={(e) => setCustomerGstin(e.target.value)}
                 placeholder="Required for wholesale invoices"
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none font-mono"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none tabular-nums"
               />
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Company / Trading Name</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Company / Trading Name</label>
               <input
                 type="text"
                 value={companyName}
@@ -526,7 +532,7 @@ function CreateSale() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Bill Type / Credit Status</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Bill Type / Credit Status</label>
               <select
                 value={billType}
                 onChange={(e) => setBillType(e.target.value)}
@@ -540,7 +546,7 @@ function CreateSale() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Shipping Address / Destination</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Shipping Address / Destination</label>
               <select
                 value={addressId}
                 onChange={(e) => {
@@ -581,7 +587,7 @@ function CreateSale() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-655 mb-1">Place of Supply (State)</label>
+              <label className="text-xs font-bold text-slate-700 mb-1">Place of Supply (State)</label>
               <input
                 type="text"
                 value={customerState}
@@ -592,7 +598,7 @@ function CreateSale() {
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-bold text-slate-655 mb-1">Order Memo Notes</label>
+            <label className="text-xs font-bold text-slate-700 mb-1">Order Memo Notes</label>
             <textarea
               rows="2"
               value={notes}
@@ -604,10 +610,10 @@ function CreateSale() {
         </div>
 
         {/* Line items Section */}
-        <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4">
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Package className="w-4.5 h-4.5 text-slate-450" />
+              <Package className="w-4.5 h-4.5 text-slate-400" />
               <span>Invoice Items</span>
             </h3>
             <button
@@ -638,7 +644,7 @@ function CreateSale() {
 
                     {/* Product selector */}
                     <div className="sm:col-span-4 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Product Variant</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Product Variant</label>
                       <select
                         required
                         value={item.variant_id}
@@ -656,7 +662,7 @@ function CreateSale() {
 
                     {/* Quantity */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Quantity</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Quantity</label>
                       <input
                         type="number"
                         step="0.0001"
@@ -664,13 +670,13 @@ function CreateSale() {
                         required
                         value={item.quantity}
                         onChange={(e) => handleItemFieldChange(idx, "quantity", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Rate */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Rate (₹)</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Rate (₹)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -678,13 +684,13 @@ function CreateSale() {
                         required
                         value={item.rate}
                         onChange={(e) => handleItemFieldChange(idx, "rate", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-right font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Discount percent */}
                     <div className="sm:col-span-2 flex flex-col">
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1">Discount %</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Discount %</label>
                       <input
                         type="number"
                         step="0.1"
@@ -693,14 +699,14 @@ function CreateSale() {
                         required
                         value={item.discount_percent}
                         onChange={(e) => handleItemFieldChange(idx, "discount_percent", e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center font-mono focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="px-2 py-1.5 border border-slate-200 rounded-lg text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
 
                     {/* Total */}
                     <div className="sm:col-span-1.5 flex flex-col justify-center text-right pr-6 min-h-[45px]">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">Line Total</span>
-                      <span className="font-mono font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
+                      <span className="tabular-nums font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
                     </div>
 
                     {/* Delete row button */}
@@ -719,18 +725,18 @@ function CreateSale() {
           )}
         </div>
         {!showPreview && (
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-4">
             <button
               type="button"
               onClick={() => navigate("/dashboard/sales")}
-              className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-xl font-bold transition-colors"
+              className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-colors w-full sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handlePreviewClick}
-              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95"
+              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95 w-full sm:w-auto"
             >
               <Calculator className="w-4 h-4" />
               <span>Preview Invoice</span>
@@ -739,24 +745,24 @@ function CreateSale() {
         )}
 
         {showPreview && (
-          <div className="bg-white border border-slate-150 shadow-sm rounded-2xl p-5 space-y-4 w-full">
+          <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4 w-full">
             <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 uppercase tracking-wider flex items-center gap-1">
               <Calculator className="w-4 h-4 text-slate-400" />
               <span>Invoice Summary</span>
             </h3>
 
             {/* Items Preview Table */}
-            <div className="border border-slate-150 rounded-xl overflow-hidden mb-4 bg-white shadow-sm w-full">
-              <table className="w-full text-left border-collapse table-fixed">
+            <div className="border border-slate-100 rounded-xl mb-4 bg-white shadow-sm w-full">
+              <table className="w-full text-left border-collapse table-fixed text-xs">
                 <thead>
-                  <tr className="border-b border-slate-150 bg-slate-100/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Unit Price</th>
-                    <th className="px-3 py-2 text-right">Gross</th>
-                    <th className="px-3 py-2 text-center">Discount</th>
-                    <th className="px-3 py-2 text-center">GST %</th>
-                    <th className="px-3 py-2 text-right">Total</th>
+                  <tr className="border-b border-slate-100 bg-slate-100/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    <th className="px-3 py-2 w-[50%] md:w-[35%] lg:w-[28%] xl:w-[28%]">Item</th>
+                    <th className="px-3 py-2 text-right w-[22%] md:w-[15%] lg:w-[12%] xl:w-[10%]">Qty</th>
+                    <th className="hidden md:table-cell px-3 py-2 text-right w-[16%] lg:w-[14%] xl:w-[14%]">Unit Price</th>
+                    <th className="hidden xl:table-cell px-3 py-2 text-right w-[14%]">Gross</th>
+                    <th className="hidden lg:table-cell px-3 py-2 text-center w-[10%]">Discount</th>
+                    <th className="hidden lg:table-cell px-3 py-2 text-center w-[10%]">GST %</th>
+                    <th className="px-3 py-2 text-right w-[28%] md:w-[18%] lg:w-[16%] xl:w-[14%]">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-semibold bg-white">
@@ -776,13 +782,21 @@ function CreateSale() {
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50">
-                        <td className="px-3 py-2 font-bold text-slate-800">{itemName}</td>
-                        <td className="px-3 py-2 text-right font-mono">{qty}</td>
-                        <td className="px-3 py-2 text-right font-mono">₹{rate.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-right font-mono">₹{lineGross.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-center font-mono text-rose-700">{discPct}%</td>
-                        <td className="px-3 py-2 text-center font-mono">{gstPct}%</td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">₹{lineTotal.toFixed(2)}</td>
+                        <td className="px-3 py-2 font-bold text-slate-800">
+                          <div className="truncate" title={itemName}>{itemName}</div>
+                          <div className="md:hidden text-[10px] text-slate-400 font-normal truncate">
+                            Rate: ₹{rate.toFixed(2)}
+                          </div>
+                          <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
+                            {discPct > 0 ? `Disc: ${discPct}% • ` : ""}GST: {gstPct}%
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{qty}</td>
+                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{rate.toFixed(2)}</td>
+                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{lineGross.toFixed(2)}</td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">{discPct}%</td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums whitespace-nowrap">{gstPct}%</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">₹{lineTotal.toFixed(2)}</td>
                       </tr>
                     )
                   })}
@@ -793,27 +807,27 @@ function CreateSale() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Gross Subtotal</span>
-                <p className="text-base font-extrabold text-slate-800 font-mono">₹{subtotal.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{subtotal.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Allowed Discount</span>
-                <p className="text-base font-extrabold text-rose-700 font-mono">-₹{totalDiscount.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-rose-700 tabular-nums">-₹{totalDiscount.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">GST Tax Amount</span>
-                <p className="text-base font-extrabold text-slate-800 font-mono">₹{totalGst.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{totalGst.toFixed(2)}</p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Grand Invoice Value</span>
-                <p className="text-lg font-black text-brand-700 font-mono">₹{grandTotal.toFixed(2)}</p>
+                <p className="text-lg font-extrabold text-brand-700 tabular-nums">₹{grandTotal.toFixed(2)}</p>
               </div>
             </div>
 
             {(totalCgst > 0 || totalSgst > 0 || totalIgst > 0) && (
-              <div className="flex gap-6 text-[11px] font-bold text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-105">
-                {totalCgst > 0 && <span>CGST: <span className="font-mono font-extrabold text-slate-800">₹{totalCgst.toFixed(2)}</span></span>}
-                {totalSgst > 0 && <span>SGST: <span className="font-mono font-extrabold text-slate-800">₹{totalSgst.toFixed(2)}</span></span>}
-                {totalIgst > 0 && <span>IGST: <span className="font-mono font-extrabold text-slate-800">₹{totalIgst.toFixed(2)}</span></span>}
+              <div className="flex flex-wrap gap-4 sm:gap-6 text-[11px] font-bold text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                {totalCgst > 0 && <span>CGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalCgst.toFixed(2)}</span></span>}
+                {totalSgst > 0 && <span>SGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalSgst.toFixed(2)}</span></span>}
+                {totalIgst > 0 && <span>IGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalIgst.toFixed(2)}</span></span>}
               </div>
             )}
 
@@ -821,18 +835,18 @@ function CreateSale() {
               Note: Direct sales are created in **draft** status. Varied stock levels deduction occurs only upon manual order confirmation.
             </p>
 
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-slate-100 pt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
               <button
                 type="button"
                 onClick={() => navigate("/dashboard/sales")}
-                className="px-5 py-2.5 border border-slate-200 hover:bg-white text-slate-650 rounded-xl font-bold transition-colors"
+                className="px-5 py-2.5 border border-slate-200 hover:bg-white text-slate-600 rounded-xl font-bold transition-colors w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95 disabled:opacity-50"
+                className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95 disabled:opacity-50 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />
                 <span>{isSaving ? <Spinner size="sm" /> : "Save Sales Invoice"}</span>

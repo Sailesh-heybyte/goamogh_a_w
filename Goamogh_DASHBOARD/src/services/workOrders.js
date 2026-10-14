@@ -26,35 +26,10 @@ export const createWorkOrder = async (woData) => {
 }
 
 
-export const startWorkOrder = async (woId) => {
-  return customFetch(`/api/v1/work-orders/${woId}/start`, {
+export const updateWorkOrderStatus = async (woId, action, closeFields = {}) => {
+  return customFetch(`/api/v1/work-orders/${woId}/status`, {
     method: "POST",
+    body: JSON.stringify({ action, ...closeFields }),
   })
 }
 
-
-export const closeWorkOrder = async (woId, closeData) => {
-  return customFetch(`/api/v1/work-orders/${woId}/close`, {
-    method: "POST",
-    body: JSON.stringify(closeData),
-  })
-}
-
-/**
- * Cancel a work order.
- * @param {string} woId
- * @returns {Promise<Response>}
- */
-export const cancelWorkOrder = async (woId) => {
-  return customFetch(`/api/v1/work-orders/${woId}/cancel`, {
-    method: "POST",
-  })
-}
-
-
-export const authorizeWorkOrder = async (woId) => {
-  return customFetch(`/api/v1/work-orders/${woId}/authorize`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  })
-}

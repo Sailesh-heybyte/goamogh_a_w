@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, AlertTriangle, UploadCloud, Trash2, Edit3 } from "lucide-react"
+import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, Edit3 } from "lucide-react"
 import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem } from "@/services/items"
 import { getCategories } from "@/services/categories"
-import { getRawMaterialLedger, getProductLedger } from "@/services/ledgers"
 import Spinner from "@/components/ui/Spinner"
+import Pagination from "@/components/ui/Pagination"
+import Modal from "@/components/ui/Modal"
+import useConfirm from "@/hooks/useConfirm"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 
 function parseErrorDetail(detail, defaultMsg) {
@@ -16,7 +18,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function ProductCatalog() {
-
+  const confirm = useConfirm()
 
   const [productsList, setProductsList] = useState([])
   const [categories, setCategories] = useState([])
@@ -24,7 +26,7 @@ function ProductCatalog() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("")
   const [skip, setSkip] = useState(0)
-  const [limit, setLimit] = useState(50)
+  const limit = 50
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -32,9 +34,6 @@ function ProductCatalog() {
 
   // Product Details Popup state
   const [selectedProductDetails, setSelectedProductDetails] = useState(null)
-  const [purchaseHistory, setPurchaseHistory] = useState([])
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
-  const [historyError, setHistoryError] = useState("")
 
   // Product Variants Popup state
   const [isVariantsOpen, setIsVariantsOpen] = useState(false)
@@ -45,10 +44,6 @@ function ProductCatalog() {
   const [isAddingVariant, setIsAddingVariant] = useState(false)
   const [variantError, setVariantError] = useState("")
   const [updatingVariantIds, setUpdatingVariantIds] = useState({})
-
-  // Multiple Image Upload state
-  const [uploadedImages, setUploadedImages] = useState([])
-  const [imageError, setImageError] = useState("")
 
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("")
 
@@ -70,8 +65,6 @@ function ProductCatalog() {
   })
   const [editErrors, setEditErrors] = useState({})
   const [isSavingEdit, setIsSavingEdit] = useState(false)
-  const [editUploadedImages, setEditUploadedImages] = useState([])
-  const [editImageError, setEditImageError] = useState("")
 
   // Add Product Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -84,7 +77,6 @@ function ProductCatalog() {
     unit_code: "KG",
     gst_percent: "5.00",
     cess_percent: "0.00",
-    images: "",
     is_featured: false,
     is_sellable: true,
     sourcing_location: "",
@@ -99,55 +91,6 @@ function ProductCatalog() {
     return acc
   }, {})
 
-  const loadPurchaseHistory = async () => {
-    if (!selectedProductDetails) {
-      setPurchaseHistory([])
-      setHistoryError("")
-      return
-    }
-
-    setIsHistoryLoading(true)
-    setHistoryError("")
-    try {
-      const itemId = selectedProductDetails.id
-      const itemType = selectedProductDetails.item_type // "finished_good" or "raw_material"
-      const params = { skip: 0, limit: 1000, direction: "in" }
-
-      const res = itemType === "raw_material"
-        ? await getRawMaterialLedger(itemId, params)
-        : await getProductLedger(itemId, params)
-
-      if (!res.ok) {
-        throw new Error("Could not load purchase history")
-      }
-
-      const json = await res.json()
-      const inEntries = json.data || []
-
-      const peEntries = inEntries.filter(entry => entry.transaction_type === "purchase_receipt" && entry.reference_id)
-      const resolvedRows = peEntries.map((entry) => ({
-        id: entry.id,
-        created_at: entry.created_at,
-        supplier_name: entry.supplier_name || null,
-        pe_number: entry.pe_number || null,
-        invoice_number: entry.invoice_number || null,
-        quantity_received: entry.quantity_change,
-        batch_number: entry.batch_number || null,
-        expiry_date: entry.expiry_date || null,
-      }))
-      setPurchaseHistory(resolvedRows)
-    } catch (err) {
-      console.error("Failed to load purchase history inside product catalog details:", err)
-      setHistoryError("Could not load purchase history")
-    } finally {
-      setIsHistoryLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadPurchaseHistory()
-  }, [selectedProductDetails])
-
   // Load categories once on mount
   useEffect(() => {
     const loadCategories = async () => {
@@ -156,7 +99,7 @@ function ProductCatalog() {
         if (!res.ok) throw new Error("Failed to load categories")
         const json = await res.json()
         setCategories(json.data)
-      } catch (err) {
+      } catch {
         setError("Failed to load categories")
       }
     }
@@ -292,6 +235,15 @@ function ProductCatalog() {
   }
 
   const handleToggleVariantStatus = async (variant) => {
+    const nextStatus = !variant.is_active ? "Activate" : "Deactivate"
+    const ok = await confirm({
+      title: `${nextStatus} variant ${formatWeight(variant.weight_grams)}?`,
+      message: `Are you sure you want to ${nextStatus.toLowerCase()} this variant size?`,
+      confirmLabel: nextStatus,
+      ...(variant.is_active ? { tone: "danger" } : {})
+    })
+    if (!ok) return
+
     const variantId = variant.id
     setUpdatingVariantIds(prev => ({ ...prev, [variantId]: true }))
     try {
@@ -348,6 +300,13 @@ function ProductCatalog() {
       return
     }
 
+    const ok = await confirm({
+      title: `Add ${formatWeight(weightVal)} variant?`,
+      message: `Are you sure you want to add this variant size to ${activeProduct?.name || "this product"}?`,
+      confirmLabel: "Add variant"
+    })
+    if (!ok) return
+
     setIsAddingVariant(true)
     try {
       const res = await addItemVariant(activeProductId, {
@@ -374,67 +333,8 @@ function ProductCatalog() {
     }
   }
 
-  const handleRemoveUploadedImage = (id) => {
-    setUploadedImages((prev) => prev.filter((img) => img.id !== id))
-  }
-
-  const processUploadedFiles = (files) => {
-    setImageError("")
-    const fileList = Array.from(files)
-
-    for (const file of fileList) {
-      if (!file.type.startsWith("image/")) {
-        setImageError("Only image files are allowed")
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setImageError("Each image must be smaller than 10MB")
-        return
-      }
-    }
-
-    fileList.forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setUploadedImages((prev) => [
-          ...prev,
-          {
-            id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-            dataUrl: e.target.result,
-            previewUrl: URL.createObjectURL(file),
-            name: file.name,
-          },
-        ])
-      }
-      reader.readAsDataURL(file)
-    })
-  }
-
-  const handleImageFileChange = (e) => {
-    if (e.target.files) {
-      processUploadedFiles(e.target.files)
-    }
-  }
-
-  const handleImageDragOver = (e) => {
-    e.preventDefault()
-  }
-
-  const handleImageDrop = (e) => {
-    e.preventDefault()
-    if (e.dataTransfer.files) {
-      processUploadedFiles(e.dataTransfer.files)
-    }
-  }
-
   const handleStartEditing = () => {
     if (!selectedProductDetails) return
-
-    const mappedImages = (selectedProductDetails.images || []).map((imgUrl, index) => ({
-      id: `existing-${index}-${Date.now()}`,
-      dataUrl: imgUrl,
-      name: `Image ${index + 1}`
-    }))
 
     setEditForm({
       item_type: selectedProductDetails.item_type || "finished_good",
@@ -451,16 +351,13 @@ function ProductCatalog() {
       sourcing_location: selectedProductDetails.sourcing_location || "",
     })
 
-    setEditUploadedImages(mappedImages)
     setEditErrors({})
-    setEditImageError("")
     setIsEditingProduct(true)
   }
 
   const handleCancelEditing = () => {
     setIsEditingProduct(false)
     setEditErrors({})
-    setEditImageError("")
   }
 
   const handleEditChange = (field, value) => {
@@ -513,59 +410,6 @@ function ProductCatalog() {
     })
   }
 
-  const handleRemoveEditImage = (id) => {
-    setEditUploadedImages((prev) => prev.filter((img) => img.id !== id))
-  }
-
-  const processEditUploadedFiles = (files) => {
-    setEditImageError("")
-    const fileList = Array.from(files)
-
-    for (const file of fileList) {
-      if (!file.type.startsWith("image/")) {
-        setEditImageError("Only image files are allowed")
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setEditImageError("Each image must be smaller than 10MB")
-        return
-      }
-    }
-
-    fileList.forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setEditUploadedImages((prev) => [
-          ...prev,
-          {
-            id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-            dataUrl: e.target.result,
-            previewUrl: URL.createObjectURL(file),
-            name: file.name,
-          },
-        ])
-      }
-      reader.readAsDataURL(file)
-    })
-  }
-
-  const handleEditImageFileChange = (e) => {
-    if (e.target.files) {
-      processEditUploadedFiles(e.target.files)
-    }
-  }
-
-  const handleEditImageDragOver = (e) => {
-    e.preventDefault()
-  }
-
-  const handleEditImageDrop = (e) => {
-    e.preventDefault()
-    if (e.dataTransfer.files) {
-      processEditUploadedFiles(e.dataTransfer.files)
-    }
-  }
-
   const handleEditSubmit = async (e) => {
     e.preventDefault()
     setEditErrors({})
@@ -576,10 +420,15 @@ function ProductCatalog() {
       return
     }
 
+    const ok = await confirm({
+      title: `Save changes for ${editForm.name.trim()}?`,
+      message: `Are you sure you want to update item ${editForm.name.trim()}?`,
+      confirmLabel: "Save changes",
+    })
+    if (!ok) return
+
     setIsSavingEdit(true)
     try {
-      const imgArray = editUploadedImages.map((img) => img.dataUrl)
-
       const payload = {
         category_id: editForm.category_id || null,
         name: editForm.name.trim(),
@@ -588,7 +437,7 @@ function ProductCatalog() {
         unit_code: editForm.unit_code,
         gst_percent: parseFloat(editForm.gst_percent).toFixed(2),
         cess_percent: parseFloat(editForm.cess_percent).toFixed(2),
-        images: imgArray,
+        images: [],
         is_featured: editForm.is_featured,
         is_sellable: editForm.is_sellable,
         is_active: editForm.is_active,
@@ -720,10 +569,15 @@ function ProductCatalog() {
       return
     }
 
+    const ok = await confirm({
+      title: `Create item ${createForm.name.trim()}?`,
+      message: `Are you sure you want to create item ${createForm.name.trim()}?`,
+      confirmLabel: "Create item",
+    })
+    if (!ok) return
+
     setIsCreating(true)
     try {
-      const imgArray = uploadedImages.map((img) => img.dataUrl)
-
       const payload = {
         item_type: createForm.item_type,
         category_id: createForm.category_id || null,
@@ -733,7 +587,7 @@ function ProductCatalog() {
         unit_code: createForm.unit_code,
         gst_percent: parseFloat(createForm.gst_percent).toFixed(2),
         cess_percent: parseFloat(createForm.cess_percent).toFixed(2),
-        images: imgArray,
+        images: [],
         is_featured: createForm.is_featured,
         is_sellable: createForm.is_sellable,
         sourcing_location: createForm.sourcing_location.trim() || null,
@@ -760,8 +614,6 @@ function ProductCatalog() {
       // Refresh item list and close the creation modal
       await fetchData()
       setIsCreateOpen(false)
-      setUploadedImages([])
-      setImageError("")
 
       // Automatically open the packaging variant modal for the newly created item
       if (createdItem && createdItem.id && createdItem.is_sellable) {
@@ -779,22 +631,29 @@ function ProductCatalog() {
     const unitStr = unit || "KG"
     if (qty === 0) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-slate-50 text-slate-500 border-slate-200 whitespace-nowrap">
-          Out of Stock
-        </span>
+        <div className="leading-tight">
+          <div className="font-bold text-slate-500 tabular-nums whitespace-nowrap">0</div>
+          <div className="text-[10px] text-slate-400 whitespace-nowrap">Out of stock</div>
+        </div>
       )
     }
     if (qty < 10.0) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap">
-          Low Stock ({qty.toFixed(2)} {unitStr})
-        </span>
+        <div className="leading-tight">
+          <div className="font-bold text-amber-700 tabular-nums whitespace-nowrap">
+            {qty.toFixed(2)} {unitStr}
+          </div>
+          <div className="text-[10px] text-slate-400 whitespace-nowrap">Low stock</div>
+        </div>
       )
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
-        In Stock ({qty.toFixed(2)} {unitStr})
-      </span>
+      <div className="leading-tight">
+        <div className="font-bold text-success-700 tabular-nums whitespace-nowrap">
+          {qty.toFixed(2)} {unitStr}
+        </div>
+        <div className="text-[10px] text-slate-400 whitespace-nowrap">In stock</div>
+      </div>
     )
   }
 
@@ -826,7 +685,7 @@ function ProductCatalog() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
 
       {/* Title Header Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Item Catalog</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Manage unified catalog items (finished products and raw materials).</p>
@@ -843,18 +702,15 @@ function ProductCatalog() {
               unit_code: "KG",
               gst_percent: "5.00",
               cess_percent: "0.00",
-              images: "",
               is_featured: false,
               is_sellable: true,
               sourcing_location: "",
               variants: [],
             })
             setCreateErrors({})
-            setUploadedImages([])
-            setImageError("")
             setIsCreateOpen(true)
           }}
-          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2"
+          className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Create Item</span>
@@ -863,7 +719,7 @@ function ProductCatalog() {
 
       {/* Toolbar Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
-        <div className="relative flex-1 w-full">
+        <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
@@ -874,7 +730,7 @@ function ProductCatalog() {
           />
         </div>
 
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-auto sm:min-w-[160px]">
           <select
             value={selectedTypeFilter}
             onChange={(e) => setSelectedTypeFilter(e.target.value)}
@@ -886,7 +742,7 @@ function ProductCatalog() {
           </select>
         </div>
 
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-auto sm:min-w-[160px]">
           <select
             value={selectedCategoryFilter}
             onChange={(e) => setSelectedCategoryFilter(e.target.value)}
@@ -907,44 +763,33 @@ function ProductCatalog() {
         </div>
       ) : (
         <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <table className="w-full text-left border-collapse table-fixed">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                  <th className="px-3.5 py-3.5 w-[32%]">Item & Type</th>
-                  <th className="px-3 py-3.5 w-[18%]">Category</th>
-                  <th className="px-3 py-3.5 w-[12%]">HSN Code</th>
-                  <th className="px-3 py-3.5 w-[16%]">Stock Qty</th>
-                  <th className="px-3 py-3.5 w-[10%] text-center">Variants</th>
-                  <th className="px-3 py-3.5 w-[12%] text-right">Status / Actions</th>
+                  <th className="px-3.5 py-3.5 w-[48%] md:w-[32%] lg:w-[28%]">Item & Type</th>
+                  <th className="px-3 py-3.5 hidden md:table-cell md:w-[20%] lg:w-[18%]">Category</th>
+                  <th className="px-3 py-3.5 hidden lg:table-cell lg:w-[14%]">HSN Code</th>
+                  <th className="px-3 py-3.5 w-[24%] md:w-[18%] lg:w-[15%]">Stock Qty</th>
+                  <th className="px-3 py-3.5 hidden xl:table-cell xl:w-[11%] text-center">Variants</th>
+                  <th className="px-3 py-3.5 w-[28%] md:w-[30%] lg:w-[25%] xl:w-[14%] text-right">Status / Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
                 {productsList.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors group">
                     {/* Column 1: Item Image, Name, SKU & Type */}
-                    <td className="px-3.5 py-3">
+                    <td className="px-3.5 py-3 min-w-0">
                       <div className="flex items-start gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-brand-50/80 border border-brand-100 flex items-center justify-center font-bold text-brand-700 shrink-0 shadow-2xs mt-0.5">
-                          {prod.images && prod.images.length > 0 ? (
-                            <img
-                              src={prod.images[0]}
-                              alt={prod.name}
-                              className="w-full h-full rounded-xl object-cover"
-                              onError={(e) => {
-                                e.target.style.display = "none"
-                              }}
-                            />
-                          ) : (
-                            <Package className="w-4 h-4 text-brand-600" />
-                          )}
+                          <Package className="w-4 h-4 text-brand-600" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate" title={prod.name}>
                             {prod.name}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-medium border border-slate-200/50">
+                            <span className="text-[10px] tabular-nums text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-medium border border-slate-200/50">
                               {prod.product_number || "—"}
                             </span>
                             {prod.item_type === "finished_good" ? (
@@ -957,48 +802,56 @@ function ProductCatalog() {
                               </span>
                             )}
                           </div>
+                          <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5">
+                            {categoryMap[prod.category_id] || "No category"}
+                          </div>
+                          {prod.hsn_code && (
+                            <div className="text-[10px] text-slate-400 tabular-nums truncate lg:hidden">
+                              HSN: {prod.hsn_code}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     {/* Column 2: Category Name */}
-                    <td className="px-3 py-3 text-xs font-medium text-slate-650 min-w-0">
+                    <td className="px-3 py-3 text-xs font-medium text-slate-600 min-w-0 whitespace-nowrap hidden md:table-cell">
                       <span className="block truncate" title={categoryMap[prod.category_id] || "Unassigned"}>
                         {categoryMap[prod.category_id] || "—"}
                       </span>
                     </td>
 
                     {/* Column 3: HSN Code */}
-                    <td className="px-3 py-3">
-                      <span className="font-mono text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-150 inline-block">
+                    <td className="px-3 py-3 whitespace-nowrap hidden lg:table-cell">
+                      <span className="tabular-nums text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 inline-block">
                         {prod.hsn_code || "—"}
                       </span>
                     </td>
 
                     {/* Column 4: Stock Qty Pill */}
-                    <td className="px-3 py-3 text-xs font-medium text-slate-700">
+                    <td className="px-3 py-3 text-xs font-medium text-slate-700 whitespace-nowrap">
                       {getStockPill(prod.stock_qty || 0, prod.unit_code)}
                     </td>
 
                     {/* Column 5: Variants Count Link */}
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-3 py-3 text-center whitespace-nowrap hidden xl:table-cell">
                       {prod.is_sellable ? (
                         <button
                           onClick={() => handleManageVariantsOpen(prod)}
-                          className="px-2.5 py-1 border border-slate-200 hover:border-brand-300 hover:bg-brand-50/50 rounded-lg text-xs font-semibold text-slate-700 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center gap-1 bg-white shadow-2xs"
+                          className="px-2.5 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-xs font-semibold text-slate-700 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center gap-1 bg-white shadow-2xs"
                         >
                           <Scale className="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition-colors" />
                           <span>{prod.variants?.length || 0}</span>
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400 font-mono">
+                        <span className="text-xs text-slate-400 tabular-nums">
                           —
                         </span>
                       )}
                     </td>
 
                     {/* Column 6: Combined Status & Quick Action */}
-                    <td className="px-3 py-3 text-right">
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         {prod.status === "pending" ? (
                           <button
@@ -1023,7 +876,7 @@ function ProductCatalog() {
 
                         <button
                           onClick={() => setSelectedProductDetails(prod)}
-                          className="p-1.5 border border-slate-200 hover:border-brand-300 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 shrink-0"
+                          className="p-1.5 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 shrink-0"
                           title="View Details"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -1035,45 +888,19 @@ function ProductCatalog() {
               </tbody>
             </table>
           </div>
-          {total > 0 && (
-            <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/50 text-xs font-medium text-slate-500">
-              <span>
-                Showing {skip + 1}–{Math.min(skip + limit, total)} of {total}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={skip === 0}
-                  onClick={() => setSkip((prev) => Math.max(0, prev - limit))}
-                  className="px-2.5 py-1 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Previous
-                </button>
-                <button
-                  disabled={skip + limit >= total}
-                  onClick={() => setSkip((prev) => prev + limit)}
-                  className="px-2.5 py-1 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
         </div>
       )}
 
       {/* Create Item Modal Overlay */}
       {isCreateOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleCreateSubmit} className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <Modal onClose={() => setIsCreateOpen(false)}>
+          <form onSubmit={handleCreateSubmit} className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Create Item</h3>
               <button
                 type="button"
-                onClick={() => {
-                  setIsCreateOpen(false)
-                  setUploadedImages([])
-                  setImageError("")
-                }}
+                onClick={() => setIsCreateOpen(false)}
                 className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
               >
                 <X className="w-4 h-4" />
@@ -1097,7 +924,7 @@ function ProductCatalog() {
                   name="item_type"
                   value={createForm.item_type}
                   onChange={(e) => handleCreateChange("item_type", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-350 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-semibold transition-all"
+                  className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-700 font-semibold transition-all"
                 >
                   <option value="finished_good">Finished Product</option>
                   <option value="raw_material">Raw Material</option>
@@ -1151,7 +978,7 @@ function ProductCatalog() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="flex flex-col col-span-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     HSN Code <span className="text-error-500 font-bold">*</span>
@@ -1238,72 +1065,6 @@ function ProductCatalog() {
                 </div>
               </div>
 
-              {/* SECTION 4: Images */}
-              <div className="flex flex-col space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Item Images <span className="text-slate-400 font-normal">(Multiple files supported)</span>
-                </label>
-
-                <div
-                  onDragOver={handleImageDragOver}
-                  onDrop={handleImageDrop}
-                  onClick={() => document.getElementById("product-image-file-input").click()}
-                  className="border-dashed border-2 border-slate-200 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-50 hover:bg-brand-50/5 flex flex-col items-center justify-center gap-2 select-none group"
-                >
-                  <input
-                    id="product-image-file-input"
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageFileChange}
-                    className="hidden"
-                  />
-                  <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-brand-600 transition-colors" />
-                  <span className="text-sm font-semibold text-slate-650 group-hover:text-slate-800">
-                    Drag & drop images here, or <span className="text-brand-600 font-bold hover:underline">browse</span>
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    Supports PNG, JPG, JPEG (Max 5MB per file)
-                  </span>
-                </div>
-
-                {imageError && (
-                  <p className="text-xs font-semibold text-error-800 flex items-center gap-1.5 mt-1 animate-in slide-in-from-top-1 duration-150">
-                    <ShieldAlert className="w-4 h-4 text-error-600 shrink-0" />
-                    {imageError}
-                  </p>
-                )}
-
-                {uploadedImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-3 pt-2">
-                    {uploadedImages.map((img) => (
-                      <div
-                        key={img.id}
-                        className="w-20 h-20 rounded-xl object-cover border border-slate-200 relative group overflow-hidden shrink-0 shadow-sm"
-                      >
-                        <img
-                          src={img.previewUrl || img.dataUrl}
-                          alt={img.name}
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveUploadedImage(img.id)
-                            }}
-                            className="p-1.5 bg-error-50 border border-error-100 hover:bg-error-100 hover:border-error-200 rounded-lg text-error-800 transition-all transform hover:scale-110 shadow-sm"
-                            title="Remove Image"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               {/* SECTION 5: Selling Options */}
               <div className="border-t border-slate-100 pt-4 space-y-3">
@@ -1313,7 +1074,7 @@ function ProductCatalog() {
 
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3">
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-650">Sellable on website?</span>
+                    <span className="text-sm font-semibold text-slate-600">Sellable on website?</span>
                     <span className="text-[10px] text-slate-400 font-medium mt-0.5">Enables weight variants and pricing panel setup.</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -1328,7 +1089,7 @@ function ProductCatalog() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-650 cursor-pointer select-none">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={createForm.is_featured}
@@ -1347,7 +1108,7 @@ function ProductCatalog() {
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                       Packaging Sizes / Variants
                     </h4>
-                    <p className="text-[10px] text-slate-450 font-bold leading-relaxed mt-0.5">
+                    <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-0.5">
                       Define the custom weight sizes in grams (minimum 1 size if sellable).
                     </p>
                   </div>
@@ -1391,7 +1152,7 @@ function ProductCatalog() {
                       {createForm.variants.map((grams) => (
                         <span
                           key={grams}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-150 text-slate-700 border border-slate-200/50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/50"
                         >
                           <span>{formatWeight(grams)}</span>
                           <button
@@ -1421,34 +1182,35 @@ function ProductCatalog() {
 
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50/50">
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0 bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => {
                   setIsCreateOpen(false)
-                  setUploadedImages([])
-                  setImageError("")
                 }}
-                className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-650 transition-all bg-white"
+                className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all bg-white"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isCreating}
-                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isCreating ? <Spinner size="sm" /> : null}
                 <span>Create Item</span>
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
       {/* Item Details Popup Modal Overlay */}
       {selectedProductDetails && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`bg-white border border-slate-100 shadow-2xl rounded-2xl w-full ${isEditingProduct ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+        <Modal onClose={() => {
+          setSelectedProductDetails(null)
+          setIsEditingProduct(false)
+        }}>
+          <div className={`bg-white border border-slate-100 shadow-2xl rounded-2xl w-full ${isEditingProduct ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] flex flex-col overflow-hidden`}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">
                 {isEditingProduct ? "Edit Item" : "Item Details"}
@@ -1470,18 +1232,7 @@ function ProductCatalog() {
                 <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1 min-h-0 scroll-smooth">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center font-bold text-brand-700 shrink-0">
-                      {selectedProductDetails.images && selectedProductDetails.images.length > 0 ? (
-                        <img
-                          src={selectedProductDetails.images[0]}
-                          alt={selectedProductDetails.name}
-                          className="w-full h-full rounded-xl object-cover"
-                          onError={(e) => {
-                            e.target.style.display = "none"
-                          }}
-                        />
-                      ) : (
-                        <Package className="w-6 h-6 text-brand-650" />
-                      )}
+                      <Package className="w-6 h-6 text-brand-600" />
                     </div>
                     <div>
                       <h4 className="text-base font-bold text-slate-900 uppercase tracking-wider">
@@ -1494,17 +1245,17 @@ function ProductCatalog() {
                   </div>
 
                   <div className="space-y-3.5 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Item Type
                         </span>
                         {selectedProductDetails.item_type === "finished_good" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-150 uppercase tracking-wider whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wider whitespace-nowrap">
                             Finished Product
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-150 uppercase tracking-wider whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wider whitespace-nowrap">
                             Raw Material
                           </span>
                         )}
@@ -1530,12 +1281,12 @@ function ProductCatalog() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                         Description
                       </span>
-                      <p className="text-xs font-semibold text-slate-650 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+                      <p className="text-xs font-semibold text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100/50">
                         {selectedProductDetails.description || "No description provided."}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           HSN Code
@@ -1565,7 +1316,7 @@ function ProductCatalog() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           GST Rate
@@ -1587,7 +1338,7 @@ function ProductCatalog() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 mt-2">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                           Status
@@ -1613,7 +1364,7 @@ function ProductCatalog() {
                         </span>
                         {selectedProductDetails.is_featured ? (
                           <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-700 border-amber-200">
-                            <Star className="w-2.5 h-2.5 fill-current text-amber-550" />
+                            <Star className="w-2.5 h-2.5 fill-current text-amber-500" />
                             Yes
                           </span>
                         ) : (
@@ -1628,90 +1379,16 @@ function ProductCatalog() {
                       </span>
                       {getStockPill(selectedProductDetails.stock_qty || 0, selectedProductDetails.unit_code)}
                     </div>
-
-                    {/* Stock Source / Purchase History Section */}
-                    <div className="pt-4 border-t border-slate-100 mt-4 space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        Stock Source / Purchase History
-                      </h5>
-                      {isHistoryLoading ? (
-                        <div className="flex justify-center items-center py-6 bg-slate-50 rounded-xl border border-slate-100">
-                          <Spinner size="sm" />
-                        </div>
-                      ) : historyError ? (
-                        <div className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
-                          <span>{historyError}</span>
-                          <button
-                            type="button"
-                            onClick={loadPurchaseHistory}
-                            className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-semibold transition-colors"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      ) : purchaseHistory.length === 0 ? (
-                        <p className="text-xs font-semibold text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-slate-100">
-                          No purchase history receipts found for this item.
-                        </p>
-                      ) : (
-                        <div className="border border-slate-150 rounded-xl overflow-hidden bg-white max-h-[200px] overflow-y-auto custom-scrollbar">
-                          <table className="w-full text-left border-collapse text-[10px]">
-                            <thead>
-                              <tr className="border-b border-slate-150 bg-slate-100/70 text-slate-500 font-bold uppercase tracking-wider sticky top-0 bg-white">
-                                <th className="px-3 py-2">Date</th>
-                                <th className="px-3 py-2">Supplier</th>
-                                <th className="px-3 py-2">PE Number</th>
-                                <th className="px-3 py-2">Invoice #</th>
-                                <th className="px-3 py-2 text-right">Qty</th>
-                                <th className="px-3 py-2">Batch</th>
-                                <th className="px-3 py-2">Expiry</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                              {purchaseHistory.map((row) => (
-                                <tr key={row.id} className="hover:bg-slate-50/50">
-                                  <td className="px-3 py-2 font-mono whitespace-nowrap">
-                                    {new Date(row.created_at).toLocaleDateString("en-GB", {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric"
-                                    })}
-                                  </td>
-                                  <td className="px-3 py-2 font-bold text-slate-900 truncate max-w-[120px]" title={row.supplier_name}>
-                                    {row.supplier_name}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-slate-500 whitespace-nowrap">
-                                    {row.pe_number}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-slate-400 whitespace-nowrap">
-                                    {row.invoice_number}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600">
-                                    {row.quantity_received.toFixed(1)} {selectedProductDetails.unit_code}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-slate-500 text-[9px] truncate max-w-[80px]" title={row.batch_number}>
-                                    {row.batch_number}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-slate-400">
-                                    {row.expiry_date ? row.expiry_date.split("T")[0] : "—"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50/50">
+                <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0 bg-slate-50/50">
                   {selectedProductDetails.status === "pending" && (
                     <button
                       type="button"
                       onClick={() => setAuthorizingProduct(selectedProductDetails)}
                       disabled={isAuthorizingId === selectedProductDetails.id}
-                      className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center gap-2 disabled:opacity-50"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <span>Authorize Item</span>
                     </button>
@@ -1719,8 +1396,8 @@ function ProductCatalog() {
                   <button
                     type="button"
                     onClick={handleStartEditing}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 flex items-center gap-2 ${selectedProductDetails.status === "pending"
-                      ? "border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 bg-white"
+                    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 ${selectedProductDetails.status === "pending"
+                      ? "border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 bg-white"
                       : "bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/10"
                       }`}
                   >
@@ -1730,7 +1407,7 @@ function ProductCatalog() {
                   <button
                     type="button"
                     onClick={() => setSelectedProductDetails(null)}
-                    className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-650 transition-all active:scale-95 bg-white"
+                    className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95 bg-white"
                   >
                     Close
                   </button>
@@ -1791,7 +1468,7 @@ function ProductCatalog() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex flex-col col-span-1">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         HSN Code <span className="text-error-500 font-bold">*</span>
@@ -1840,7 +1517,7 @@ function ProductCatalog() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         GST Percent <span className="text-error-500 font-bold">*</span>
@@ -1878,75 +1555,11 @@ function ProductCatalog() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Item Images <span className="text-slate-400 font-normal">(Multiple files supported)</span>
-                    </label>
 
-                    <div
-                      onDragOver={handleEditImageDragOver}
-                      onDrop={handleEditImageDrop}
-                      onClick={() => document.getElementById("edit-product-image-file-input").click()}
-                      className="border-dashed border-2 border-slate-200 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-50 hover:bg-brand-50/5 flex flex-col items-center justify-center gap-2 select-none group"
-                    >
-                      <input
-                        id="edit-product-image-file-input"
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleEditImageFileChange}
-                        className="hidden"
-                      />
-                      <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-brand-600 transition-colors" />
-                      <span className="text-sm font-semibold text-slate-650 group-hover:text-slate-800">
-                        Drag & drop images here, or <span className="text-brand-600 font-bold hover:underline">browse</span>
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        Supports PNG, JPG, JPEG (Max 5MB per file)
-                      </span>
-                    </div>
-
-                    {editImageError && (
-                      <p className="text-xs font-semibold text-error-800 flex items-center gap-1.5 mt-1 animate-in slide-in-from-top-1 duration-150">
-                        <ShieldAlert className="w-4 h-4 text-error-600 shrink-0" />
-                        {editImageError}
-                      </p>
-                    )}
-
-                    {editUploadedImages.length > 0 && (
-                      <div className="grid grid-cols-4 gap-3 pt-2">
-                        {editUploadedImages.map((img) => (
-                          <div
-                            key={img.id}
-                            className="w-20 h-20 rounded-xl object-cover border border-slate-200 relative group overflow-hidden shrink-0 shadow-sm"
-                          >
-                            <img
-                              src={img.previewUrl || img.dataUrl}
-                              alt={img.name}
-                              className="w-full h-full object-cover rounded-xl"
-                            />
-                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveEditImage(img.id)
-                                }}
-                                className="p-1.5 bg-error-50 border border-error-100 hover:bg-error-100 hover:border-error-200 rounded-lg text-error-800 transition-all transform hover:scale-110 shadow-sm"
-                                title="Remove Image"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
 
                   <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-650">Sellable on website?</span>
+                      <span className="text-sm font-semibold text-slate-600">Sellable on website?</span>
                       <span className="text-[10px] text-slate-400 font-medium mt-0.5">Enables weight variants and pricing panel setup.</span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -1961,7 +1574,7 @@ function ProductCatalog() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-650 cursor-pointer select-none">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={editForm.is_featured}
@@ -1970,7 +1583,7 @@ function ProductCatalog() {
                       />
                       Featured Item
                     </label>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-650 cursor-pointer select-none">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={editForm.is_active}
@@ -1982,18 +1595,18 @@ function ProductCatalog() {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50/50">
+                <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0 bg-slate-50/50">
                   <button
                     type="button"
                     onClick={handleCancelEditing}
-                    className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-650 transition-all bg-white"
+                    className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all bg-white"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingEdit}
-                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isSavingEdit ? <Spinner size="sm" /> : null}
                     <span>Save Changes</span>
@@ -2002,12 +1615,15 @@ function ProductCatalog() {
               </form>
             )}
           </div>
-        </div>
+        </Modal>
       )}
       {/* Item Variants Management Popup Modal Overlay */}
       {isVariantsOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <Modal onClose={() => {
+          setIsVariantsOpen(false)
+          fetchData() // Refresh stock totals/etc. on close
+        }}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-bold text-slate-900 text-lg">Manage Item Variants</h3>
@@ -2067,7 +1683,7 @@ function ProductCatalog() {
                     </div>
                     {variantError && (
                       <p className="text-xs font-semibold text-error-800 flex items-center gap-1.5 mt-1 animate-in slide-in-from-top-1 duration-150">
-                        <ShieldAlert className="w-4 h-4 text-error-600 shrink-0" />
+                        <ShieldAlert className="w-4 h-4 text-error-500 shrink-0" />
                         {variantError}
                       </p>
                     )}
@@ -2076,19 +1692,19 @@ function ProductCatalog() {
                   {/* Variants Table List */}
                   {!activeProduct || !activeProduct.variants || activeProduct.variants.length === 0 ? (
                     <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center flex flex-col items-center justify-center gap-2">
-                      <Scale className="w-6 h-6 text-slate-350" />
-                      <p className="text-sm font-bold text-slate-650">No Variant Sizes Registered</p>
+                      <Scale className="w-6 h-6 text-slate-300" />
+                      <p className="text-sm font-bold text-slate-600">No Variant Sizes Registered</p>
                       <p className="text-xs text-slate-400 font-medium">
                         Use the form above to register size packages.
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto border border-slate-100 rounded-xl shadow-sm">
-                      <table className="min-w-full divide-y divide-slate-100">
+                    <div className="w-full border border-slate-100 rounded-xl shadow-sm">
+                      <table className="w-full divide-y divide-slate-100 table-fixed">
                         <thead className="bg-slate-50">
                           <tr className="text-slate-500 text-xs font-bold uppercase tracking-wider text-left">
-                            <th scope="col" className="px-6 py-3.5">Weight / Size</th>
-                            <th scope="col" className="px-6 py-3.5 text-center w-32">Status</th>
+                            <th scope="col" className="px-4 py-3.5 w-[65%]">Weight / Size</th>
+                            <th scope="col" className="px-4 py-3.5 text-center w-[35%]">Status</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-50 text-sm font-semibold text-slate-800">
@@ -2096,7 +1712,7 @@ function ProductCatalog() {
                             const isUpdating = !!updatingVariantIds[variant.id]
                             return (
                               <tr key={variant.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-4 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
                                       g
@@ -2142,26 +1758,26 @@ function ProductCatalog() {
               )}
             </div>
 
-            <div className="flex justify-end px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end px-6 py-4 border-t border-slate-100 bg-slate-50">
               <button
                 type="button"
                 onClick={() => {
                   setIsVariantsOpen(false)
                   fetchData() // Refresh stock totals/etc. on close
                 }}
-                className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-650 transition-all active:scale-95"
+                className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95"
               >
                 Close
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Authorization Confirmation Modal Overlay */}
       {authorizingProduct && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <Modal onClose={() => setAuthorizingProduct(null)}>
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
@@ -2189,12 +1805,12 @@ function ProductCatalog() {
               </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 bg-slate-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => setAuthorizingProduct(null)}
                 disabled={!!isAuthorizingId}
-                className="border border-slate-200 hover:border-slate-350 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-650 transition-all bg-white disabled:opacity-50"
+                className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 transition-all bg-white disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -2202,14 +1818,14 @@ function ProductCatalog() {
                 type="button"
                 onClick={() => handleAuthorizeProduct(authorizingProduct.id)}
                 disabled={!!isAuthorizingId}
-                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md shadow-brand-500/10 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isAuthorizingId ? <Spinner size="sm" /> : null}
                 <span>{isAuthorizingId ? "Authorizing..." : "Confirm & Authorize"}</span>
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

@@ -1,12 +1,13 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, CreditCard, Trash2, Pencil, ArrowLeft, CheckCircle2, Loader, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
-import { fetchDbCart, removeFromDbCart, updateDbCartQty, fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, fetchOrderDetails, clearDbCart, loadRazorpaySDK, openRazorpayCheckout } from '../services/api';
+import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, fetchOrderDetails, loadRazorpaySDK, openRazorpayCheckout } from '../services/api';
 import { PAYMENT_STATUS } from '../constants/paymentStatus';
 
 
@@ -20,15 +21,45 @@ const INDIAN_STATES = [
 
 export default function CartPage() {
     const router = useRouter();
-    const [cartItems, setCartItems] = useState([]);
-    const [cartTotals, setCartTotals] = useState({
-        total_taxable_amount: 0,
-        total_gst_amount: 0,
-        total_cess_amount: 0,
-        total_amount: 0
-    });
+    const { cart, cartLoading, cartError, reloadCart, updateCartItemQty, removeCartItem, clearCart } = useCart();
+
+    const cartItems = useMemo(() => {
+        if (!cart || !Array.isArray(cart.items)) return [];
+        return cart.items.map(item => ({
+            ...item,
+            cartId: item.id, // map database record id to cartId
+            name: item.product_name,
+            weight: item.weight_label,
+            price: Number(item.price),
+            mrp: item.mrp ? Number(item.mrp) : null,
+            quantity: Number(item.quantity),
+            image: item.image || (item.images && item.images[0]) || '',
+            is_inactive: item.is_active === false || item.is_disabled === true || item.product_is_active === false || item.variant_is_active === false,
+            is_out_of_stock: item.is_out_of_stock,
+            insufficient_stock: item.insufficient_stock,
+            available_quantity: item.available_quantity,
+        }));
+    }, [cart]);
+
+    const cartTotals = useMemo(() => {
+        if (!cart) {
+            return {
+                total_taxable_amount: 0,
+                total_gst_amount: 0,
+                total_cess_amount: 0,
+                total_amount: 0
+            };
+        }
+        return {
+            total_taxable_amount: Number(cart.total_taxable_amount || 0),
+            total_gst_amount: Number(cart.total_gst_amount || 0),
+            total_cess_amount: Number(cart.total_cess_amount || 0),
+            total_amount: Number(cart.total_amount || 0)
+        };
+    }, [cart]);
+
     const [isMounted, setIsMounted] = useState(false);
-    const [cartError, setCartError] = useState(null);
+    const [actionCartError, setCartError] = useState(null);
 
     const [couponCode, setCouponCode] = useState('');
     const [discountPercentage, setDiscountPercentage] = useState(0);
@@ -111,8 +142,8 @@ export default function CartPage() {
         setPaymentState(PAYMENT_STATUS.SUCCESS);
         setPaymentCompleted(true);
         setPaymentProcessing(false);
-        if (token) clearDbCart(token).catch(() => {});
-    }, [token]);
+        clearCart().catch(() => reloadCart());
+    }, [clearCart, reloadCart]);
 
     const checkPaymentStatus = async () => {
         const res = await fetchOrderDetails(token, checkoutResponse.id);
@@ -546,15 +577,11 @@ export default function CartPage() {
 
             if (response.success && response.data) {
                 setCheckoutResponse(response.data);
-                // Clear cart state
-                setCartItems([]);
-                setCartTotals({ total_taxable_amount: 0, total_gst_amount: 0, total_cess_amount: 0, total_amount: 0 });
                 // Reset checkout info
                 setIsCheckingOut(false);
                 setSelectedAddressId('');
                 setOrderNotes('');
-                // Notify Header / other listeners
-                window.dispatchEvent(new Event('cart-updated'));
+                reloadCart();
             } else {
                 setCartError(response.message || 'Failed to place order.');
                 setTimeout(() => setCartError(null), 5000);
@@ -563,7 +590,7 @@ export default function CartPage() {
             const stockMsg = err.message || 'An error occurred while placing your order.';
             setCartError(stockMsg);
             if (err.status === 409 || stockMsg.toLowerCase().includes('available') || stockMsg.toLowerCase().includes('unit') || stockMsg.toLowerCase().includes('stock')) {
-                window.dispatchEvent(new Event('cart-updated'));
+                reloadCart();
             }
             setTimeout(() => setCartError(null), 8000);
         } finally {
@@ -573,56 +600,10 @@ export default function CartPage() {
     };
 
 
-    // Fetch DB cart items on mount/auth load or whenever cart-updated triggers
     useEffect(() => {
         setIsMounted(true);
-        const loadCart = async () => {
-            if (user && token) {
-                try {
-                    const response = await fetchDbCart(token);
-                    if (response.success && response.data) {
-                        const items = response.data.items || [];
-                        const mappedItems = items.map(item => ({
-                            ...item,
-                            cartId: item.id, // map database record id to cartId
-                            name: item.product_name,
-                            weight: item.weight_label,
-                            price: Number(item.price),
-                            mrp: item.mrp ? Number(item.mrp) : null,
-                            quantity: Number(item.quantity),
-                            image: item.image || (item.images && item.images[0]) || '',
-                            is_inactive: item.is_active === false || item.is_disabled === true || item.product_is_active === false || item.variant_is_active === false,
-                            is_out_of_stock: item.is_out_of_stock,
-                            insufficient_stock: item.insufficient_stock,
-                            available_quantity: item.available_quantity,
-                        }));
-                        setCartItems(mappedItems);
-                        setCartTotals({
-                            total_taxable_amount: Number(response.data.total_taxable_amount || 0),
-                            total_gst_amount: Number(response.data.total_gst_amount || 0),
-                            total_cess_amount: Number(response.data.total_cess_amount || 0),
-                            total_amount: Number(response.data.total_amount || 0)
-                        });
-                    } else {
-                        setCartItems([]);
-                        setCartTotals({ total_taxable_amount: 0, total_gst_amount: 0, total_cess_amount: 0, total_amount: 0 });
-                    }
-                } catch (e) {
-                    console.error('Failed to load database cart:', e);
-                    setCartItems([]);
-                    setCartTotals({ total_taxable_amount: 0, total_gst_amount: 0, total_cess_amount: 0, total_amount: 0 });
-                }
-            } else {
-                setCartItems([]);
-                setCartTotals({ total_taxable_amount: 0, total_gst_amount: 0, total_cess_amount: 0, total_amount: 0 });
-            }
-        };
 
-        loadCart();
-        
         const handleLogoutCleanup = () => {
-            setCartItems([]);
-            setCartTotals({ total_taxable_amount: 0, total_gst_amount: 0, total_cess_amount: 0, total_amount: 0 });
             setAddresses([]);
             setSelectedAddressId('');
             setCheckoutResponse(null);
@@ -640,10 +621,8 @@ export default function CartPage() {
             handleLogoutCleanup();
         }
 
-        window.addEventListener('cart-updated', loadCart);
         window.addEventListener('goamogh-auth-logout', handleLogoutCleanup);
         return () => {
-            window.removeEventListener('cart-updated', loadCart);
             window.removeEventListener('goamogh-auth-logout', handleLogoutCleanup);
         };
     }, [user, token]);
@@ -690,14 +669,13 @@ export default function CartPage() {
 
         if (user && token) {
             try {
-                await updateDbCartQty(token, cartId, nextQty);
-                window.dispatchEvent(new Event('cart-updated'));
+                await updateCartItemQty(cartId, nextQty);
             } catch (e) {
                 console.error('Failed to update DB cart quantity:', e);
                 const stockMsg = e.message || 'Failed to update cart quantity.';
                 setCartError(stockMsg);
                 if (e.status === 409 || stockMsg.toLowerCase().includes('available') || stockMsg.toLowerCase().includes('unit') || stockMsg.toLowerCase().includes('stock')) {
-                    window.dispatchEvent(new Event('cart-updated'));
+                    reloadCart();
                 }
                 setTimeout(() => setCartError(null), 8000);
             }
@@ -707,10 +685,11 @@ export default function CartPage() {
     const removeItem = async (cartId) => {
         if (user && token) {
             try {
-                await removeFromDbCart(token, cartId);
-                window.dispatchEvent(new Event('cart-updated'));
+                await removeCartItem(cartId);
             } catch (e) {
                 console.error('Failed to remove item from DB cart:', e);
+                setCartError(e.message);
+                setTimeout(() => setCartError(null), 5000);
             }
         }
     };
@@ -719,8 +698,7 @@ export default function CartPage() {
         if (!window.confirm('Are you sure you want to clear your shopping cart?')) return;
         if (user && token) {
             try {
-                await clearDbCart(token);
-                window.dispatchEvent(new Event('cart-updated'));
+                await clearCart();
             } catch (e) {
                 console.error('Failed to clear database cart:', e);
                 setCartError(e.message);
@@ -788,6 +766,52 @@ export default function CartPage() {
                             className="inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-3.5 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10 cursor-pointer"
                         >
                             Log In / Register
+                        </button>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (cartLoading && cart === null) {
+        return (
+            <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] leading-tight">Shopping Cart</h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                    </div>
+                    <div className="flex justify-center items-center py-24">
+                        <div className="w-10 h-10 border-4 border-[#d8b66a] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (cartError && cart === null) {
+        return (
+            <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-40" />
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">Shopping Cart</h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                    </div>
+
+                    <div className="bg-[#0b150d] border border-red-500/20 rounded-[28px] p-12 md:p-16 text-center max-w-xl mx-auto shadow-2xl relative overflow-hidden">
+                        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6 text-red-400">
+                            <AlertTriangle size={24} />
+                        </div>
+                        <p className="text-[#efe3bf] text-xl font-medium mb-2">Failed to load cart</p>
+                        <p className="text-[#d6cca9]/60 text-sm mb-8">{cartError}</p>
+                        <button
+                            onClick={() => reloadCart()}
+                            className="inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-3.5 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10 cursor-pointer"
+                        >
+                            Retry
                         </button>
                     </div>
                 </div>
@@ -1628,14 +1652,14 @@ export default function CartPage() {
             </div>
             {/* Error Notification */}
             <AnimatePresence>
-                {cartError && (
+                {(actionCartError || cartError) && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
                         className="fixed bottom-8 left-8 z-50 bg-red-950/95 border border-red-500/30 text-red-200 px-6 py-3.5 rounded-2xl font-mono text-sm shadow-xl flex items-center gap-2.5 backdrop-blur-md max-w-md"
                     >
-                        <span className="text-red-500 font-bold">⚠</span> {cartError}
+                        <span className="text-red-500 font-bold">⚠</span> {actionCartError || cartError}
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -28,30 +28,10 @@ export const createPurchaseOrder = async (poData) => {
 
 
 
-export const confirmPurchaseOrder = async (poId) => {
-  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/authorize`, {
+export const updatePurchaseOrderStatus = async (poId, action) => {
+  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/status`, {
     method: "POST",
-  })
-}
-
-
-export const sendPurchaseOrder = async (poId) => {
-  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/send`, {
-    method: "POST",
-  })
-}
-
-
-export const acknowledgePurchaseOrder = async (poId) => {
-  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/acknowledge`, {
-    method: "POST",
-  })
-}
-
-
-export const cancelPurchaseOrder = async (poId) => {
-  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/cancel`, {
-    method: "POST",
+    body: JSON.stringify({ action }),
   })
 }
 
@@ -100,12 +80,6 @@ export const authorizePurchaseEntry = async (peId, payload = {}) => {
 }
 
 
-export const releasePurchaseOrder = async (poId) => {
-  return customFetch(`/api/v1/purchase/purchase-orders/${poId}/release`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  })
-}
 
 
 export const getPurchaseEntryDetails = async (peId) => {

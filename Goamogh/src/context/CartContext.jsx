@@ -42,17 +42,6 @@ export function CartProvider({ children }) {
         reloadCart();
     }, [reloadCart]);
 
-    // TEMPORARY, for compatibility while screens are migrated: listen to window 'cart-updated' and call reloadCart()
-    useEffect(() => {
-        const handleCartUpdated = () => {
-            reloadCart();
-        };
-        window.addEventListener('cart-updated', handleCartUpdated);
-        return () => {
-            window.removeEventListener('cart-updated', handleCartUpdated);
-        };
-    }, [reloadCart]);
-
     const addCartItem = useCallback(async (variantOrItem, quantity) => {
         const id = ++requestIdRef.current;
         const response = await addToDbCart(token, variantOrItem, quantity);

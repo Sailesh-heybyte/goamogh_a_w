@@ -104,7 +104,7 @@ export const customFetch = async (endpoint, options = {}) => {
               window.location.href = "/login"
             }
           }
-        } catch (fetchErr) {
+        } catch {
           isRefreshing = false
           const error = new Error("Can't reach the server. Please check your connection and retry.")
           onRefreshFailed(error)
@@ -141,7 +141,7 @@ export const customFetch = async (endpoint, options = {}) => {
           })
         )
       })
-    } catch (e) {
+    } catch {
       // Fallback
     }
   }
@@ -155,10 +155,10 @@ export const customFetch = async (endpoint, options = {}) => {
  * @returns {Promise<{ status: number, isRateLimit: boolean, message: string, detail?: string }>}
  */
 export const parseApiResponseError = async (response) => {
-  let json = {}
+  let json
   try {
     json = await response.json()
-  } catch (e) {
+  } catch {
     json = {}
   }
 
