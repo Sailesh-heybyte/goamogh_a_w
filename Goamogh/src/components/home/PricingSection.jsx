@@ -44,17 +44,18 @@ export default function PricingSection() {
             {/* Super Editorial Handpounding Section */}
             <section ref={parallaxRef} className="relative h-[100vh] md:h-[160vh] flex flex-col items-center bg-[#0c120b] -mb-px z-0">
                 <div className="sticky top-0 h-screen w-full overflow-hidden">
-                    <motion.div style={{ y }} className="absolute inset-0 will-change-transform">
+                    <motion.div style={{ y }} className="absolute inset-x-0 -top-[12%] -bottom-[12%] will-change-transform">
                         <img 
                             src={millingBg.src} 
                             alt="Goamogh Heritage Grinding" 
-                            className="w-full h-full object-cover scale-110 object-[center_30%] [transform:translate3d(0,0,0)]"
+                            className="w-full h-full object-cover object-[center_30%]"
                         />
-                        {/* Professional Vignette & Overlays */}
-                        <div className="absolute inset-0 bg-[#0c120b]/30" />
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0c120b_90%)] opacity-80" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#0c120b] via-transparent to-[#0c120b] 100%" />
                     </motion.div>
+                    
+                    {/* Professional Vignette & Overlays */}
+                    <div className="absolute inset-0 bg-[#0c120b]/30" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0c120b_90%)] opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#0c120b] via-transparent to-[#0c120b] 100%" />
                     
                     <motion.div 
                         style={{ opacity }}

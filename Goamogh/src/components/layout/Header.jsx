@@ -128,10 +128,10 @@ export default function Header() {
             >
                 <div
                     className={classNames(
-                        "w-full max-w-7xl mx-auto rounded-full pointer-events-auto transition-all duration-500 flex items-center justify-between px-8 py-3.5 shadow-2xl border",
+                        "w-full max-w-7xl mx-auto rounded-full pointer-events-auto transition-colors duration-500 flex items-center justify-between px-8 py-3.5 shadow-2xl border",
                         scrolled 
-                            ? "bg-[#0b150d]/95 backdrop-blur-xl border-[#d8b66a]/30 shadow-[0_16px_40px_rgba(0,0,0,0.6)]" 
-                            : "bg-[#0b150d]/80 backdrop-blur-md border-[#d8b66a]/20 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                            ? "bg-[#0b150d]/95 border-[#d8b66a]/30 shadow-[0_16px_40px_rgba(0,0,0,0.6)]" 
+                            : "bg-[#0b150d]/90 border-[#d8b66a]/20 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
                     )}
                 >
                     {/* Left: Navigation Group 1 (Shop, Recipes, Heritage) */}
@@ -255,7 +255,7 @@ export default function Header() {
                 className={classNames(
                     "md:hidden fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4 flex items-center justify-between",
                     scrolled 
-                        ? "bg-[#1a2416]/95 backdrop-blur-md border-b border-[#c5a47e]/15 shadow-lg" 
+                        ? "bg-[#1a2416]/[0.97] border-b border-[#c5a47e]/15 shadow-lg" 
                         : "bg-transparent"
                 )}
             >

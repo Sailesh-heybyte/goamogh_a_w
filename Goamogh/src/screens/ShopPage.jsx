@@ -274,7 +274,7 @@ export default function ShopPage() {
               </div>
             ))
           ) : (
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence initial={false}>
               {products.map((product) => {
                 const activeWeight = selectedWeights[product.id] ?? product.weights[0]?.label;
                 const activeVariant = product.weights.find((weight) => weight.label === activeWeight) ?? product.weights[0];
@@ -292,13 +292,11 @@ export default function ShopPage() {
                 return (
                   <motion.article
                     key={product.id}
-                    layout
                     initial={{ opacity: 0, scale: 0.96, y: 24 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.94, y: 18 }}
-                    whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className="rounded-[28px] bg-[#0b150d] p-4 shadow-xl shadow-black/20 border border-[#d8b66a]/5 flex flex-col h-full"
+                    className="rounded-[28px] bg-[#0b150d] p-4 shadow-xl shadow-black/20 border border-[#d8b66a]/5 flex flex-col h-full transition-transform duration-300 ease-out md:hover:-translate-y-1"
                   >
                     {/* Link around the image */}
                     <Link href={`/shop/${product.id}`} className="block rounded-[22px] bg-[#d8b66a] p-3 relative overflow-hidden group">
@@ -315,11 +313,11 @@ export default function ShopPage() {
                         />
                       </div>
                       {isOutOfStock ? (
-                        <div className="absolute top-6 left-6 z-10 bg-red-950/90 border border-red-500/30 text-red-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+                        <div className="absolute top-6 left-6 z-10 bg-red-950/90 border border-red-500/30 text-red-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg">
                           Out of Stock
                         </div>
                       ) : (
-                        <div className="absolute top-6 left-6 z-10 bg-green-950/90 border border-green-500/30 text-green-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+                        <div className="absolute top-6 left-6 z-10 bg-green-950/90 border border-green-500/30 text-green-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg">
                           In Stock
                         </div>
                       )}
