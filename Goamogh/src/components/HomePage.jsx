@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import HeroCanvas from './HeroCanvas';
 
 const PricingSection = dynamic(() => import('./PricingSection'));
-const CategoryShowcase = dynamic(() => import('./CategoryShowcase'), { ssr: false });
 
 export default function HomePage() {
     const containerRef = useRef(null);
@@ -22,7 +21,6 @@ export default function HomePage() {
 
             <div className="relative z-10 -mt-16 md:-mt-24 bg-[#0c0c0c]">
                 <PricingSection />
-                <CategoryShowcase />
             </div>
         </main>
     );

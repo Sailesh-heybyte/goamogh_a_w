@@ -453,6 +453,49 @@ const RecipeModal = ({ recipe, onClose }) => {
   );
 };
 
+function MortarPestleIcon({ className = "w-7 h-7" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M18 4l-6.5 9" />
+      <path d="M4 11h16" />
+      <path d="M5 11c.5 4.5 3.5 7 7 7s6.5-2.5 7-7" />
+      <path d="M9 18h6" />
+    </svg>
+  );
+}
+
+function SpiceLeavesIcon({ className = "w-7 h-7" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M7 19c2-5 6-10 12-11-1 6-5 10-10 11-1 0-1.5-.5-2 0z" />
+      <path d="M10 14l5-4" />
+      <path d="M7 15c-2-1-3.5-3-3.5-5 2.5 0 4.5 1.5 5 4" />
+    </svg>
+  );
+}
+
+function BotanicalSprigIcon({ className = "w-7 h-7" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 21v-9" />
+      <path d="M12 12c-1.5-2.5-1.5-5.5 0-8 1.5 2.5 1.5 5.5 0 8z" />
+      <path d="M12 10V6" />
+      <path d="M12 14c-3-.5-5.5-2.5-5.5-5 2.5 0 4.5 2 5.5 5z" />
+      <path d="M12 14c3-.5 5.5-2.5 5.5-5-2.5 0-4.5 2-5.5 5z" />
+    </svg>
+  );
+}
+
+function SpiceJarIcon({ className = "w-7 h-7" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="8" y="4" width="8" height="2.5" rx="1" />
+      <path d="M7 6.5h10" />
+      <path d="M7.5 7.5C7.5 9 6 10 6 12v7c0 1.5 1 2.5 2.5 2.5h7c1.5 0 2.5-1 2.5-2.5v-7c0-2-1.5-3-1.5-4.5" />
+    </svg>
+  );
+}
+
 export default function RecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [hoveredColor, setHoveredColor] = useState(null);
@@ -549,22 +592,107 @@ export default function RecipesPage() {
           {/* Main Large Card */}
           <div className="lg:col-span-7">
             <MagneticCard className="h-full">
-              <div className="relative rounded-[32px] md:rounded-[60px] bg-[#4a5f3a] p-6 md:p-16 overflow-hidden border border-[#d8b66a]/20 group h-full flex flex-col justify-between">
+              <div className="relative rounded-[32px] md:rounded-[48px] bg-[#4a5f3a] p-7 md:p-12 lg:p-14 overflow-hidden border border-[#d8b66a]/20 group h-full flex flex-col justify-between">
                 <div className="absolute top-0 right-0 w-3/4 h-3/4 bg-gradient-to-bl from-[#d8b66a]/5 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
-                  <div className="flex items-center gap-4 mb-6 md:mb-8">
+                  <div className="flex items-center gap-3 mb-6 md:mb-8">
                     <Sparkles size={16} className="text-[#d8b66a]" />
-                    <span className="text-[10px] uppercase tracking-[0.4em] eyebrow-gold font-bold">KNOW YOUR SPICE</span>
+                    <span className="text-[11px] uppercase tracking-[0.35em] text-[#d8b66a] font-bold">KNOW YOUR SPICE</span>
                   </div>
-                  <h2 className="font-display text-4xl md:text-6xl text-[#f2e7c8] mb-6 md:mb-8 leading-[0.95]">Every Spice <br /> <span className="text-[#d8b66a] font-serif">Has a Role</span></h2>
-                  <p className="text-[#d6cca9] text-base md:text-lg max-w-lg leading-relaxed opacity-90">
+                  <h2 className="font-display text-4xl md:text-6xl text-[#f2e7c8] mb-6 md:mb-8 leading-[1.02]">
+                    Every Spice <br /> <span className="text-[#d8b66a] font-serif">Has a Role</span>
+                  </h2>
+                  <p className="text-[#d6cca9] text-sm md:text-base leading-relaxed max-w-2xl opacity-90 mb-10 md:mb-12">
                     Cumin isn't just earthy—it is the first crackle in hot oil. Turmeric isn't just golden—it is warmth, color and depth. Chilli isn't simply heat—it brings fragrance and character to the entire dish.
                   </p>
+
+                  {/* 4 Quadrants Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2">
+                    {/* Left Column */}
+                    <div className="md:pr-8 md:border-r border-[#d8b66a]/25 flex flex-col justify-between">
+                      {/* The Art of Balance */}
+                      <div className="pb-7 border-b border-[#d8b66a]/25">
+                        <div className="flex items-center gap-3 mb-3">
+                          <MortarPestleIcon className="w-7 h-7 text-[#d8b66a] shrink-0" />
+                          <div className="h-6 w-px bg-[#d8b66a]/30 shrink-0" />
+                          <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#d8b66a]">
+                            THE ART OF BALANCE
+                          </h4>
+                        </div>
+                        <p className="text-[#d6cca9]/90 text-xs md:text-[13px] leading-relaxed">
+                          Whole spices release their aroma in hot oil. Ground spices deepen the flavor as they cook. Add delicate spices later to preserve their fragrance.
+                        </p>
+                      </div>
+
+                      {/* From Origin to Kitchen */}
+                      <div className="pt-7 pb-7 md:pb-0 border-b md:border-b-0 border-[#d8b66a]/25">
+                        <div className="flex items-center gap-3 mb-3">
+                          <BotanicalSprigIcon className="w-7 h-7 text-[#d8b66a] shrink-0" />
+                          <div className="h-6 w-px bg-[#d8b66a]/30 shrink-0" />
+                          <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#d8b66a]">
+                            FROM ORIGIN TO KITCHEN
+                          </h4>
+                        </div>
+                        <p className="text-[#d6cca9]/90 text-xs md:text-[13px] leading-relaxed">
+                          Each spice carries a story of soil, climate and careful harvest. Thoughtful sourcing and small-batch processing help preserve its natural character.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="md:pl-8 flex flex-col justify-between pt-7 md:pt-0">
+                      {/* A Little Spice Know-How */}
+                      <div className="pb-7 border-b border-[#d8b66a]/25">
+                        <div className="flex items-center gap-3 mb-3">
+                          <SpiceLeavesIcon className="w-7 h-7 text-[#d8b66a] shrink-0" />
+                          <div className="h-6 w-px bg-[#d8b66a]/30 shrink-0" />
+                          <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#d8b66a]">
+                            A LITTLE SPICE KNOW-HOW
+                          </h4>
+                        </div>
+                        <ul className="space-y-1.5 text-xs md:text-[13px] text-[#d6cca9]/90">
+                          <li className="flex items-baseline gap-2">
+                            <span className="text-[#d8b66a] text-sm leading-none">•</span>
+                            <span><strong className="text-[#d8b66a] font-bold">Cumin:</strong> earthy warmth and a nutty aroma</span>
+                          </li>
+                          <li className="flex items-baseline gap-2">
+                            <span className="text-[#d8b66a] text-sm leading-none">•</span>
+                            <span><strong className="text-[#d8b66a] font-bold">Turmeric:</strong> golden color and gentle depth</span>
+                          </li>
+                          <li className="flex items-baseline gap-2">
+                            <span className="text-[#d8b66a] text-sm leading-none">•</span>
+                            <span><strong className="text-[#d8b66a] font-bold">Coriander:</strong> citrusy freshness and balance</span>
+                          </li>
+                          <li className="flex items-baseline gap-2">
+                            <span className="text-[#d8b66a] text-sm leading-none">•</span>
+                            <span><strong className="text-[#d8b66a] font-bold">Chilli:</strong> vibrant color, aroma and heat</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Cook With Intention */}
+                      <div className="pt-7">
+                        <div className="flex items-center gap-3 mb-3">
+                          <SpiceJarIcon className="w-7 h-7 text-[#d8b66a] shrink-0" />
+                          <div className="h-6 w-px bg-[#d8b66a]/30 shrink-0" />
+                          <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#d8b66a]">
+                            COOK WITH INTENTION
+                          </h4>
+                        </div>
+                        <p className="text-[#d6cca9]/90 text-xs md:text-[13px] leading-relaxed">
+                          Bloom whole spices first, toast gently, and store powders in airtight containers away from heat, light and moisture.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-8 md:mt-12 relative z-10">
-                  <span className="text-xs uppercase tracking-[0.3em] text-[#d8b66a] font-mono">Understand what makes it work →</span>
+                {/* Footer CTA */}
+                <div className="mt-10 md:mt-12 relative z-10">
+                  <span className="text-[11px] md:text-xs uppercase tracking-[0.3em] text-[#d8b66a] font-mono hover:text-[#f2e7c8] transition-colors cursor-pointer inline-flex items-center gap-2">
+                    UNDERSTAND WHAT MAKES IT WORK →
+                  </span>
                 </div>
               </div>
             </MagneticCard>
