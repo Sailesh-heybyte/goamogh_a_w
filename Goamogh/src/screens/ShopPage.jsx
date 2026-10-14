@@ -301,16 +301,26 @@ export default function ShopPage() {
                     {/* Link around the image */}
                     <Link href={`/shop/${product.id}`} className="block rounded-[22px] bg-[#d8b66a] p-3 relative overflow-hidden group">
                       <div className="aspect-square overflow-hidden rounded-[18px] bg-[#d8b66a]">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          width={400}
-                          height={400}
-                          loading="lazy"
-                          decoding="async"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            width={400}
+                            height={400}
+                            loading="lazy"
+                            decoding="async"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full rounded-[18px] flex items-center justify-center bg-[#e9d9a8] text-[#0b150d]/70 font-display text-5xl"
+                            role="img"
+                            aria-label={`${product.name} – image coming soon`}
+                          >
+                            {(product.name || '').charAt(0)}
+                          </div>
+                        )}
                       </div>
                       {isOutOfStock ? (
                         <div className="absolute top-6 left-6 z-10 bg-red-950/90 border border-red-500/30 text-red-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg">

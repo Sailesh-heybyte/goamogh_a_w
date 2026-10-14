@@ -92,9 +92,13 @@ export const customFetch = async (endpoint, options = {}) => {
                 localStorage.setItem("refresh_token", refreshData.data.refresh_token)
               }
             }
+            if (!newAccessToken) {
+              console.warn("[auth] token refresh returned no access_token")
+            }
             isRefreshing = false
             onRefreshed(newAccessToken)
           } else {
+            console.warn("[auth] token refresh failed with status", refreshRes.status)
             isRefreshing = false
             const error = new Error("Session expired")
             onRefreshFailed(error)

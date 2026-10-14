@@ -1364,15 +1364,25 @@ export default function CartPage() {
                                             <div key={item.cartId} className="flex flex-col md:flex-row md:items-center py-6 gap-4">
                                                 {/* Product column */}
                                                 <div className="flex items-center gap-4 w-full md:w-[45%]">
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        width={80}
-                                                        height={80}
-                                                        loading="lazy"
-                                                        decoding="async"
-                                                        className="w-20 h-20 rounded-xl object-cover bg-[#d8b66a]/10 border border-[#d8b66a]/10 shrink-0"
-                                                    />
+                                                    {item.image ? (
+                                                        <img
+                                                            src={item.image}
+                                                            alt={item.name}
+                                                            width={80}
+                                                            height={80}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            className="w-20 h-20 rounded-xl object-cover bg-[#d8b66a]/10 border border-[#d8b66a]/10 shrink-0"
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className="w-20 h-20 rounded-xl flex items-center justify-center bg-[#e9d9a8] text-[#0b150d]/70 font-display text-base shrink-0 border border-[#d8b66a]/10"
+                                                            role="img"
+                                                            aria-label={`${item.name} – image coming soon`}
+                                                        >
+                                                            {(item.name || '').charAt(0)}
+                                                        </div>
+                                                    )}
                                                     <div className="min-w-0">
                                                         <h3 className="font-serif text-base md:text-lg text-white font-medium leading-snug truncate">{item.name}</h3>
                                                         <p className="text-xs text-[#d6cca9]/60 mt-1 font-mono">{item.weight || '250g'} • {item.origin || 'India'}</p>

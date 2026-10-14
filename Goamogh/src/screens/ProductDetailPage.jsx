@@ -216,15 +216,25 @@ export default function ProductDetailPage({ id }) {
                         {/* Image Gallery Column */}
                         <div className="space-y-4">
                             <div className="rounded-[22px] bg-[#d8b66a] p-3 relative aspect-square overflow-hidden shadow-xl">
-                                <img
-                                    src={images[0] || ''}
-                                    alt={product.name}
-                                    width={600}
-                                    height={600}
-                                    loading="eager"
-                                    decoding="async"
-                                    className="w-full h-full object-cover rounded-[18px]"
-                                />
+                                {images[0] ? (
+                                    <img
+                                        src={images[0]}
+                                        alt={product.name}
+                                        width={600}
+                                        height={600}
+                                        loading="eager"
+                                        decoding="async"
+                                        className="w-full h-full object-cover rounded-[18px]"
+                                    />
+                                ) : (
+                                    <div
+                                        className="w-full h-full rounded-[18px] flex items-center justify-center bg-[#e9d9a8] text-[#0b150d]/70 font-display text-5xl"
+                                        role="img"
+                                        aria-label={`${product.name} – image coming soon`}
+                                    >
+                                        {(product.name || '').charAt(0)}
+                                    </div>
+                                )}
                                 {!isAvailable ? (
                                     <div className="absolute top-6 left-6 z-10 bg-amber-950/90 border border-amber-500/30 text-amber-400 text-[10px] tracking-[0.2em] uppercase font-mono px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
                                         Not Available
