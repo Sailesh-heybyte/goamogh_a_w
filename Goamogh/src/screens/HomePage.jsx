@@ -1,9 +1,9 @@
 "use client";
 import React, { useRef } from 'react';
 import dynamic from 'next/dynamic';
-import HeroCanvas from './HeroCanvas';
+import HeroCanvas from '../components/HeroCanvas';
 
-const PricingSection = dynamic(() => import('./PricingSection'));
+const PricingSection = dynamic(() => import('../components/PricingSection'));
 
 export default function HomePage() {
     const containerRef = useRef(null);

@@ -1,4 +1,4 @@
-import PrivacyPage from '../../src/components/PrivacyPage';
+import PrivacyPage from '../../src/screens/PrivacyPage';
 
 export const metadata = {
   title: 'Privacy Policy | Goamogh',

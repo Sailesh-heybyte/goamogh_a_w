@@ -1,4 +1,4 @@
-import ProductDetailPage from '../../../src/components/ProductDetailPage';
+import ProductDetailPage from '../../../src/screens/ProductDetailPage';
 
 export const metadata = {
   title: 'Product Details | Goamogh',

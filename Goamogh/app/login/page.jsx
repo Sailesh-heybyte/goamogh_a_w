@@ -1,4 +1,4 @@
-import LoginPage from '../../src/components/LoginPage';
+import LoginPage from '../../src/screens/LoginPage';
 
 export const metadata = {
   title: 'Log In | Goamogh',

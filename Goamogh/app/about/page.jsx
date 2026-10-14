@@ -1,4 +1,4 @@
-import AboutEditorialPage from '../../src/components/AboutEditorialPage'
+import AboutEditorialPage from '../../src/screens/AboutEditorialPage'
 
 export const metadata = {
   title: 'Our Heritage & Philosophy',

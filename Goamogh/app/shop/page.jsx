@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import ShopPage from '../../src/components/ShopPage'
+import ShopPage from '../../src/screens/ShopPage'
 
 export const metadata = {
   title: 'Shop Premium Spices & Blends Online',

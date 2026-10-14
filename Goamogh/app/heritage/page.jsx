@@ -1,4 +1,4 @@
-import HeritagePage from '../../src/components/HeritagePage'
+import HeritagePage from '../../src/screens/HeritagePage'
 
 export const metadata = {
   title: 'Our Heritage & Traditional Methods',

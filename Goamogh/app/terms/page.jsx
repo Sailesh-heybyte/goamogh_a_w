@@ -1,4 +1,4 @@
-import TermsPage from '../../src/components/TermsPage';
+import TermsPage from '../../src/screens/TermsPage';
 
 export const metadata = {
   title: 'Terms & Conditions | Goamogh',

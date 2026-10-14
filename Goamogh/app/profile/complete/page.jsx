@@ -1,4 +1,4 @@
-import CompleteProfilePage from '../../../src/components/CompleteProfilePage';
+import CompleteProfilePage from '../../../src/screens/CompleteProfilePage';
 
 export const metadata = {
   title: 'Complete Your Profile | Goamogh',

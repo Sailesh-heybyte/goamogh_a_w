@@ -1,4 +1,4 @@
-import ProfilePage from '../../src/components/ProfilePage'
+import ProfilePage from '../../src/screens/ProfilePage'
 
 export const metadata = {
   title: 'Your Profile | Goamogh',

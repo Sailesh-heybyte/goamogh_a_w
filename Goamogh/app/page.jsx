@@ -1,4 +1,4 @@
-import HomePage from '../src/components/HomePage'
+import HomePage from '../src/screens/HomePage'
 
 export const metadata = {
   title: 'Goamogh | Premium Spices and Blends',

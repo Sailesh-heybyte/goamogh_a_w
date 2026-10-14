@@ -1,4 +1,4 @@
-import CartPage from '../../src/components/CartPage'
+import CartPage from '../../src/screens/CartPage'
 
 export const metadata = {
   title: 'Shopping Cart | Goamogh',

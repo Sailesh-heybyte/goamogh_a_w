@@ -1,4 +1,4 @@
-import ContactPage from '../../src/components/ContactPage';
+import ContactPage from '../../src/screens/ContactPage';
 
 export const metadata = {
   title: 'Contact Us | Goamogh',

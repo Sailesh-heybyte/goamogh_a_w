@@ -1,4 +1,4 @@
-import RecipesPage from '../../src/components/RecipesPage'
+import RecipesPage from '../../src/screens/RecipesPage'
 
 export const metadata = {
   title: 'Artisan Spice Recipes & Culinary Guides',
