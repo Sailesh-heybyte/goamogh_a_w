@@ -7,33 +7,33 @@ import { ToastProvider } from "@/context/ToastContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import PermissionRoute from "@/components/PermissionRoute"
 import Spinner from "@/components/ui/Spinner"
-import Login from "@/pages/Login"
+import Login from "@/screens/Login"
 import DashboardLayout from "@/layouts/DashboardLayout"
 
-const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"))
-const StaffManagement = lazy(() => import("@/pages/StaffManagement"))
-const RoleManagement = lazy(() => import("@/pages/RoleManagement"))
-const CategoryManagement = lazy(() => import("@/pages/CategoryManagement"))
-const ProductCatalog = lazy(() => import("@/pages/ProductCatalog"))
-const PricingPanel = lazy(() => import("@/pages/PricingPanel"))
-const SupplierDirectory = lazy(() => import("@/pages/SupplierDirectory"))
-const PurchaseOrders = lazy(() => import("@/pages/PurchaseOrders"))
-const CreatePurchaseOrder = lazy(() => import("@/pages/CreatePurchaseOrder"))
-const PurchaseEntries = lazy(() => import("@/pages/PurchaseEntries"))
-const CreatePurchaseEntry = lazy(() => import("@/pages/CreatePurchaseEntry"))
-const WorkOrders = lazy(() => import("@/pages/WorkOrders"))
-const SystemSettings = lazy(() => import("@/pages/SystemSettings"))
-const StockLedger = lazy(() => import("@/pages/StockLedger"))
-const InventoryDashboard = lazy(() => import("@/pages/InventoryDashboard"))
-const Customers = lazy(() => import("@/pages/Customers"))
-const Indents = lazy(() => import("@/pages/Indents"))
-const CreateIndent = lazy(() => import("@/pages/CreateIndent"))
-const Sales = lazy(() => import("@/pages/Sales"))
-const CreateSale = lazy(() => import("@/pages/CreateSale"))
-const Invoices = lazy(() => import("@/pages/Invoices"))
-const InvoiceDetails = lazy(() => import("@/pages/InvoiceDetails"))
-const CustomerFeedback = lazy(() => import("@/pages/CustomerFeedback"))
-const CustomerEnquiries = lazy(() => import("@/pages/CustomerEnquiries"))
+const DashboardOverview = lazy(() => import("@/screens/DashboardOverview"))
+const StaffManagement = lazy(() => import("@/screens/StaffManagement"))
+const RoleManagement = lazy(() => import("@/screens/RoleManagement"))
+const CategoryManagement = lazy(() => import("@/screens/CategoryManagement"))
+const ProductCatalog = lazy(() => import("@/screens/ProductCatalog"))
+const PricingPanel = lazy(() => import("@/screens/PricingPanel"))
+const SupplierDirectory = lazy(() => import("@/screens/SupplierDirectory"))
+const PurchaseOrders = lazy(() => import("@/screens/PurchaseOrders"))
+const CreatePurchaseOrder = lazy(() => import("@/screens/CreatePurchaseOrder"))
+const PurchaseEntries = lazy(() => import("@/screens/PurchaseEntries"))
+const CreatePurchaseEntry = lazy(() => import("@/screens/CreatePurchaseEntry"))
+const WorkOrders = lazy(() => import("@/screens/WorkOrders"))
+const SystemSettings = lazy(() => import("@/screens/SystemSettings"))
+const StockLedger = lazy(() => import("@/screens/StockLedger"))
+const InventoryDashboard = lazy(() => import("@/screens/InventoryDashboard"))
+const Customers = lazy(() => import("@/screens/Customers"))
+const Indents = lazy(() => import("@/screens/Indents"))
+const CreateIndent = lazy(() => import("@/screens/CreateIndent"))
+const Sales = lazy(() => import("@/screens/Sales"))
+const CreateSale = lazy(() => import("@/screens/CreateSale"))
+const Invoices = lazy(() => import("@/screens/Invoices"))
+const InvoiceDetails = lazy(() => import("@/screens/InvoiceDetails"))
+const CustomerFeedback = lazy(() => import("@/screens/CustomerFeedback"))
+const CustomerEnquiries = lazy(() => import("@/screens/CustomerEnquiries"))
 
 
 const router = createBrowserRouter([
