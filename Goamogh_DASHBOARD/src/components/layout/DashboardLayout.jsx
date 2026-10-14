@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Outlet } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
-import Sidebar from "@/layouts/Sidebar"
+import Sidebar from "@/components/layout/Sidebar"
 import { LogOut, Menu } from "lucide-react"
 
 function DashboardLayout() {

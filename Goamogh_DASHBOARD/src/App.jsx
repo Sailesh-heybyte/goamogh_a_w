@@ -8,7 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute"
 import PermissionRoute from "@/components/PermissionRoute"
 import Spinner from "@/components/ui/Spinner"
 import Login from "@/screens/Login"
-import DashboardLayout from "@/layouts/DashboardLayout"
+import DashboardLayout from "@/components/layout/DashboardLayout"
 
 const DashboardOverview = lazy(() => import("@/screens/DashboardOverview"))
 const StaffManagement = lazy(() => import("@/screens/StaffManagement"))
