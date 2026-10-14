@@ -89,14 +89,14 @@ function WorkOrders() {
     batch_number: "",
     batch_date: "",
     expiry_date: "",
-    machinery_cost: "0",
-    machinery_cost_tax: "0",
-    transport_cost: "0",
-    transport_cost_tax: "0",
-    worker_cost: "0",
-    worker_cost_tax: "0",
-    other_cost: "0",
-    other_cost_tax: "0"
+    machinery_cost: "",
+    machinery_cost_tax: "",
+    transport_cost: "",
+    transport_cost_tax: "",
+    worker_cost: "",
+    worker_cost_tax: "",
+    other_cost: "",
+    other_cost_tax: ""
   })
   const [closeErrors, setCloseErrors] = useState({})
   const [isClosing, setIsClosing] = useState(false)
@@ -301,14 +301,14 @@ function WorkOrders() {
       batch_number: selectedWorkOrder.work_order_number || "",
       batch_date: formatDateTimeLocal(now),
       expiry_date: formatDateTimeLocal(expiry),
-      machinery_cost: "0",
-      machinery_cost_tax: "0",
-      transport_cost: "0",
-      transport_cost_tax: "0",
-      worker_cost: "0",
-      worker_cost_tax: "0",
-      other_cost: "0",
-      other_cost_tax: "0"
+      machinery_cost: "",
+      machinery_cost_tax: "",
+      transport_cost: "",
+      transport_cost_tax: "",
+      worker_cost: "",
+      worker_cost_tax: "",
+      other_cost: "",
+      other_cost_tax: ""
     })
     setCloseErrors({})
     setIsCloseFormOpen(true)
@@ -353,14 +353,14 @@ function WorkOrders() {
     const outputNum = parseFloat(closeForm.output_qty)
     const wastageNum = parseFloat(closeForm.wastage_qty)
     const inputNum = selectedWorkOrder ? parseFloat(selectedWorkOrder.total_input_qty ?? 0) : 0
-    const machineryCostNum = parseFloat(closeForm.machinery_cost)
-    const machineryCostTaxNum = parseFloat(closeForm.machinery_cost_tax)
-    const transportCostNum = parseFloat(closeForm.transport_cost)
-    const transportCostTaxNum = parseFloat(closeForm.transport_cost_tax)
-    const workerCostNum = parseFloat(closeForm.worker_cost)
-    const workerCostTaxNum = parseFloat(closeForm.worker_cost_tax)
-    const otherCostNum = parseFloat(closeForm.other_cost)
-    const otherCostTaxNum = parseFloat(closeForm.other_cost_tax)
+    const machineryCostNum = closeForm.machinery_cost === "" ? 0 : parseFloat(closeForm.machinery_cost)
+    const machineryCostTaxNum = closeForm.machinery_cost_tax === "" ? 0 : parseFloat(closeForm.machinery_cost_tax)
+    const transportCostNum = closeForm.transport_cost === "" ? 0 : parseFloat(closeForm.transport_cost)
+    const transportCostTaxNum = closeForm.transport_cost_tax === "" ? 0 : parseFloat(closeForm.transport_cost_tax)
+    const workerCostNum = closeForm.worker_cost === "" ? 0 : parseFloat(closeForm.worker_cost)
+    const workerCostTaxNum = closeForm.worker_cost_tax === "" ? 0 : parseFloat(closeForm.worker_cost_tax)
+    const otherCostNum = closeForm.other_cost === "" ? 0 : parseFloat(closeForm.other_cost)
+    const otherCostTaxNum = closeForm.other_cost_tax === "" ? 0 : parseFloat(closeForm.other_cost_tax)
 
     const errors = {}
     if (isNaN(outputNum) || outputNum < 0) {

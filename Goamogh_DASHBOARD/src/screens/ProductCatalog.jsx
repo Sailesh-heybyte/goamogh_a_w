@@ -57,7 +57,7 @@ function ProductCatalog() {
     hsn_code: "",
     unit_code: "KG",
     gst_percent: "5.00",
-    cess_percent: "0.00",
+    cess_percent: "",
     is_featured: false,
     is_sellable: true,
     is_active: true,
@@ -76,7 +76,7 @@ function ProductCatalog() {
     hsn_code: "",
     unit_code: "KG",
     gst_percent: "5.00",
-    cess_percent: "0.00",
+    cess_percent: "",
     is_featured: false,
     is_sellable: true,
     sourcing_location: "",
@@ -436,7 +436,7 @@ function ProductCatalog() {
         hsn_code: editForm.hsn_code.trim(),
         unit_code: editForm.unit_code,
         gst_percent: parseFloat(editForm.gst_percent).toFixed(2),
-        cess_percent: parseFloat(editForm.cess_percent).toFixed(2),
+        cess_percent: parseFloat(editForm.cess_percent === "" ? 0 : editForm.cess_percent).toFixed(2),
         images: [],
         is_featured: editForm.is_featured,
         is_sellable: editForm.is_sellable,
@@ -548,7 +548,7 @@ function ProductCatalog() {
       errs.gst_percent = "Tax rates must be between 0% and 100%"
     }
 
-    const cessNum = parseFloat(form.cess_percent)
+    const cessNum = form.cess_percent === "" ? 0 : parseFloat(form.cess_percent)
     if (isNaN(cessNum) || cessNum < 0 || cessNum > 100) {
       errs.cess_percent = "Tax rates must be between 0% and 100%"
     }
@@ -586,7 +586,7 @@ function ProductCatalog() {
         hsn_code: createForm.hsn_code.trim(),
         unit_code: createForm.unit_code,
         gst_percent: parseFloat(createForm.gst_percent).toFixed(2),
-        cess_percent: parseFloat(createForm.cess_percent).toFixed(2),
+        cess_percent: parseFloat(createForm.cess_percent === "" ? 0 : createForm.cess_percent).toFixed(2),
         images: [],
         is_featured: createForm.is_featured,
         is_sellable: createForm.is_sellable,
@@ -701,7 +701,7 @@ function ProductCatalog() {
               hsn_code: "",
               unit_code: "KG",
               gst_percent: "5.00",
-              cess_percent: "0.00",
+              cess_percent: "",
               is_featured: false,
               is_sellable: true,
               sourcing_location: "",

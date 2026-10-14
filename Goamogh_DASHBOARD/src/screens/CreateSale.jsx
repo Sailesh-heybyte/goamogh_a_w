@@ -215,7 +215,7 @@ function CreateSale() {
   const handleAddItemRow = () => {
     setItems((prev) => [
       ...prev,
-      { variant_id: "", quantity: 1, rate: "", discount_percent: 0 }
+      { variant_id: "", quantity: 1, rate: "", discount_percent: "" }
     ])
   }
 
@@ -337,7 +337,8 @@ function CreateSale() {
         setValidationError(`Line ${i + 1}: Price rate must be non-negative.`)
         return false
       }
-      if (parseFloat(itm.discount_percent) < 0 || parseFloat(itm.discount_percent) > 100) {
+      const disc = itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
+      if (isNaN(disc) || disc < 0 || disc > 100) {
         setValidationError(`Line ${i + 1}: Discount must be between 0 and 100%.`)
         return false
       }
@@ -380,7 +381,7 @@ function CreateSale() {
           variant_id: itm.variant_id,
           quantity: parseFloat(itm.quantity),
           rate: parseFloat(itm.rate),
-          discount_percent: parseFloat(itm.discount_percent)
+          discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
         }))
       }
 
@@ -684,6 +685,7 @@ function CreateSale() {
                         required
                         value={item.rate}
                         onChange={(e) => handleItemFieldChange(idx, "rate", e.target.value)}
+                        placeholder="0.00"
                         className="px-2 py-1.5 border border-slate-200 rounded-lg text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
@@ -699,6 +701,7 @@ function CreateSale() {
                         required
                         value={item.discount_percent}
                         onChange={(e) => handleItemFieldChange(idx, "discount_percent", e.target.value)}
+                        placeholder="0"
                         className="px-2 py-1.5 border border-slate-200 rounded-lg text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
