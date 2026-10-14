@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ShoppingBag } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 
 // verified caching fix with webpack memory cache
 export default function Header() {

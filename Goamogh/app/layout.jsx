@@ -1,12 +1,12 @@
 import '../src/index.css'
 import { Playfair_Display } from 'next/font/google'
-import Header from '../src/components/Header'
-import Footer from '../src/components/Footer'
-import LenisProvider from '../src/components/LenisProvider'
+import Header from '../src/components/layout/Header'
+import Footer from '../src/components/layout/Footer'
+import LenisProvider from '../src/components/layout/LenisProvider'
 import { AuthProvider } from '../src/context/AuthContext'
 import { CartProvider } from '../src/context/CartContext'
-import LoginModal from '../src/components/LoginModal'
-import LegalModal from '../src/components/LegalModal'
+import LoginModal from '../src/components/modals/LoginModal'
+import LegalModal from '../src/components/modals/LegalModal'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],

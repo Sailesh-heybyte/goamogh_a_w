@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import TransparencySection from './TransparencySection';
 import BentoGrid from './BentoGrid';
-import millingBg from '../assets/images/about/heritage_grinding.webp';
+import millingBg from '../../assets/images/about/heritage_grinding.webp';
 
 export default function PricingSection() {
     const parallaxRef = useRef(null);

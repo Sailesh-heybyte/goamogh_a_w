@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useCanvasVideo } from '../hooks/useCanvasVideo';
+import { useCanvasVideo } from '../../hooks/useCanvasVideo';
 
 gsap.registerPlugin(ScrollTrigger);
 

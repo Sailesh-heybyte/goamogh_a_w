@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Loader } from 'lucide-react';
-import { getCategoriesOnce } from '../api/api';
+import { getCategoriesOnce } from '../../api/api';
 import Link from 'next/link';
 
 export default function CategoryShowcase() {

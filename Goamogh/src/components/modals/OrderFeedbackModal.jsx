@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, CheckCircle2, AlertCircle, Loader } from 'lucide-react';
-import { submitOrderFeedback } from '../api/api';
+import { submitOrderFeedback } from '../../api/api';
 
 export default function OrderFeedbackModal({ orderId, orderNumber, onSuccess, onClose }) {
   const [rating, setRating] = useState(5);

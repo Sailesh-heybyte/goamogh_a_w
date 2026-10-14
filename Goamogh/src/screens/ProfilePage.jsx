@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Phone, Calendar, Edit2, Check, AlertCircle, Loader, ShoppingBag, Eye, ChevronRight, Clock, ArrowLeft, Package, MapPin, Plus, Trash2, FileText, Download, Star } from 'lucide-react';
 import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress, downloadInvoicePdf } from '../api/api';
-import OrderFeedbackModal from '../components/OrderFeedbackModal';
+import OrderFeedbackModal from '../components/modals/OrderFeedbackModal';
 
 function getOrderStatusLabel(status, paymentStatus) {
     if (status === 'draft' && paymentStatus === 'paid') return { label: 'Order Received (Processing)', color: 'blue', step: 1 };
