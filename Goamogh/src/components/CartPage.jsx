@@ -7,7 +7,7 @@ import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, CreditCar
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
-import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, fetchOrderDetails, loadRazorpaySDK, openRazorpayCheckout } from '../services/api';
+import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, fetchOrderDetails, loadRazorpaySDK, openRazorpayCheckout } from '../api/api';
 import { PAYMENT_STATUS } from '../constants/paymentStatus';
 
 

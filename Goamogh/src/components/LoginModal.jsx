@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { addToDbCart } from '../services/api';
+import { addToDbCart } from '../api/api';
 import { useRouter } from 'next/navigation';
 import { X, ArrowRight, Phone, Lock } from 'lucide-react';
 

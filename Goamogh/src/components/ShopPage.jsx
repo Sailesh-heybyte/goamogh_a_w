@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Search, Loader, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { getCategoriesOnce, fetchProducts } from '../services/api';
+import { getCategoriesOnce, fetchProducts } from '../api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 

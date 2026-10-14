@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Phone, Calendar, Edit2, Check, AlertCircle, Loader, ShoppingBag, Eye, ChevronRight, Clock, ArrowLeft, Package, MapPin, Plus, Trash2, FileText, Download, Star } from 'lucide-react';
-import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress, downloadInvoicePdf } from '../services/api';
+import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress, downloadInvoicePdf } from '../api/api';
 import OrderFeedbackModal from './OrderFeedbackModal';
 
 function getOrderStatusLabel(status, paymentStatus) {

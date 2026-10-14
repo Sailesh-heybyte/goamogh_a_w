@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
-import { submitContactEnquiry } from '../services/contactService';
+import { submitContactEnquiry } from '../api/contactService';
 
 export default function ContactPage() {
     const { openLegalModal } = useAuth();

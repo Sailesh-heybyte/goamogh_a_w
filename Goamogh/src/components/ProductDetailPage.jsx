@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { fetchProductDetails, fetchProductVariants } from '../services/api';
+import { fetchProductDetails, fetchProductVariants } from '../api/api';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Loader, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 

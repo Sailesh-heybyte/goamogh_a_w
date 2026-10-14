@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { fetchDbCart, addToDbCart, updateDbCartQty, removeFromDbCart, clearDbCart } from '../services/api';
+import { useAuth } from './AuthContext';
+import { fetchDbCart, addToDbCart, updateDbCartQty, removeFromDbCart, clearDbCart } from '../api/api';
 
 const CartContext = createContext(null);
 
