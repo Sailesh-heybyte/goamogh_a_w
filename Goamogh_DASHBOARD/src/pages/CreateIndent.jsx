@@ -10,9 +10,9 @@ import {
   Calculator,
   MapPin
 } from "lucide-react"
-import { getIndentDetails, createIndent, updateIndent } from "@/services/indents"
-import { searchCustomerByPhone } from "@/services/customers"
-import { getPricingPanel } from "@/services/products"
+import { getIndentDetails, createIndent, updateIndent } from "@/api/indents"
+import { searchCustomerByPhone } from "@/api/customers"
+import { getPricingPanel } from "@/api/products"
 import Spinner from "@/components/ui/Spinner"
 import useConfirm from "@/hooks/useConfirm"
 

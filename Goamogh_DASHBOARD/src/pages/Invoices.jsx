@@ -7,7 +7,7 @@ import {
   Eye,
   ExternalLink
 } from "lucide-react"
-import { getInvoices } from "@/services/invoices"
+import { getInvoices } from "@/api/invoices"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 

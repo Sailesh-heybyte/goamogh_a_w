@@ -12,7 +12,7 @@ import {
   Check,
   X
 } from "lucide-react"
-import { getContactEnquiries } from "@/services/enquiries"
+import { getContactEnquiries } from "@/api/enquiries"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 

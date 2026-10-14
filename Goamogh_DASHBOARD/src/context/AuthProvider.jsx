@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import PropTypes from "prop-types"
 import { AuthContext } from "./AuthContext"
-import { getProfile, loginUser, logoutUser } from "@/services/auth"
-import { getRoles } from "@/services/roles"
+import { getProfile, loginUser, logoutUser } from "@/api/auth"
+import { getRoles } from "@/api/roles"
 
 const isSuperAdminRole = (userData) => {
   if (!userData) return false

@@ -16,8 +16,8 @@ import {
 import {
   getPurchaseOrders,
   updatePurchaseOrderStatus
-} from "@/services/purchases"
-import { getSuppliers } from "@/services/suppliers"
+} from "@/api/purchases"
+import { getSuppliers } from "@/api/suppliers"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 import Modal from "@/components/ui/Modal"

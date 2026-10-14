@@ -12,10 +12,10 @@ import {
   MapPin,
   Package
 } from "lucide-react"
-import { createDirectSale } from "@/services/sales"
-import { searchCustomerByPhone } from "@/services/customers"
-import { getItems } from "@/services/items"
-import { getPricingPanel } from "@/services/products"
+import { createDirectSale } from "@/api/sales"
+import { searchCustomerByPhone } from "@/api/customers"
+import { getItems } from "@/api/items"
+import { getPricingPanel } from "@/api/products"
 import Spinner from "@/components/ui/Spinner"
 import useConfirm from "@/hooks/useConfirm"
 

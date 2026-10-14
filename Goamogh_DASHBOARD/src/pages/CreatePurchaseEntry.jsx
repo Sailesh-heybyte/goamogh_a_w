@@ -22,7 +22,7 @@ import {
   getPurchaseEntryDetails,
   getPurchaseEntryFormData,
   previewPurchaseEntry
-} from "@/services/purchases"
+} from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"

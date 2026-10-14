@@ -10,7 +10,7 @@ import {
   Wheat,
   Layers
 } from "lucide-react"
-import { getInventoryDashboard } from "@/services/ledgers"
+import { getInventoryDashboard } from "@/api/ledgers"
 import Spinner from "@/components/ui/Spinner"
 
 function InventoryDashboard() {

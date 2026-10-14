@@ -8,7 +8,7 @@ import {
   CheckCircle,
   ExternalLink
 } from "lucide-react"
-import { getInvoiceDetails } from "@/services/invoices"
+import { getInvoiceDetails } from "@/api/invoices"
 import Spinner from "@/components/ui/Spinner"
 import "../styles/print.css"
 

@@ -11,7 +11,7 @@ import {
   Check,
   X
 } from "lucide-react"
-import { getCustomerFeedbacks } from "@/services/feedback"
+import { getCustomerFeedbacks } from "@/api/feedback"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 

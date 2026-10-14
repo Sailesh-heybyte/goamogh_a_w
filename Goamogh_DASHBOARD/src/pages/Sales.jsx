@@ -13,8 +13,8 @@ import {
   getSales,
   getSaleDetails,
   updateSalesOrderStatus
-} from "@/services/sales"
-import { generateTaxInvoice } from "@/services/invoices"
+} from "@/api/sales"
+import { generateTaxInvoice } from "@/api/invoices"
 import useAuth from "@/hooks/useAuth"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"

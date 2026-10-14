@@ -23,7 +23,7 @@ import {
   deleteCustomerAddress,
   searchCustomerByPhone,
   getCustomerOrders
-} from "@/services/customers"
+} from "@/api/customers"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 import Modal from "@/components/ui/Modal"

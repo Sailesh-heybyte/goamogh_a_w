@@ -23,8 +23,8 @@ import {
   getWorkOrderDetails,
   createWorkOrder,
   updateWorkOrderStatus
-} from "@/services/workOrders"
-import { getItems } from "@/services/items"
+} from "@/api/workOrders"
+import { getItems } from "@/api/items"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 import Modal from "@/components/ui/Modal"

@@ -17,7 +17,7 @@ import {
   getPurchaseOrderDetails,
   updatePurchaseOrder,
   getPurchaseOrderFormData
-} from "@/services/purchases"
+} from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import useConfirm from "@/hooks/useConfirm"
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { Plus, Edit2, Trash2, ShieldAlert, X, Truck, Search, Phone, Mail, MapPin, FileSpreadsheet, AlertTriangle, Building, ShieldCheck, Landmark, BookOpen } from "lucide-react"
-import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails } from "@/services/suppliers"
+import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails } from "@/api/suppliers"
 import Spinner from "@/components/ui/Spinner"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 import Modal from "@/components/ui/Modal"

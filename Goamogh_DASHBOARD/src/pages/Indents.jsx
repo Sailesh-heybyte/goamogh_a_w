@@ -6,7 +6,7 @@ import {
   Plus,
   AlertCircle
 } from "lucide-react"
-import { getIndents, updateIndentStatus } from "@/services/indents"
+import { getIndents, updateIndentStatus } from "@/api/indents"
 import useAuth from "@/hooks/useAuth"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"

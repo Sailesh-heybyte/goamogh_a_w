@@ -14,7 +14,7 @@ import {
 import {
   getItemLedger,
   getStockSummary
-} from "@/services/ledgers"
+} from "@/api/ledgers"
 import Spinner from "@/components/ui/Spinner"
 
 

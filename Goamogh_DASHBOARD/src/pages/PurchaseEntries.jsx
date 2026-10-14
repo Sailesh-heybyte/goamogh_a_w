@@ -11,7 +11,7 @@ import {
   Receipt,
   Sparkles
 } from "lucide-react"
-import { getPurchaseEntries, getPurchaseOrders } from "@/services/purchases"
+import { getPurchaseEntries, getPurchaseOrders } from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Plus, Edit2, ShieldAlert, X, FolderOpen, AlertTriangle, Calendar, Search } from "lucide-react"
-import { getCategories, createCategory, updateCategory, getCategoryDetails } from "@/services/categories"
+import { getCategories, createCategory, updateCategory, getCategoryDetails } from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
