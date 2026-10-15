@@ -1,14 +1,13 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, CreditCard, Trash2, Pencil, ArrowLeft, CheckCircle2, Loader, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, Pencil, ArrowLeft, Loader, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
-import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, fetchOrderDetails, loadRazorpaySDK, openRazorpayCheckout } from '../api/api';
-import { PAYMENT_STATUS } from '../utils/paymentStatus';
+import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart } from '../api/api';
 
 
 
@@ -68,42 +67,24 @@ export default function CartPage() {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [addresses, setAddresses] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('COD');
     const [orderNotes, setOrderNotes] = useState('');
     const [placingOrder, setPlacingOrder] = useState(false);
-    const [orderSuccessData, setOrderSuccessData] = useState(null);
     const [checkoutResponse, setCheckoutResponse] = useState(null);
+    const [secondsLeft, setSecondsLeft] = useState(600);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [loadingAddresses, setLoadingAddresses] = useState(false);
 
-    // Payment States & Single State Machine
-    const [paymentState, setPaymentState] = useState(PAYMENT_STATUS.IDLE);
-    const [paymentInitiated, setPaymentInitiated] = useState(null);
-    const [paymentInitiating, setPaymentInitiating] = useState(false);
-    const [paymentCompleted, setPaymentCompleted] = useState(false);
-    const [paymentError, setPaymentError] = useState(null);
-    const [secondsLeft, setSecondsLeft] = useState(600);
-    const [paymentProcessing, setPaymentProcessing] = useState(false);
-    const [razorpayLoading, setRazorpayLoading] = useState(false);
-
-    // Idempotent Payment Success Finalizer Guard & Synchronous Ref Locks
-    const isFinalizedRef = useRef(false);
+    // Synchronous Ref Locks
     const isPlacingOrderRef = useRef(false);
-    const isPaymentInitiatingRef = useRef(false);
 
-    // Browser Navigation & Page Unload Guard during active order creation or payment processing
+    // Browser Navigation & Page Unload Guard during active order creation
     useEffect(() => {
-        const isTransactionActive = [
-            PAYMENT_STATUS.INITIALIZING,
-            PAYMENT_STATUS.CHECKOUT_OPEN,
-            PAYMENT_STATUS.VERIFYING,
-            PAYMENT_STATUS.PROCESSING
-        ].includes(paymentState) || placingOrder || razorpayLoading || paymentProcessing;
+        const isTransactionActive = placingOrder;
 
         const handleBeforeUnload = (e) => {
             if (isTransactionActive) {
                 e.preventDefault();
-                e.returnValue = 'Payment or order processing is currently active.';
+                e.returnValue = 'Your order is being placed.';
                 return e.returnValue;
             }
         };
@@ -124,46 +105,7 @@ export default function CartPage() {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [paymentState, placingOrder, razorpayLoading, paymentProcessing]);
-
-    const finalizePaymentSuccess = useCallback((data) => {
-        if (isFinalizedRef.current) return;
-        isFinalizedRef.current = true;
-        setPaymentState(PAYMENT_STATUS.SUCCESS);
-        setPaymentCompleted(true);
-        setPaymentProcessing(false);
-        clearCart().catch(() => reloadCart());
-    }, [clearCart, reloadCart]);
-
-    const checkPaymentStatus = async () => {
-        const res = await fetchOrderDetails(token, checkoutResponse.id);
-        const paymentStatus = res.data.payment_status;
-        if (paymentStatus === 'paid') { finalizePaymentSuccess(res.data); return; }
-        if (paymentStatus === 'pending') {
-            setPaymentState(PAYMENT_STATUS.PROCESSING);
-            setPaymentError('Payment received. Waiting for confirmation from the bank. Use "Check payment status" in a moment.');
-            return;
-        }
-        if (paymentStatus === 'refunded') {
-            setPaymentState(PAYMENT_STATUS.FAILED);
-            setPaymentError('Your payment was refunded because some items went out of stock. The order has been cancelled.');
-            return;
-        }
-        setPaymentState(PAYMENT_STATUS.CANCELLED);
-        setPaymentError('Payment was not completed. Click "Pay with Razorpay" to try again.');
-    };
-
-    const handleCheckPaymentStatus = async () => {
-        setPaymentProcessing(true);
-        try {
-            await checkPaymentStatus();
-        } catch {
-            setPaymentState(PAYMENT_STATUS.PROCESSING);
-            setPaymentError('We could not check your payment status. Use "Check payment status".');
-        } finally {
-            setPaymentProcessing(false);
-        }
-    };
+    }, [placingOrder]);
 
 
     // New Address Form State
@@ -222,7 +164,7 @@ export default function CartPage() {
 
     // Timer countdown logic based on reserved_until
     useEffect(() => {
-        if (!checkoutResponse || paymentCompleted) return;
+        if (!checkoutResponse) return;
 
         const calculateTimeLeft = () => {
             const expiryStr = checkoutResponse.reserved_until;
@@ -243,141 +185,12 @@ export default function CartPage() {
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [checkoutResponse, paymentCompleted]);
+    }, [checkoutResponse]);
 
     const formatTime = (secs) => {
         const m = Math.floor(secs / 60).toString().padStart(2, '0');
         const s = (secs % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
-    };
-
-    // Payment Checkout Handler with Single Initiation & Strict Guard
-    const handleRazorpayPayment = async () => {
-        if (!checkoutResponse || !token) return;
-
-        // Synchronous ref lock & multi-state duplicate initiation guard
-        if (
-            isPaymentInitiatingRef.current ||
-            razorpayLoading ||
-            paymentProcessing ||
-            paymentCompleted ||
-            [PAYMENT_STATUS.INITIALIZING, PAYMENT_STATUS.CHECKOUT_OPEN, PAYMENT_STATUS.VERIFYING, PAYMENT_STATUS.PROCESSING, PAYMENT_STATUS.SUCCESS].includes(paymentState)
-        ) {
-            return;
-        }
-
-        isPaymentInitiatingRef.current = true;
-        isFinalizedRef.current = false;
-        setRazorpayLoading(true);
-        setPaymentState(PAYMENT_STATUS.INITIALIZING);
-
-        setPaymentError(null);
-
-        try {
-            // 1. Load Razorpay SDK dynamically on demand
-            const sdkLoaded = await loadRazorpaySDK();
-            if (!sdkLoaded) {
-                setPaymentError('Failed to load Razorpay SDK. Please check your network connection.');
-                setRazorpayLoading(false);
-                setPaymentState(PAYMENT_STATUS.FAILED);
-                isPaymentInitiatingRef.current = false;
-                return;
-            }
-
-            // 2. Execute Backend Payment Initiation ONCE when user clicks Pay
-            let initRes;
-            try {
-                initRes = await initiatePayment(token, checkoutResponse.id);
-            } catch (initErr) {
-                console.error('Payment initiation error:', initErr);
-                setPaymentError(initErr.message || 'Failed to initiate payment session. Please try again.');
-                setPaymentState(PAYMENT_STATUS.FAILED);
-                setRazorpayLoading(false);
-                isPaymentInitiatingRef.current = false;
-                return; // STOP: Never open Razorpay on initiation error
-            }
-
-            const initData = initRes?.data || initRes;
-
-            // 3. STRICT GUARD: Never open Razorpay if initiation failed or razorpay_order_id is missing
-            if (!initRes?.success && !initData?.razorpay_order_id) {
-                setPaymentError(initRes?.message || 'Gateway payment order could not be created. Please try again.');
-                setPaymentState(PAYMENT_STATUS.FAILED);
-                setRazorpayLoading(false);
-                isPaymentInitiatingRef.current = false;
-                return; // STOP: Never open Razorpay without backend order
-            }
-
-            const rzpOrderId = initData?.razorpay_order_id;
-            if (!rzpOrderId) {
-                setPaymentError('Razorpay Order ID missing from payment initiation response.');
-                setPaymentState(PAYMENT_STATUS.FAILED);
-                setRazorpayLoading(false);
-                isPaymentInitiatingRef.current = false;
-                return; // STOP: Never open Razorpay without order ID
-            }
-
-            // 4. Amount comes STRICTLY from backend response (amount in paise)
-            const amountInPaise = initData.amount;
-            const keyId = initData.key_id || checkoutResponse.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-
-            setPaymentState(PAYMENT_STATUS.CHECKOUT_OPEN);
-
-            // 5. Open Razorpay Checkout Modal
-            openRazorpayCheckout({
-                keyId: keyId,
-                razorpayOrderId: rzpOrderId,
-                amountInPaise: amountInPaise,
-                currency: initData.currency || 'INR',
-                businessName: 'Goamogh',
-                description: `Payment for Order ${checkoutResponse.sale_number}`,
-                customer: {
-                    name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
-                    email: user?.email || '',
-                    contact: user?.phone || ''
-                },
-                onSuccess: async () => {
-                    setPaymentProcessing(true);
-                    setPaymentState(PAYMENT_STATUS.VERIFYING);
-                    setPaymentError(null);
-                    try {
-                        await checkPaymentStatus();
-                    } catch (err) {
-                        setPaymentState(PAYMENT_STATUS.PROCESSING);
-                        setPaymentError('We could not confirm your payment yet. Use "Check payment status".');
-                    } finally {
-                        setPaymentProcessing(false);
-                        isPaymentInitiatingRef.current = false;
-                    }
-                },
-                onDismiss: async () => {
-                    setPaymentProcessing(true);
-                    setPaymentState(PAYMENT_STATUS.PROCESSING);
-                    setPaymentError('Verifying payment status with server...');
-                    try {
-                        await checkPaymentStatus();
-                        return;
-                    } catch (dismissErr) {
-                        setPaymentState(PAYMENT_STATUS.PROCESSING);
-                        setPaymentError('We could not check your payment status. Use "Check payment status".');
-                    } finally {
-                        setPaymentProcessing(false);
-                        isPaymentInitiatingRef.current = false;
-                    }
-                },
-                onError: (err) => {
-                    setPaymentState(PAYMENT_STATUS.FAILED);
-                    setPaymentError(err.description || err.message || 'Razorpay payment failed.');
-                    isPaymentInitiatingRef.current = false;
-                }
-            });
-        } catch (err) {
-            setPaymentState(PAYMENT_STATUS.FAILED);
-            setPaymentError(err.message || 'Error opening Razorpay payment.');
-            isPaymentInitiatingRef.current = false;
-        } finally {
-            setRazorpayLoading(false);
-        }
     };
 
 
@@ -545,14 +358,7 @@ export default function CartPage() {
         }
 
         // Double-click & duplicate order creation prevention guard
-        if (
-            isPlacingOrderRef.current ||
-            placingOrder ||
-            checkoutResponse ||
-            paymentProcessing ||
-            razorpayLoading ||
-            [PAYMENT_STATUS.INITIALIZING, PAYMENT_STATUS.CHECKOUT_OPEN, PAYMENT_STATUS.VERIFYING, PAYMENT_STATUS.PROCESSING].includes(paymentState)
-        ) {
+        if (isPlacingOrderRef.current || placingOrder || checkoutResponse) {
             return;
         }
 
@@ -561,8 +367,7 @@ export default function CartPage() {
             setPlacingOrder(true);
             const response = await checkoutCart(token, {
                 address_id: selectedAddressId,
-                notes: orderNotes.trim() || null,
-                payment_method: paymentMethod
+                notes: orderNotes.trim() || null
             });
 
             if (response.success && response.data) {
@@ -597,14 +402,9 @@ export default function CartPage() {
             setAddresses([]);
             setSelectedAddressId('');
             setCheckoutResponse(null);
-            setPaymentInitiated(null);
-            setPaymentCompleted(false);
-            setPaymentState(PAYMENT_STATUS.IDLE);
-            setPaymentError(null);
             setIsCheckingOut(false);
             setOrderNotes('');
             isPlacingOrderRef.current = false;
-            isPaymentInitiatingRef.current = false;
         };
 
         if (!user || !token) {
@@ -639,7 +439,7 @@ export default function CartPage() {
         !effectiveCountry || effectiveCountry.trim().length < 2
     ) : false;
     const isShippingUnavailable = selectedAddress && selectedAddress.shipping_serviceable === false;
-    const isTransactionRunning = placingOrder || isPlacingOrderRef.current || razorpayLoading || isPaymentInitiatingRef.current || paymentProcessing || [PAYMENT_STATUS.INITIALIZING, PAYMENT_STATUS.CHECKOUT_OPEN, PAYMENT_STATUS.VERIFYING, PAYMENT_STATUS.PROCESSING].includes(paymentState);
+    const isTransactionRunning = placingOrder || isPlacingOrderRef.current;
     const isCartInvalidOrStale = cartItems.length === 0 || hasInactiveItems || hasStockError || isAddressInvalid || isShippingUnavailable || isTransactionRunning;
 
 
@@ -791,64 +591,7 @@ export default function CartPage() {
         );
     }
 
-    if (paymentCompleted) {
-        return (
-            <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
-                <div className="max-w-3xl mx-auto relative z-10 text-center">
-                    <div className="bg-[#0b150d] border border-[#d8b66a]/15 rounded-[32px] md:rounded-[48px] p-8 md:p-16 shadow-2xl relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-30 pointer-events-none" />
-                        <div className="w-20 h-20 rounded-full bg-[#d8b66a]/10 border border-[#d8b66a]/20 flex items-center justify-center mx-auto mb-8 text-[#d8b66a]">
-                            <CheckCircle2 size={36} />
-                        </div>
-                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Payment Confirmed!</h1>
-                        <p className="text-[#efe3bf] text-base md:text-lg mb-8 max-w-lg mx-auto">
-                            Thank you for your purchase. Your payment was successful, and your order has been confirmed.
-                        </p>
-
-                        {/* Order info details box */}
-                        <div className="bg-[#1a2416]/50 rounded-2xl p-6 mb-8 text-left border border-[#d8b66a]/10 max-w-xl mx-auto font-sans space-y-4">
-                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Number</span>
-                                <span className="text-[#efe3bf] font-mono text-sm font-bold">{checkoutResponse.sale_number}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount Paid</span>
-                                <span className="text-[#d8b66a] font-mono text-sm font-bold">{checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Status</span>
-                                <span className="bg-green-500/20 text-green-400 border border-green-500/30 font-mono text-[9px] uppercase px-2 py-0.5 rounded-full font-bold">Confirmed</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Delivery Address</span>
-                                <span className="text-[#efe3bf] text-xs text-right font-medium max-w-[280px] leading-relaxed">{checkoutResponse.delivery_address}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                            <a
-                                href="/shop"
-                                className="w-full sm:w-auto inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer font-serif"
-                                style={{ fontFamily: "'Cinzel', serif" }}
-                            >
-                                Continue Shopping
-                            </a>
-                            <a
-                                href={`/profile?tab=orders&orderId=${checkoutResponse.id}`}
-                                className="w-full sm:w-auto inline-flex items-center justify-center border border-[#d8b66a]/20 hover:border-[#d8b66a]/60 text-[#d8b66a] hover:text-[#efe3bf] font-bold px-8 py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 cursor-pointer font-serif"
-                                style={{ fontFamily: "'Cinzel', serif" }}
-                            >
-                                Track Order
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        );
-    }
-
-    if (checkoutResponse && !paymentCompleted) {
+    if (checkoutResponse) {
         const isExpired = secondsLeft <= 0;
         return (
             <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
@@ -857,12 +600,12 @@ export default function CartPage() {
                     <div className="bg-[#0b150d] border border-[#d8b66a]/15 rounded-[32px] md:rounded-[48px] p-8 md:p-16 shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-30 pointer-events-none" />
 
-                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Complete Payment</h1>
+                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Order Reserved</h1>
 
                         {isExpired ? (
                             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center justify-center gap-3 font-mono mb-6">
                                 <AlertTriangle size={18} className="text-red-400 shrink-0" />
-                                <span>Payment window expired. Please order again.</span>
+                                <span>Reservation expired. Please order again.</span>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2 mb-6">
@@ -880,81 +623,29 @@ export default function CartPage() {
                                 <span className="text-[#efe3bf] font-mono text-sm font-bold">{checkoutResponse.sale_number}</span>
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount to Pay</span>
+                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Total</span>
                                 <span className="text-[#d8b66a] font-mono text-base font-bold">{checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"}</span>
                             </div>
-                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
+                            <div className="flex justify-between">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Delivery Address</span>
                                 <span className="text-[#efe3bf] text-xs text-right font-medium max-w-[280px] leading-relaxed">{checkoutResponse.delivery_address}</span>
                             </div>
-                            {paymentInitiated && (
-                                <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
-                                    <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Payment Session</span>
-                                    <span className="text-[#efe3bf] font-mono text-xs">{paymentInitiated.payment_session_id}</span>
-                                </div>
-                            )}
                         </div>
 
-                        {paymentError && (
-                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono mb-8 max-w-xl mx-auto text-left">
-                                <div className="flex items-center gap-3">
-                                    <AlertTriangle size={16} className="text-red-400 shrink-0" />
-                                    <span>{paymentError}</span>
-                                </div>
-                                {paymentState === PAYMENT_STATUS.PROCESSING && (
-                                    <button
-                                        type="button"
-                                        disabled={paymentProcessing}
-                                        onClick={handleCheckPaymentStatus}
-                                        className="shrink-0 bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold px-4 py-2 rounded-full transition duration-300 text-xs uppercase tracking-wider cursor-pointer active:scale-95"
-                                    >
-                                        Check payment status
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
                         <div className="flex flex-col gap-4 justify-center items-center max-w-md mx-auto">
-                            {/* Processing Banner if state is VERIFYING or PROCESSING */}
-                            {[PAYMENT_STATUS.VERIFYING, PAYMENT_STATUS.PROCESSING].includes(paymentState) ? (
-                                <div className="w-full bg-[#1a2416] border border-[#d8b66a]/30 p-6 rounded-2xl text-center space-y-3 shadow-xl">
-                                    <Loader className="w-8 h-8 animate-spin text-[#d8b66a] mx-auto" />
-                                    <h4 className="text-white font-serif font-bold text-base uppercase tracking-wider">Confirming Payment...</h4>
-                                    <p className="text-[#efe3bf]/70 text-xs font-sans leading-relaxed">
-                                        We are securely confirming your transaction with the bank and payment provider. Please do not refresh or close this page.
-                                    </p>
-                                </div>
-                            ) : (
-                                /* Primary Razorpay Payment Button */
-                                <button
-                                    disabled={isExpired || paymentProcessing || razorpayLoading || isPaymentInitiatingRef.current || paymentCompleted || [PAYMENT_STATUS.INITIALIZING, PAYMENT_STATUS.CHECKOUT_OPEN, PAYMENT_STATUS.VERIFYING, PAYMENT_STATUS.PROCESSING, PAYMENT_STATUS.SUCCESS].includes(paymentState)}
-                                    onClick={handleRazorpayPayment}
-                                    className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer font-serif flex items-center justify-center gap-2"
-                                    style={{ fontFamily: "'Cinzel', serif" }}
-                                >
-                                    {razorpayLoading || paymentState === PAYMENT_STATUS.INITIALIZING ? (
-                                        <>
-                                            <Loader className="w-4 h-4 animate-spin text-[#0b150d]" />
-                                            <span>Starting Secure Payment...</span>
-                                        </>
-                                    ) : (
-                                        <span>Pay with Razorpay ({checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"})</span>
-                                    )}
-                                </button>
-                            )}
-
-
-
+                            <div className="w-full p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-center justify-center gap-3 font-mono">
+                                <span>Online payment is not available yet. This order will be released automatically when the timer ends.</span>
+                            </div>
 
                             <button
+                                type="button"
                                 onClick={() => {
                                     setCheckoutResponse(null);
-                                    setPaymentInitiated(null);
                                     setIsCheckingOut(false);
                                 }}
-                                className="text-xs uppercase tracking-widest text-[#efe3bf]/50 hover:text-white mt-2 font-mono font-bold transition duration-300"
+                                className="text-xs uppercase tracking-widest text-[#efe3bf]/50 hover:text-white mt-2 font-mono font-bold transition duration-300 cursor-pointer"
                             >
-                                Cancel Order & Return
+                                Back to Cart
                             </button>
                         </div>
                     </div>
@@ -1258,54 +949,6 @@ export default function CartPage() {
                                         )}
                                     </div>
 
-                                    {/* Payment Method Section */}
-                                    <div className="space-y-4 border-t border-[#d8b66a]/10 pt-6">
-                                        <h3 className="text-white font-serif text-lg flex items-center gap-2">
-                                            <CreditCard size={18} className="text-[#d8b66a]" />
-                                            <span>Payment Method</span>
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-sm">
-                                            {/* Cash on Delivery */}
-                                            <div
-                                                onClick={() => setPaymentMethod('COD')}
-                                                className={`border rounded-2xl p-5 cursor-pointer transition duration-300 flex items-center gap-4 ${paymentMethod === 'COD'
-                                                    ? 'border-[#d8b66a] bg-[#d8b66a]/5'
-                                                    : 'border-white/5 bg-[#1a2416]/20 hover:border-white/10 hover:bg-[#1a2416]/40'
-                                                    }`}
-                                            >
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${paymentMethod === 'COD'
-                                                    ? 'border-[#d8b66a] bg-[#d8b66a]'
-                                                    : 'border-[#efe3bf]/30'
-                                                    }`}>
-                                                    {paymentMethod === 'COD' && <div className="w-1.5 h-1.5 rounded-full bg-[#0b150d]" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-white font-bold text-xs uppercase tracking-wider">Cash on Delivery (COD)</p>
-                                                    <p className="text-[#efe3bf]/50 text-[10px] mt-0.5 font-medium">Pay in cash or UPI upon delivery.</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Online Payment */}
-                                            <div
-                                                onClick={() => setPaymentMethod('ONLINE')}
-                                                className={`border rounded-2xl p-5 cursor-pointer transition duration-300 flex items-center gap-4 ${paymentMethod === 'ONLINE'
-                                                    ? 'border-[#d8b66a] bg-[#d8b66a]/5'
-                                                    : 'border-white/5 bg-[#1a2416]/20 hover:border-white/10 hover:bg-[#1a2416]/40'
-                                                    }`}
-                                            >
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${paymentMethod === 'ONLINE'
-                                                    ? 'border-[#d8b66a] bg-[#d8b66a]'
-                                                    : 'border-[#efe3bf]/30'
-                                                    }`}>
-                                                    {paymentMethod === 'ONLINE' && <div className="w-1.5 h-1.5 rounded-full bg-[#0b150d]" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-white font-bold text-xs uppercase tracking-wider">Online Payment</p>
-                                                    <p className="text-[#efe3bf]/50 text-[10px] mt-0.5 font-medium">Visa, Mastercard, UPI (Simulator).</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     {/* Order Notes Section */}
                                     <div className="space-y-4 border-t border-[#d8b66a]/10 pt-6">
