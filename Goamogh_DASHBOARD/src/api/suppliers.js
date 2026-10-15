@@ -36,3 +36,15 @@ export const deactivateSupplier = async (supplierId) => {
 export const getPincodeDetails = async (pincode) => {
   return customFetch(`/api/v1/suppliers/pincode/${pincode}`)
 }
+
+export const uploadSupplierKyc = async (file, documentType) => {
+  const formData = new FormData()
+  formData.append("file", file)
+  if (documentType) formData.append("document_type", documentType)
+  return customFetch("/api/v1/suppliers/upload-kyc", { method: "POST", body: formData })
+}
+
+export const getSupplierKycViewUrl = async (supplierId) => customFetch(`/api/v1/suppliers/${supplierId}/kyc-document-url`)
+
+export const verifySupplierKyc = async (supplierId, isVerified, remarks) => customFetch(`/api/v1/suppliers/${supplierId}/verify-kyc`, { method: "PATCH", body: JSON.stringify({ is_verified: isVerified, remarks: remarks || null }) })
+

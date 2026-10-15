@@ -7,6 +7,7 @@ export default async function sitemap() {
     '/heritage',
     '/recipes',
     '/shop',
+    '/certificates',
   ];
 
   return routes.map((route) => ({

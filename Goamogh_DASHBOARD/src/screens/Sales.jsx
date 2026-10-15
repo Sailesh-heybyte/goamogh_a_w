@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ShoppingCart,
@@ -46,7 +46,6 @@ function Sales() {
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   // Details Modal States
@@ -61,10 +60,7 @@ function Sales() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { skip, limit }
-      if (saleTypeFilter) params.sale_type = saleTypeFilter
-      if (statusFilter) params.status = statusFilter
-      const res = await getSales(params)
+      const res = await getSales()
       if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         throw new Error("Failed to load sales list.")
@@ -72,7 +68,6 @@ function Sales() {
       const json = await res.json()
       if (requestId !== latestRequestRef.current) return
       setSales(json.data || [])
-      setTotal(json.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred.")
@@ -81,11 +76,16 @@ function Sales() {
         setIsLoading(false)
       }
     }
-  }, [saleTypeFilter, statusFilter, skip, limit])
+  }, [])
 
   useEffect(() => {
     fetchSales()
   }, [fetchSales])
+
+  // Reset skip when filters change
+  useEffect(() => {
+    setSkip(0)
+  }, [searchQuery, saleTypeFilter, statusFilter])
 
   // Open Details Modal and fetch fresh details
   const handleOpenDetails = async (sale) => {
@@ -95,7 +95,7 @@ function Sales() {
       const res = await getSaleDetails(sale.id)
       if (res.ok) {
         const json = await res.json()
-        setSelectedSale(json.data || sale)
+        setSelectedSale(json.data)
       }
     } catch (err) {
       console.error("Failed to load fresh sale details:", err)
@@ -232,7 +232,7 @@ function Sales() {
     }
   }
 
-  const hasBillingPermission = isSuperAdmin || hasPermission("purchase_manage") || hasPermission("sales_manage")
+  const hasBillingPermission = isSuperAdmin || hasPermission("sales_manage")
 
   // Generate / View Tax Invoice (Idempotent)
   const handleGenerateInvoice = async (saleId) => {
@@ -275,16 +275,20 @@ function Sales() {
   }
 
   // Filter lists in memory
-  const getFilteredSales = () => {
+  const filteredSales = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    if (!q) return sales
-    return sales.filter(
-      (s) =>
+    return sales.filter((s) => {
+      if (saleTypeFilter && s.sale_type !== saleTypeFilter) return false
+      if (statusFilter && s.status !== statusFilter) return false
+      if (!q) return true
+      return (
         (s.customer_name || "").toLowerCase().includes(q) ||
         (s.customer_phone || "").includes(q) ||
         (s.sale_number || "").toLowerCase().includes(q)
-    )
-  }
+      )
+    })
+  }, [sales, saleTypeFilter, statusFilter, searchQuery])
+  const pageRows = filteredSales.slice(skip, skip + limit)
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
@@ -368,7 +372,7 @@ function Sales() {
       {/* Main Listing Table */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
-      ) : getFilteredSales().length === 0 ? (
+      ) : filteredSales.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No sales records found.</p>
         </div>
@@ -387,7 +391,7 @@ function Sales() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {getFilteredSales().map((sale) => (
+                {pageRows.map((sale) => (
                   <tr key={sale.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* Column 1: Sale Order # & Type Badge */}
                     <td className="px-2 md:px-3.5 py-3 min-w-0">
@@ -462,7 +466,7 @@ function Sales() {
 
                     {/* Column 4: Total Amount */}
                     <td className="px-2 md:px-3 py-3 text-right tabular-nums font-extrabold text-slate-900 text-xs whitespace-nowrap">
-                      ₹{parseFloat(sale.total_amount || 0).toFixed(2)}
+                      {sale.total_amount != null ? `₹${parseFloat(sale.total_amount).toFixed(2)}` : "—"}
                     </td>
 
                     {/* Column 5: Date */}
@@ -486,7 +490,7 @@ function Sales() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filteredSales.length} onChange={setSkip} />
         </div>
       )}
 
@@ -566,15 +570,15 @@ function Sales() {
                             <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
                             <div className="text-[10px] text-slate-400 tabular-nums truncate">
                               <span>HSN: {item.hsn_code || "—"}</span>
-                              <span className="md:hidden"> • Rate: ₹{parseFloat(item.rate).toFixed(2)}</span>
-                              <span className="lg:hidden"> • GST: {parseFloat(item.gst_percent || 0).toFixed(2)}%</span>
+                              <span className="md:hidden"> • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</span>
+                              <span className="lg:hidden"> • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</span>
                             </div>
                           </td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">₹{parseFloat(item.rate).toFixed(2)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{parseFloat(item.discount_percent || 0).toFixed(2)}%</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{parseFloat(item.gst_percent || 0).toFixed(2)}%</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">₹{parseFloat(item.total_amount).toFixed(2)}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity != null ? item.quantity : "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">{item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">{item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -592,33 +596,33 @@ function Sales() {
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5 text-slate-600">
                   <div className="flex justify-between">
                     <span>Taxable Value:</span>
-                    <span className="tabular-nums text-slate-800 font-bold">₹{parseFloat(selectedSale.total_taxable_amount || 0).toFixed(2)}</span>
+                    <span className="tabular-nums text-slate-800 font-bold">{selectedSale.total_taxable_amount != null ? `₹${parseFloat(selectedSale.total_taxable_amount).toFixed(2)}` : "—"}</span>
                   </div>
                   {selectedSale.total_cgst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>CGST:</span>
-                      <span className="tabular-nums">₹{parseFloat(selectedSale.total_cgst_amount).toFixed(2)}</span>
+                      <span className="tabular-nums">{selectedSale.total_cgst_amount != null ? `₹${parseFloat(selectedSale.total_cgst_amount).toFixed(2)}` : "—"}</span>
                     </div>
                   )}
                   {selectedSale.total_sgst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>SGST:</span>
-                      <span className="tabular-nums">₹{parseFloat(selectedSale.total_sgst_amount).toFixed(2)}</span>
+                      <span className="tabular-nums">{selectedSale.total_sgst_amount != null ? `₹${parseFloat(selectedSale.total_sgst_amount).toFixed(2)}` : "—"}</span>
                     </div>
                   )}
                   {selectedSale.total_igst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>IGST:</span>
-                      <span className="tabular-nums">₹{parseFloat(selectedSale.total_igst_amount).toFixed(2)}</span>
+                      <span className="tabular-nums">{selectedSale.total_igst_amount != null ? `₹${parseFloat(selectedSale.total_igst_amount).toFixed(2)}` : "—"}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-[11px] text-rose-700">
                     <span>Total Discount Allowed:</span>
-                    <span className="tabular-nums">-₹{parseFloat(selectedSale.total_discount_amount || 0).toFixed(2)}</span>
+                    <span className="tabular-nums">{selectedSale.total_discount_amount != null ? `-₹${parseFloat(selectedSale.total_discount_amount).toFixed(2)}` : "—"}</span>
                   </div>
                   <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline text-slate-900 font-bold">
                     <span className="text-xs">Invoice Value:</span>
-                    <span className="text-base font-extrabold tabular-nums text-brand-700">₹{parseFloat(selectedSale.total_amount || 0).toFixed(2)}</span>
+                    <span className="text-base font-extrabold tabular-nums text-brand-700">{selectedSale.total_amount != null ? `₹${parseFloat(selectedSale.total_amount).toFixed(2)}` : "—"}</span>
                   </div>
                 </div>
               </div>

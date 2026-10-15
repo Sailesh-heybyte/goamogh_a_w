@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, Edit3 } from "lucide-react"
-import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem } from "@/api/items"
-import { getCategories } from "@/api/categories"
+import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem, getSizeUnits } from "@/api/items"
+import { getCategoriesCached } from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 import Modal from "@/components/ui/Modal"
@@ -27,7 +27,6 @@ function ProductCatalog() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const latestRequestRef = useRef(0)
@@ -40,7 +39,8 @@ function ProductCatalog() {
   const [activeProductId, setActiveProductId] = useState(null)
   const [activeProduct, setActiveProduct] = useState(null)
   const [isVariantsLoading, setIsVariantsLoading] = useState(false)
-  const [weightGrams, setWeightGrams] = useState("")
+  const [variantSize, setVariantSize] = useState("")
+  const [variantUnit, setVariantUnit] = useState("")
   const [isAddingVariant, setIsAddingVariant] = useState(false)
   const [variantError, setVariantError] = useState("")
   const [updatingVariantIds, setUpdatingVariantIds] = useState({})
@@ -82,8 +82,54 @@ function ProductCatalog() {
     sourcing_location: "",
     variants: [],
   })
+  const [newVariantUnit, setNewVariantUnit] = useState("")
+  const [sizeUnitsMap, setSizeUnitsMap] = useState(null)
+  const [sizeUnitsError, setSizeUnitsError] = useState("")
+  const [sizeUnitsLoading, setSizeUnitsLoading] = useState(false)
   const [createErrors, setCreateErrors] = useState({})
   const [isCreating, setIsCreating] = useState(false)
+
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const loadSizeUnits = useCallback(async () => {
+    setSizeUnitsLoading(true)
+    setSizeUnitsError("")
+    try {
+      const res = await getSizeUnits()
+      if (!isMountedRef.current) return
+      if (!res.ok) {
+        setSizeUnitsError("Couldn't load units")
+        return
+      }
+      const json = await res.json().catch(() => null)
+      if (!isMountedRef.current) return
+      if (json && json.data) {
+        setSizeUnitsMap(json.data)
+      } else {
+        setSizeUnitsError("Couldn't load units")
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setSizeUnitsError("Couldn't load units")
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setSizeUnitsLoading(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isCreateOpen && sizeUnitsMap === null && !sizeUnitsLoading && !sizeUnitsError) {
+      loadSizeUnits()
+    }
+  }, [isCreateOpen, sizeUnitsMap, sizeUnitsLoading, sizeUnitsError, loadSizeUnits])
 
   // Map category IDs to names for table display
   const categoryMap = categories.reduce((acc, cat) => {
@@ -95,10 +141,8 @@ function ProductCatalog() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await getCategories(true)
-        if (!res.ok) throw new Error("Failed to load categories")
-        const json = await res.json()
-        setCategories(json.data)
+        const data = await getCategoriesCached(true)
+        setCategories(data)
       } catch {
         setError("Failed to load categories")
       }
@@ -111,18 +155,7 @@ function ProductCatalog() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { active_only: false, skip, limit }
-      if (debouncedSearch && debouncedSearch.trim()) {
-        params.search = debouncedSearch.trim()
-      }
-      if (selectedCategoryFilter) {
-        params.category_id = selectedCategoryFilter
-      }
-      if (selectedTypeFilter) {
-        params.item_type = selectedTypeFilter
-      }
-
-      const itemsRes = await getItems(params)
+      const itemsRes = await getItems()
       if (requestId !== latestRequestRef.current) return
 
       if (!itemsRes.ok) {
@@ -133,7 +166,6 @@ function ProductCatalog() {
       if (requestId !== latestRequestRef.current) return
 
       setProductsList(itemsJson.data)
-      setTotal(itemsJson.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "Something went wrong")
@@ -142,7 +174,12 @@ function ProductCatalog() {
         setIsLoading(false)
       }
     }
-  }, [debouncedSearch, selectedCategoryFilter, selectedTypeFilter, skip, limit])
+  }, [])
+
+  // Run fetchData once on mount
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Debounce searchQuery by 300 ms
   useEffect(() => {
@@ -152,24 +189,20 @@ function ProductCatalog() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Re-run fetchData when debounced search, selectedCategoryFilter, selectedTypeFilter, skip or limit change.
-  // When search or a filter changes, reset skip to 0.
-  const prevFilterRef = useRef({ search: debouncedSearch, cat: selectedCategoryFilter, type: selectedTypeFilter })
+  // Reset skip to 0 when filters or search change
   useEffect(() => {
-    const filtersChanged =
-      prevFilterRef.current.search !== debouncedSearch ||
-      prevFilterRef.current.cat !== selectedCategoryFilter ||
-      prevFilterRef.current.type !== selectedTypeFilter
+    setSkip(0)
+  }, [debouncedSearch, selectedCategoryFilter, selectedTypeFilter])
 
-    prevFilterRef.current = { search: debouncedSearch, cat: selectedCategoryFilter, type: selectedTypeFilter }
-
-    if (filtersChanged && skip !== 0) {
-      setSkip(0)
-      return
-    }
-
-    fetchData()
-  }, [debouncedSearch, selectedCategoryFilter, selectedTypeFilter, skip, limit, fetchData])
+  const filteredProducts = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase()
+    return productsList.filter((p) =>
+      (!q || [p.name, p.product_number, p.hsn_code].some((v) => typeof v === "string" && v.toLowerCase().includes(q))) &&
+      (!selectedCategoryFilter || p.category_id === selectedCategoryFilter) &&
+      (!selectedTypeFilter || p.item_type === selectedTypeFilter)
+    )
+  }, [productsList, debouncedSearch, selectedCategoryFilter, selectedTypeFilter])
+  const pageRows = filteredProducts.slice(skip, skip + limit)
 
   const [isAuthorizingId, setIsAuthorizingId] = useState(null)
   const [authorizingProduct, setAuthorizingProduct] = useState(null)
@@ -219,7 +252,8 @@ function ProductCatalog() {
     setActiveProduct(null)
     setIsVariantsLoading(true)
     setVariantError("")
-    setWeightGrams("")
+    setVariantSize("")
+    setVariantUnit("")
     try {
       const res = await getItemDetails(productObj.id)
       if (!res.ok) {
@@ -237,7 +271,7 @@ function ProductCatalog() {
   const handleToggleVariantStatus = async (variant) => {
     const nextStatus = !variant.is_active ? "Activate" : "Deactivate"
     const ok = await confirm({
-      title: `${nextStatus} variant ${formatWeight(variant.weight_grams)}?`,
+      title: `${nextStatus} variant ${variant.size_label}?`,
       message: `Are you sure you want to ${nextStatus.toLowerCase()} this variant size?`,
       confirmLabel: nextStatus,
       ...(variant.is_active ? { tone: "danger" } : {})
@@ -248,7 +282,8 @@ function ProductCatalog() {
     setUpdatingVariantIds(prev => ({ ...prev, [variantId]: true }))
     try {
       const res = await updateItemVariant(variantId, {
-        weight_grams: variant.weight_grams,
+        size: variant.size,
+        size_unit: variant.size_unit,
         is_active: !variant.is_active,
       })
 
@@ -270,38 +305,37 @@ function ProductCatalog() {
     }
   }
 
-  const formatWeight = (grams) => {
-    if (grams >= 1000) {
-      const kg = grams / 1000
-      return `${kg} KG`
-    }
-    return `${grams} GM`
-  }
-
   const handleAddVariant = async (e) => {
     e.preventDefault()
     setVariantError("")
 
-    const trimmed = weightGrams.trim()
+    const trimmed = variantSize.trim()
     if (!trimmed) {
-      setVariantError("Pack weight is required")
+      setVariantError("Pack size must be greater than 0")
       return
     }
 
-    const weightVal = parseInt(trimmed, 10)
-    if (isNaN(weightVal) || weightVal <= 0 || weightVal.toString() !== trimmed) {
-      setVariantError("Pack weight must be a positive integer greater than 0")
+    const sizeNum = Number(trimmed)
+    if (isNaN(sizeNum) || sizeNum <= 0) {
+      setVariantError("Pack size must be greater than 0")
       return
     }
 
-    // Check if variant with this weight already exists
-    if (activeProduct && activeProduct.variants && activeProduct.variants.some(v => v.weight_grams === weightVal)) {
-      setVariantError(`A variant size of ${formatWeight(weightVal)} already exists.`)
+    const allowedUnits = activeProduct?.allowed_size_units || []
+    const unit = variantUnit || (allowedUnits.length === 1 ? allowedUnits[0] : "")
+    if (!unit) {
+      setVariantError("Select a unit")
+      return
+    }
+
+    // Check if variant with this size and unit already exists
+    if (activeProduct && activeProduct.variants && activeProduct.variants.some(v => Number(v.size) === sizeNum && v.size_unit === unit)) {
+      setVariantError(`A variant of ${trimmed} ${unit} already exists.`)
       return
     }
 
     const ok = await confirm({
-      title: `Add ${formatWeight(weightVal)} variant?`,
+      title: `Add ${trimmed} ${unit} variant?`,
       message: `Are you sure you want to add this variant size to ${activeProduct?.name || "this product"}?`,
       confirmLabel: "Add variant"
     })
@@ -310,7 +344,8 @@ function ProductCatalog() {
     setIsAddingVariant(true)
     try {
       const res = await addItemVariant(activeProductId, {
-        weight_grams: weightVal,
+        size: sizeNum,
+        size_unit: unit,
         images: []
       })
 
@@ -319,7 +354,8 @@ function ProductCatalog() {
         throw new Error(parseErrorDetail(errJson.detail, "Failed to add variant size"))
       }
 
-      setWeightGrams("")
+      setVariantSize("")
+      setVariantUnit("")
       // Re-fetch details
       const detailRes = await getItemDetails(activeProductId)
       if (detailRes.ok) {
@@ -342,7 +378,7 @@ function ProductCatalog() {
       name: selectedProductDetails.name || "",
       description: selectedProductDetails.description || "",
       hsn_code: selectedProductDetails.hsn_code || "",
-      unit_code: selectedProductDetails.unit_code || "KG",
+      unit_code: selectedProductDetails.unit_code,
       gst_percent: selectedProductDetails.gst_percent || "5.00",
       cess_percent: selectedProductDetails.cess_percent || "0.00",
       is_featured: selectedProductDetails.is_featured || false,
@@ -479,6 +515,12 @@ function ProductCatalog() {
         updated.is_sellable = value === "finished_good"
       }
 
+      if (field === "unit_code") {
+        const allowed = sizeUnitsMap?.[value] ?? []
+        updated.variants = (prev.variants || []).filter((v) => allowed.includes(v.size_unit))
+        setNewVariantUnit("")
+      }
+
       setCreateErrors((errs) => {
         const newErrs = { ...errs }
 
@@ -591,7 +633,7 @@ function ProductCatalog() {
         is_featured: createForm.is_featured,
         is_sellable: createForm.is_sellable,
         sourcing_location: createForm.sourcing_location.trim() || null,
-        variants: createForm.variants.map((grams) => ({ weight_grams: grams, images: [] })),
+        variants: createForm.variants.map((v) => ({ size: v.size, size_unit: v.size_unit, images: [] })),
       }
 
       const res = await createItem(payload)
@@ -628,7 +670,7 @@ function ProductCatalog() {
 
 
   const getStockPill = (qty, unit) => {
-    const unitStr = unit || "KG"
+    const unitStr = unit
     if (qty === 0) {
       return (
         <div className="leading-tight">
@@ -757,7 +799,7 @@ function ProductCatalog() {
       </div>
 
       {/* Items Catalog Table Layout */}
-      {productsList.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 font-medium shadow-sm">
           No items found in catalog.
         </div>
@@ -776,7 +818,7 @@ function ProductCatalog() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
-                {productsList.map((prod) => (
+                {pageRows.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors group">
                     {/* Column 1: Item Image, Name, SKU & Type */}
                     <td className="px-3.5 py-3 min-w-0">
@@ -830,7 +872,7 @@ function ProductCatalog() {
 
                     {/* Column 4: Stock Qty Pill */}
                     <td className="px-3 py-3 text-xs font-medium text-slate-700 whitespace-nowrap">
-                      {getStockPill(prod.stock_qty || 0, prod.unit_code)}
+                      {prod.stock_qty != null ? getStockPill(prod.stock_qty, prod.unit_code) : "—"}
                     </td>
 
                     {/* Column 5: Variants Count Link */}
@@ -888,7 +930,7 @@ function ProductCatalog() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filteredProducts.length} onChange={setSkip} />
         </div>
       )}
 
@@ -1109,35 +1151,53 @@ function ProductCatalog() {
                       Packaging Sizes / Variants
                     </h4>
                     <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-0.5">
-                      Define the custom weight sizes in grams (minimum 1 size if sellable).
+                      Add pack sizes (minimum 1 size if sellable).
                     </p>
                   </div>
 
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      id="new-variant-weight-grams"
-                      placeholder="Weight in grams (e.g. 250, 500)"
+                      step="any"
+                      id="new-variant-size"
+                      placeholder="Pack size (e.g. 250, 500, 1)"
                       className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold bg-white"
                     />
+                    <select
+                      value={newVariantUnit}
+                      disabled={sizeUnitsLoading}
+                      onChange={(e) => setNewVariantUnit(e.target.value)}
+                      className="px-3 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 shrink-0 disabled:bg-slate-50 disabled:text-slate-400"
+                    >
+                      <option value="">{sizeUnitsLoading ? "Loading…" : "Unit"}</option>
+                      {(sizeUnitsMap?.[createForm.unit_code] ?? []).map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
                       onClick={() => {
-                        const input = document.getElementById("new-variant-weight-grams")
-                        const val = input.value.trim()
+                        const input = document.getElementById("new-variant-size")
+                        const val = input ? input.value.trim() : ""
                         if (!val) return
-                        const gramsVal = parseInt(val, 10)
-                        if (isNaN(gramsVal) || gramsVal <= 0 || gramsVal.toString() !== val) {
-                          alert("Please enter a valid positive integer.")
+                        const sizeNum = Number(val)
+                        if (isNaN(sizeNum) || sizeNum <= 0) {
+                          alert("Pack size must be greater than 0")
                           return
                         }
-                        if (createForm.variants.includes(gramsVal)) {
-                          alert("This variant size is already added.")
+                        if (!newVariantUnit) {
+                          alert("Select a unit")
+                          return
+                        }
+                        if (createForm.variants.some((v) => Number(v.size) === sizeNum && v.size_unit === newVariantUnit)) {
+                          alert(`A variant of ${val} ${newVariantUnit} already exists.`)
                           return
                         }
                         setCreateForm((prev) => ({
                           ...prev,
-                          variants: [...prev.variants, gramsVal]
+                          variants: [...prev.variants, { size: sizeNum, size_unit: newVariantUnit }]
                         }))
                         input.value = ""
                       }}
@@ -1147,20 +1207,33 @@ function ProductCatalog() {
                     </button>
                   </div>
 
+                  {sizeUnitsError && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs text-error-800 font-semibold">{sizeUnitsError}</p>
+                      <button
+                        type="button"
+                        onClick={() => loadSizeUnits()}
+                        className="text-xs text-brand-600 hover:text-brand-700 underline font-semibold transition cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+
                   {createForm.variants.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {createForm.variants.map((grams) => (
+                      {createForm.variants.map((v) => (
                         <span
-                          key={grams}
+                          key={`${v.size}-${v.size_unit}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/50"
                         >
-                          <span>{formatWeight(grams)}</span>
+                          <span>{`${v.size} ${v.size_unit}`}</span>
                           <button
                             type="button"
                             onClick={() => {
                               setCreateForm((prev) => ({
                                 ...prev,
-                                variants: prev.variants.filter((g) => g !== grams)
+                                variants: prev.variants.filter((item) => !(Number(item.size) === Number(v.size) && item.size_unit === v.size_unit))
                               }))
                             }}
                             className="w-3.5 h-3.5 hover:bg-slate-200 border border-transparent rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
@@ -1377,7 +1450,7 @@ function ProductCatalog() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Bulk Stock
                       </span>
-                      {getStockPill(selectedProductDetails.stock_qty || 0, selectedProductDetails.unit_code)}
+                      {selectedProductDetails.stock_qty != null ? getStockPill(selectedProductDetails.stock_qty, selectedProductDetails.unit_code) : "—"}
                     </div>
                   </div>
                 </div>
@@ -1656,20 +1729,33 @@ function ProductCatalog() {
                   <form onSubmit={handleAddVariant} className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Add Packaging Size</h4>
                     <div className="flex flex-col sm:flex-row items-stretch gap-3">
-                      <div className="relative flex-1">
+                      <div className="flex-1 flex gap-2">
                         <input
-                          type="text"
-                          value={weightGrams}
+                          type="number"
+                          step="any"
+                          value={variantSize}
                           onChange={(e) => {
-                            setWeightGrams(e.target.value)
+                            setVariantSize(e.target.value)
                             if (variantError) setVariantError("")
                           }}
-                          placeholder="Enter pack weight in Grams (e.g. 250, 500, 1000)"
-                          className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all"
+                          placeholder="Pack size (e.g. 250, 500, 1)"
+                          className="flex-1 px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                          Grams
-                        </span>
+                        <select
+                          value={variantUnit || (activeProduct?.allowed_size_units?.length === 1 ? activeProduct.allowed_size_units[0] : "")}
+                          onChange={(e) => {
+                            setVariantUnit(e.target.value)
+                            if (variantError) setVariantError("")
+                          }}
+                          className="px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 shrink-0"
+                        >
+                          <option value="">Unit</option>
+                          {(activeProduct?.allowed_size_units || []).map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       <button
@@ -1715,14 +1801,11 @@ function ProductCatalog() {
                                 <td className="px-4 py-4 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
-                                      g
+                                      {variant.size_unit}
                                     </span>
                                     <div>
                                       <span className="font-bold text-slate-800">
-                                        {formatWeight(variant.weight_grams)}
-                                      </span>
-                                      <span className="text-xs text-slate-400 font-medium block">
-                                        ({variant.weight_grams}g)
+                                        {variant.size_label}
                                       </span>
                                     </div>
                                   </div>

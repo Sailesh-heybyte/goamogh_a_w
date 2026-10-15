@@ -53,3 +53,5 @@ export const updateItemPrices = async (itemId, pricingData) => {
 export const getItemWorkOrderCosts = async (itemId) => {
   return customFetch(`/api/v1/inventory/items/${itemId}/work-order-costs`)
 }
+
+export const getSizeUnits = async () => customFetch("/api/v1/inventory/size-units")

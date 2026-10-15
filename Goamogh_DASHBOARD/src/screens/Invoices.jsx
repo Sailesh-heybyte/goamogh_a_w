@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FileText,
@@ -23,7 +23,6 @@ function Invoices() {
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   const fetchInvoices = useCallback(async () => {
@@ -31,8 +30,7 @@ function Invoices() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { skip, limit }
-      const res = await getInvoices(params)
+      const res = await getInvoices()
       if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         throw new Error("Failed to load generated invoices.")
@@ -40,7 +38,6 @@ function Invoices() {
       const json = await res.json()
       if (requestId !== latestRequestRef.current) return
       setInvoices(json.data || [])
-      setTotal(json.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred.")
@@ -49,11 +46,15 @@ function Invoices() {
         setIsLoading(false)
       }
     }
-  }, [skip, limit])
+  }, [])
 
   useEffect(() => {
     fetchInvoices()
   }, [fetchInvoices])
+
+  useEffect(() => {
+    setSkip(0)
+  }, [searchQuery])
 
   const formatShortDate = (isoString) => {
     if (!isoString) return "—"
@@ -65,7 +66,7 @@ function Invoices() {
   }
 
   // Filter list by customer name/phone/invoice number in memory
-  const getFilteredInvoices = () => {
+  const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     if (!q) return invoices
     return invoices.filter((inv) => {
@@ -77,7 +78,9 @@ function Invoices() {
         (sale.customer_phone || "").includes(q)
       )
     })
-  }
+  }, [invoices, searchQuery])
+
+  const pageRows = filtered.slice(skip, skip + limit)
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
@@ -121,7 +124,7 @@ function Invoices() {
       {/* Main Listing Table */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
-      ) : getFilteredInvoices().length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No generated tax invoices found.</p>
         </div>
@@ -140,7 +143,7 @@ function Invoices() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {getFilteredInvoices().map((inv) => {
+                {pageRows.map((inv) => {
                   const sale = inv.sale_details || {}
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
@@ -189,7 +192,7 @@ function Invoices() {
 
                       {/* Column 3: Date & Amount */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <p className="tabular-nums font-extrabold text-slate-900 text-xs">₹{parseFloat(inv.total_amount || 0).toFixed(2)}</p>
+                        <p className="tabular-nums font-extrabold text-slate-900 text-xs">{inv.total_amount != null ? `₹${parseFloat(inv.total_amount).toFixed(2)}` : "—"}</p>
                         <p className="text-[11px] tabular-nums text-slate-400 mt-0.5">{formatShortDate(inv.invoice_date || inv.created_at)}</p>
                       </td>
 
@@ -248,7 +251,7 @@ function Invoices() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filtered.length} onChange={setSkip} />
         </div>
       )}
 

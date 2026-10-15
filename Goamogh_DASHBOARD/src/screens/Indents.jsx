@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Layers3,
@@ -37,7 +37,6 @@ function Indents() {
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   // Details & Action Modal States
@@ -53,9 +52,7 @@ function Indents() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { skip, limit }
-      if (statusFilter) params.status = statusFilter
-      const res = await getIndents(params)
+      const res = await getIndents()
       if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         throw new Error("Failed to load customer indents.")
@@ -63,7 +60,6 @@ function Indents() {
       const json = await res.json()
       if (requestId !== latestRequestRef.current) return
       setIndents(json.data || [])
-      setTotal(json.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred.")
@@ -72,11 +68,16 @@ function Indents() {
         setIsLoading(false)
       }
     }
-  }, [statusFilter, skip, limit])
+  }, [])
 
   useEffect(() => {
     fetchIndents()
   }, [fetchIndents])
+
+  // Reset skip when filters change
+  useEffect(() => {
+    setSkip(0)
+  }, [searchQuery, statusFilter])
 
   // Handle Confirm (Converts to Sale 100%)
   const handleConfirmIndent = async (indent) => {
@@ -140,17 +141,20 @@ function Indents() {
     })
   }
 
-  // Filter list by customer name/phone in memory
-  const getFilteredIndents = () => {
+  // Filter list by customer name/phone and status in memory
+  const filteredIndents = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    if (!q) return indents
-    return indents.filter(
-      (ind) =>
+    return indents.filter((ind) => {
+      if (statusFilter && ind.status !== statusFilter) return false
+      if (!q) return true
+      return (
         (ind.customer_name || "").toLowerCase().includes(q) ||
         (ind.customer_phone || "").includes(q) ||
         (ind.indent_number || "").toLowerCase().includes(q)
-    )
-  }
+      )
+    })
+  }, [indents, statusFilter, searchQuery])
+  const pageRows = filteredIndents.slice(skip, skip + limit)
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
@@ -221,7 +225,7 @@ function Indents() {
       {/* Main Listing Table */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
-      ) : getFilteredIndents().length === 0 ? (
+      ) : filteredIndents.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No indents found matching parameters.</p>
         </div>
@@ -239,7 +243,7 @@ function Indents() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {getFilteredIndents().map((ind) => (
+                {pageRows.map((ind) => (
                   <tr key={ind.id} className="hover:bg-slate-50/70 transition-colors group">
                     {/* Column 1: Indent # & Customer Name */}
                     <td className="px-3.5 py-3 min-w-0">
@@ -337,7 +341,7 @@ function Indents() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filteredIndents.length} onChange={setSkip} />
         </div>
       )}
 
@@ -392,11 +396,7 @@ function Indents() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                      {selectedIndent.items?.map((item) => {
-                        const subtotal = item.quantity * item.rate
-                        const discount = subtotal * ((item.discount_percent || 0) / 100)
-                        const total = subtotal - discount
-                        return (
+                      {selectedIndent.items?.map((item) => (
                           <tr key={item.id}>
                             <td className="px-3 py-2.5 min-w-0">
                               <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
@@ -407,10 +407,9 @@ function Indents() {
                             <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity}</td>
                             <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">₹{parseFloat(item.rate).toFixed(2)}</td>
                             <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{parseFloat(item.discount_percent || 0).toFixed(2)}%</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">₹{total.toFixed(2)}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">{item.line_total != null ? `₹${parseFloat(item.line_total).toFixed(2)}` : "—"}</td>
                           </tr>
-                        )
-                      })}
+                      ))}
                     </tbody>
                   </table>
                 </div>

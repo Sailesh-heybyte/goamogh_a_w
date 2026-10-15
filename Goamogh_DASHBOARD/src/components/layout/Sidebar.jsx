@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
-import { LayoutDashboard, Users, Shield, Layers, Package, IndianRupee, Truck, ShoppingCart, ChevronDown, ChevronRight, Settings, ClipboardList, Layers3, FileText, Star, Inbox, X } from "lucide-react"
+import { LayoutDashboard, Users, Shield, Layers, Package, IndianRupee, Truck, ShoppingCart, ChevronDown, ChevronRight, Settings, ClipboardList, Layers3, FileText, Star, Inbox, X, FileCheck2 } from "lucide-react"
 
 function Sidebar({ isOpen, onClose }) {
   const { user, isSuperAdmin } = useAuth()
@@ -36,20 +36,20 @@ function Sidebar({ isOpen, onClose }) {
   }
 
   const catalogItems = [
-    { name: "Dashboard", to: "/dashboard", icon: LayoutDashboard, show: true },
     { name: "Categories", to: "/dashboard/categories", icon: Layers, show: hasPermission("catalog_manage") || isAdminLikeUser },
     { name: "Item Catalog", to: "/dashboard/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") || isAdminLikeUser },
+    { name: "Certificates", to: "/dashboard/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") || isAdminLikeUser },
     { name: "Pricing", to: "/dashboard/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") || isAdminLikeUser },
     { name: "Inventory Dashboard", to: "/dashboard/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") || isAdminLikeUser },
     { name: "Stock Ledger", to: "/dashboard/stock-ledger", icon: ClipboardList, show: hasPermission("stock_manage") || isAdminLikeUser },
     { name: "Suppliers", to: "/dashboard/suppliers", icon: Truck, show: hasPermission("supplier_manage") || isAdminLikeUser },
     { name: "Work Orders", to: "/dashboard/work-orders", icon: ClipboardList, show: hasPermission("work_order_manage") || isAdminLikeUser },
     { name: "Customers", to: "/dashboard/customers", icon: Users, show: hasPermission("customer_manage") || isAdminLikeUser },
-    { name: "Customer Enquiries", to: "/dashboard/enquiries", icon: Inbox, show: hasPermission("users_view") || hasPermission("customer_manage") || isAdminLikeUser },
-    { name: "Customer Feedback", to: "/dashboard/feedback", icon: Star, show: true },
+    { name: "Customer Enquiries", to: "/dashboard/enquiries", icon: Inbox, show: hasPermission("customer_manage") || isAdminLikeUser },
+    { name: "Customer Feedback", to: "/dashboard/feedback", icon: Star, show: hasPermission("sales_manage") || isAdminLikeUser },
     { name: "Indents", to: "/dashboard/indents", icon: Layers3, show: hasPermission("indent_manage") || isAdminLikeUser },
     { name: "Sales", to: "/dashboard/sales", icon: ShoppingCart, show: hasPermission("sales_manage") || isAdminLikeUser },
-    { name: "Invoices", to: "/dashboard/invoices", icon: FileText, show: hasPermission("purchase_manage") || hasPermission("sales_manage") || isAdminLikeUser },
+    { name: "Invoices", to: "/dashboard/invoices", icon: FileText, show: hasPermission("sales_manage") || isAdminLikeUser },
   ].filter(item => item.show)
 
   const showPurchases = hasPermission("purchase_order_manage") || hasPermission("goods_receipt_manage") || isAdminLikeUser
@@ -71,10 +71,7 @@ function Sidebar({ isOpen, onClose }) {
     <aside className={`fixed inset-y-0 left-0 z-40 w-[280px] h-dvh bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0`}>
       {/* Branding header block */}
       <div className="h-16 flex items-center px-6 lg:px-8 border-b border-slate-100 gap-3 shrink-0">
-        <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shadow-md shadow-brand-500/10">
-          <LayoutDashboard className="w-4 h-4 text-white" />
-        </div>
-        <span className="font-extrabold text-slate-900 text-lg tracking-tight">Goamogh</span>
+        <img src="/brand/goamogh-golden.png" alt="Goamogh" className="h-7 w-auto object-contain" />
         <button type="button" onClick={onClose} className="lg:hidden ml-auto p-2 -mr-2 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Close menu">
           <X className="w-5 h-5" />
         </button>

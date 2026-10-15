@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeft,
@@ -10,7 +10,7 @@ import {
   Calculator,
   MapPin
 } from "lucide-react"
-import { getIndentDetails, createIndent, updateIndent } from "@/api/indents"
+import { getIndentDetails, createIndent, updateIndent, previewIndent } from "@/api/indents"
 import { searchCustomerByPhone } from "@/api/customers"
 import { getPricingPanel } from "@/api/products"
 import Spinner from "@/components/ui/Spinner"
@@ -54,6 +54,12 @@ function CreateIndent() {
   const [error, setError] = useState("")
   const [validationError, setValidationError] = useState("")
 
+  // Preview State
+  const [preview, setPreview] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState("")
+  const previewRequestIdRef = useRef(0)
+
   // Load sellable product variants
   const loadSellableVariants = useCallback(async () => {
     try {
@@ -66,7 +72,7 @@ function CreateIndent() {
           variants.forEach((v) => {
             flatList.push({
               variant_id: v.variant_id,
-              display_name: `${prod.product_name || prod.item_name} - ${v.weight_grams}g`,
+              display_name: `${prod.product_name || prod.item_name} - ${v.size_label}`,
               mrp: v.mrp !== null && v.mrp !== undefined ? parseFloat(v.mrp) : null,
               b2c_price: v.b2c_price !== null && v.b2c_price !== undefined ? parseFloat(v.b2c_price) : null,
               b2b_price: v.b2b_price !== null && v.b2b_price !== undefined ? parseFloat(v.b2b_price) : null
@@ -294,6 +300,66 @@ function CreateIndent() {
     }
   }
 
+  const buildPayload = useCallback(() => ({
+    customer_phone: phone.trim(),
+    customer_name: customerName.trim() || null,
+    customer_state: customerState.trim() || null,
+    customer_gstin: customerGstin.trim() || null,
+    company_name: companyName.trim() || null,
+    is_b2b: isB2b,
+    address_id: addressId || null,
+    notes: notes.trim() || null,
+    items: items.map((itm) => ({
+      variant_id: itm.variant_id,
+      quantity: parseFloat(itm.quantity),
+      rate: parseFloat(itm.rate),
+      discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
+    }))
+  }), [phone, customerName, customerState, customerGstin, companyName, isB2b, addressId, notes, items])
+
+  useEffect(() => {
+    if (
+      !items.length ||
+      items.some(
+        (itm) => !itm.variant_id || itm.quantity === "" || itm.rate === ""
+      )
+    ) {
+      setPreview(null)
+      setPreviewError("")
+      setPreviewLoading(false)
+      return
+    }
+
+    const reqId = ++previewRequestIdRef.current
+    setPreviewLoading(true)
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await previewIndent(buildPayload())
+        if (reqId !== previewRequestIdRef.current) return
+        if (!res.ok) {
+          setPreviewError("Couldn't calculate totals")
+          setPreview(null)
+        } else {
+          const json = await res.json()
+          if (reqId !== previewRequestIdRef.current) return
+          setPreview(json.data)
+          setPreviewError("")
+        }
+      } catch {
+        if (reqId !== previewRequestIdRef.current) return
+        setPreviewError("Couldn't calculate totals")
+        setPreview(null)
+      } finally {
+        if (reqId === previewRequestIdRef.current) {
+          setPreviewLoading(false)
+        }
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [items, customerState, customerGstin, buildPayload])
+
   // Form validator and submitter
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -308,22 +374,7 @@ function CreateIndent() {
 
     setIsSaving(true)
     try {
-      const payload = {
-        customer_phone: phone.trim(),
-        customer_name: customerName.trim() || null,
-        customer_state: customerState.trim() || null,
-        customer_gstin: customerGstin.trim() || null,
-        company_name: companyName.trim() || null,
-        is_b2b: isB2b,
-        address_id: addressId || null,
-        notes: notes.trim() || null,
-        items: items.map((itm) => ({
-          variant_id: itm.variant_id,
-          quantity: parseFloat(itm.quantity),
-          rate: parseFloat(itm.rate),
-          discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
-        }))
-      }
+      const payload = buildPayload()
 
       const res = isEditMode
         ? await updateIndent(id, payload)
@@ -342,28 +393,6 @@ function CreateIndent() {
       setIsSaving(false)
     }
   }
-
-  // Calculate overall estimated totals
-  const getOverallTotals = () => {
-    let subtotal = 0
-    let totalDiscount = 0
-    items.forEach((itm) => {
-      const qty = parseFloat(itm.quantity) || 0
-      const rate = parseFloat(itm.rate) || 0
-      const disc = parseFloat(itm.discount_percent) || 0
-      const rowSub = qty * rate
-      const rowDisc = rowSub * (disc / 100)
-      subtotal += rowSub
-      totalDiscount += rowDisc
-    })
-    return {
-      subtotal,
-      totalDiscount,
-      grandTotal: subtotal - totalDiscount
-    }
-  }
-
-  const { subtotal, totalDiscount, grandTotal } = getOverallTotals()
 
   if (isLoading) {
     return (
@@ -564,9 +593,7 @@ function CreateIndent() {
           ) : (
             <div className="space-y-4">
               {items.map((item, idx) => {
-                const sub = (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)
-                const discAmt = sub * ((parseFloat(item.discount_percent) || 0) / 100)
-                const lineTot = sub - discAmt
+                const lineTotalVal = preview?.items?.[idx]?.line_total
 
                 return (
                   <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 p-3.5 border border-slate-100 rounded-xl bg-slate-50/40 relative">
@@ -637,7 +664,9 @@ function CreateIndent() {
                     {/* Total */}
                     <div className="sm:col-span-1.5 flex flex-col justify-center text-right pr-6 min-h-[45px]">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">Total</span>
-                      <span className="tabular-nums font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
+                      <span className="tabular-nums font-bold text-slate-800">
+                        {lineTotalVal != null ? `₹${Number(lineTotalVal).toFixed(2)}` : "—"}
+                      </span>
                     </div>
 
                     {/* Trash action */}
@@ -696,30 +725,32 @@ function CreateIndent() {
                   {items.map((item, idx) => {
                     const vObj = variantsList.find((v) => v.variant_id === item.variant_id)
                     const itemName = vObj ? vObj.display_name : "Unknown Item"
-                    const qty = parseFloat(item.quantity) || 0
-                    const rate = parseFloat(item.rate) || 0
-                    const discPct = parseFloat(item.discount_percent) || 0
-
-                    const lineGross = qty * rate
-                    const lineDisc = lineGross * (discPct / 100)
-                    const lineTotal = lineGross - lineDisc
+                    const pItem = preview?.items?.[idx]
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50">
                         <td className="px-3 py-2 font-bold text-slate-800">
                           <div className="truncate" title={itemName}>{itemName}</div>
                           <div className="md:hidden text-[10px] text-slate-400 font-normal truncate">
-                            Rate: ₹{rate.toFixed(2)}
+                            Rate: {item.rate != null && item.rate !== "" ? `₹${Number(item.rate).toFixed(2)}` : "—"}
                           </div>
                           <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
-                            {discPct > 0 ? `Disc: ${discPct}%` : ""}
+                            {item.discount_percent !== "" && parseFloat(item.discount_percent) > 0 ? `Disc: ${item.discount_percent}%` : ""}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{qty}</td>
-                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{rate.toFixed(2)}</td>
-                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{lineGross.toFixed(2)}</td>
-                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">{discPct}%</td>
-                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">₹{lineTotal.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{item.quantity}</td>
+                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                          {item.rate != null && item.rate !== "" ? `₹${Number(item.rate).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                          {pItem?.gross_amount != null ? `₹${Number(pItem.gross_amount).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">
+                          {item.discount_percent !== "" ? `${item.discount_percent}%` : "0%"}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                          {pItem?.line_total != null ? `₹${Number(pItem.line_total).toFixed(2)}` : "—"}
+                        </td>
                       </tr>
                     )
                   })}
@@ -727,20 +758,36 @@ function CreateIndent() {
               </table>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Gross Subtotal</span>
-                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{subtotal.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">
+                  {preview?.total_gross_amount != null ? `₹${Number(preview.total_gross_amount).toFixed(2)}` : "—"}
+                </p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Discount Allowed</span>
-                <p className="text-base font-extrabold text-rose-700 tabular-nums">-₹{totalDiscount.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-rose-700 tabular-nums">
+                  {preview?.total_discount_amount != null ? `-₹${Number(preview.total_discount_amount).toFixed(2)}` : "—"}
+                </p>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Estimated Total</span>
-                <p className="text-lg font-extrabold text-brand-700 tabular-nums">₹{grandTotal.toFixed(2)}</p>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">GST</span>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">
+                  {preview?.total_gst_amount != null ? `₹${Number(preview.total_gst_amount).toFixed(2)}` : "—"}
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Grand Total</span>
+                <p className="text-lg font-extrabold text-brand-700 tabular-nums">
+                  {preview?.grand_total != null ? `₹${Number(preview.grand_total).toFixed(2)}` : "—"}
+                </p>
               </div>
             </div>
+
+            {previewError && (
+              <p className="text-xs text-error-800 font-semibold">{previewError}</p>
+            )}
 
             <p className="text-[10px] text-slate-400 font-semibold leading-relaxed mt-2">
               Note: Indents reserve variant stock levels immediately upon creation. Tax and invoice billing occur when the indent is confirmed.
@@ -756,7 +803,7 @@ function CreateIndent() {
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || previewLoading || !preview}
                 className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />

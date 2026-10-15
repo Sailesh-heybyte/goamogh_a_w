@@ -86,18 +86,14 @@ export default function ShopPage() {
         const prodsRes = await fetchProducts(params);
 
         if (prodsRes.success && Array.isArray(prodsRes.data)) {
-          const formatWeight = (grams) => {
-            if (grams >= 1000) return (grams / 1000) + ' kg';
-            return grams + 'g';
-          };
-
           const mappedProds = prodsRes.data
             .map(p => {
               const weights = (p.variants || []).map(v => ({
                 id: v.id,
-                label: v.weight_label || formatWeight(v.weight_grams),
-                price: v.b2c_price !== undefined && v.b2c_price !== null ? v.b2c_price : (v.price !== undefined ? v.price : null),
+                label: v.size_label,
+                price: v.b2c_price,
                 mrp: v.mrp,
+                discountPercent: v.discount_percent,
                 inStock: v.in_stock
               }));
 
@@ -105,12 +101,10 @@ export default function ShopPage() {
                 id: p.id,
                 name: p.name,
                 category_id: p.category_id,
-                subtitle: p.subtitle || p.description || '',
-                description: p.description || '',
-                image: p.image || (p.images && p.images[0]) || '',
-                origin: p.sourcing_location || p.origin || 'India',
-                rating: p.rating || 4.5,
-                reviews: p.reviews || 0,
+                subtitle: p.description,
+                description: p.description,
+                image: p.image,
+                origin: p.sourcing_location,
                 weights: weights
               };
             })
@@ -282,8 +276,7 @@ export default function ShopPage() {
                 const selectedMrp = activeVariant?.mrp;
                 
                 const isOutOfStock = activeVariant ? !activeVariant.inStock : true;
-                const hasDiscount = selectedMrp && selectedPrice && selectedMrp > selectedPrice;
-                const discountPercent = hasDiscount ? Math.round(((selectedMrp - selectedPrice) / selectedMrp) * 100) : 0;
+                const discountPercent = activeVariant?.discountPercent;
 
                 const cartItem = cartItems.find(item => item.variant_id === activeVariant?.id);
                 const isInCart = !!cartItem;
@@ -331,7 +324,7 @@ export default function ShopPage() {
                           In Stock
                         </div>
                       )}
-                      {hasDiscount && !isOutOfStock && (
+                      {discountPercent > 0 && !isOutOfStock && (
                         <div className="absolute top-6 right-6 z-10 bg-[#d8b66a] text-[#0b150d] text-[10px] tracking-[0.12em] uppercase font-mono font-bold px-3 py-1.5 rounded-full shadow-lg border border-[#f2e7c8]/30">
                           {discountPercent}% OFF
                         </div>
@@ -356,7 +349,7 @@ export default function ShopPage() {
                                 <span className="text-2xl font-bold text-[#d8b66a] font-mono">
                                   ₹{selectedPrice}/-
                                 </span>
-                                {hasDiscount && (
+                                {discountPercent > 0 && (
                                   <span className="text-xs text-[#d6cca9]/50 line-through font-mono">
                                     M.R.P. ₹{selectedMrp}
                                   </span>

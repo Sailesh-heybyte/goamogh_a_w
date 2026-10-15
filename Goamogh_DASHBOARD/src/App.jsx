@@ -8,9 +8,40 @@ import ProtectedRoute from "@/components/ProtectedRoute"
 import PermissionRoute from "@/components/PermissionRoute"
 import Spinner from "@/components/ui/Spinner"
 import Login from "@/screens/Login"
+import ForgotPassword from "@/screens/ForgotPassword"
+import ResetPassword from "@/screens/ResetPassword"
 import DashboardLayout from "@/components/layout/DashboardLayout"
+import useAuth from "@/hooks/useAuth"
 
-const DashboardOverview = lazy(() => import("@/screens/DashboardOverview"))
+function DashboardRedirect() {
+  const { hasPermission, isSuperAdmin, user } = useAuth()
+
+  const isAdminLikeUser = Boolean(
+    isSuperAdmin ||
+      user?.is_admin ||
+      user?.role?.name?.toLowerCase().includes("admin") ||
+      user?.role_name?.toLowerCase().includes("admin") ||
+      user?.role?.toString().toLowerCase().includes("admin")
+  )
+
+  const checkPerm = (perm) => isSuperAdmin || isAdminLikeUser || hasPermission(perm)
+
+  if (checkPerm("catalog_manage")) return <Navigate to="/dashboard/categories" replace />
+  if (checkPerm("catalog_authorize")) return <Navigate to="/dashboard/products" replace />
+  if (checkPerm("certificate_manage")) return <Navigate to="/dashboard/certificates" replace />
+  if (checkPerm("price_view") || checkPerm("price_manage")) return <Navigate to="/dashboard/pricing" replace />
+  if (checkPerm("stock_manage")) return <Navigate to="/dashboard/inventory-dashboard" replace />
+  if (checkPerm("supplier_manage")) return <Navigate to="/dashboard/suppliers" replace />
+  if (checkPerm("work_order_manage")) return <Navigate to="/dashboard/work-orders" replace />
+  if (checkPerm("customer_manage")) return <Navigate to="/dashboard/customers" replace />
+  if (checkPerm("indent_manage")) return <Navigate to="/dashboard/indents" replace />
+  if (checkPerm("sales_manage")) return <Navigate to="/dashboard/sales" replace />
+  if (checkPerm("purchase_order_manage")) return <Navigate to="/dashboard/purchase/orders" replace />
+  if (checkPerm("goods_receipt_manage")) return <Navigate to="/dashboard/purchase/entries" replace />
+  if (checkPerm("all")) return <Navigate to="/dashboard/staff" replace />
+
+  return <Navigate to="/dashboard/categories" replace />
+}
 const StaffManagement = lazy(() => import("@/screens/StaffManagement"))
 const RoleManagement = lazy(() => import("@/screens/RoleManagement"))
 const CategoryManagement = lazy(() => import("@/screens/CategoryManagement"))
@@ -34,6 +65,7 @@ const Invoices = lazy(() => import("@/screens/Invoices"))
 const InvoiceDetails = lazy(() => import("@/screens/InvoiceDetails"))
 const CustomerFeedback = lazy(() => import("@/screens/CustomerFeedback"))
 const CustomerEnquiries = lazy(() => import("@/screens/CustomerEnquiries"))
+const QualityCertificates = lazy(() => import("@/screens/QualityCertificates"))
 
 
 const router = createBrowserRouter([
@@ -46,6 +78,14 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
+  {
     path: "/dashboard",
     element: (
       <ProtectedRoute>
@@ -55,17 +95,13 @@ const router = createBrowserRouter([
     children: [
       {
         path: "",
-        element: (
-          <Suspense fallback={<Spinner />}>
-            <DashboardOverview />
-          </Suspense>
-        ),
+        element: <DashboardRedirect />,
       },
       {
         path: "staff",
         element: (
           <Suspense fallback={<Spinner />}>
-            <PermissionRoute permissions={["all", "staff_manage", "users_view"]}>
+            <PermissionRoute permissions={["all"]}>
               <StaffManagement />
             </PermissionRoute>
           </Suspense>
@@ -75,7 +111,7 @@ const router = createBrowserRouter([
         path: "roles",
         element: (
           <Suspense fallback={<Spinner />}>
-            <PermissionRoute permissions={["all", "role_manage"]}>
+            <PermissionRoute permissions={["all"]}>
               <RoleManagement />
             </PermissionRoute>
           </Suspense>
@@ -97,6 +133,16 @@ const router = createBrowserRouter([
           <Suspense fallback={<Spinner />}>
             <PermissionRoute permissions={["catalog_manage", "catalog_authorize"]}>
               <ProductCatalog />
+            </PermissionRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "certificates",
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <PermissionRoute permissions={["certificate_manage", "catalog_manage"]}>
+              <QualityCertificates />
             </PermissionRoute>
           </Suspense>
         ),
@@ -255,7 +301,7 @@ const router = createBrowserRouter([
         path: "invoices",
         element: (
           <Suspense fallback={<Spinner />}>
-            <PermissionRoute permissions={["purchase_manage", "sales_manage"]}>
+            <PermissionRoute permission="sales_manage">
               <Invoices />
             </PermissionRoute>
           </Suspense>
@@ -265,7 +311,7 @@ const router = createBrowserRouter([
         path: "invoices/:id",
         element: (
           <Suspense fallback={<Spinner />}>
-            <PermissionRoute permissions={["purchase_manage", "sales_manage"]}>
+            <PermissionRoute permission="sales_manage">
               <InvoiceDetails />
             </PermissionRoute>
           </Suspense>
@@ -275,7 +321,9 @@ const router = createBrowserRouter([
         path: "feedback",
         element: (
           <Suspense fallback={<Spinner />}>
-            <CustomerFeedback />
+            <PermissionRoute permission="sales_manage">
+              <CustomerFeedback />
+            </PermissionRoute>
           </Suspense>
         ),
       },
@@ -283,7 +331,7 @@ const router = createBrowserRouter([
         path: "enquiries",
         element: (
           <Suspense fallback={<Spinner />}>
-            <PermissionRoute permissions={["users_view", "customer_manage"]}>
+            <PermissionRoute permission="customer_manage">
               <CustomerEnquiries />
             </PermissionRoute>
           </Suspense>

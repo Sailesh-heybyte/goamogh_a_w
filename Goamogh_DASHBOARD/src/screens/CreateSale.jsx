@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
@@ -12,7 +12,7 @@ import {
   MapPin,
   Package
 } from "lucide-react"
-import { createDirectSale } from "@/api/sales"
+import { createDirectSale, previewDirectSale } from "@/api/sales"
 import { searchCustomerByPhone } from "@/api/customers"
 import { getItems } from "@/api/items"
 import { getPricingPanel } from "@/api/products"
@@ -62,18 +62,24 @@ function CreateSale() {
   const [error, setError] = useState("")
   const [validationError, setValidationError] = useState("")
 
+  // Preview State
+  const [preview, setPreview] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState("")
+  const previewRequestIdRef = useRef(0)
+
   // Load catalog items and pricing panels to compile rich lookup catalog
   const loadCatalog = useCallback(async () => {
     try {
       const [itemsRes, pricingRes] = await Promise.all([
-        getItems({ is_sellable: true, active_only: true }),
+        getItems(),
         getPricingPanel()
       ])
 
       let itemsData = []
       if (itemsRes.ok) {
         const json = await itemsRes.json()
-        itemsData = json.data || []
+        itemsData = (json.data || []).filter((i) => i.is_active === true && i.is_sellable === true)
       }
 
       let pricingData = []
@@ -85,8 +91,8 @@ function CreateSale() {
       const itemsMap = {}
       itemsData.forEach((itm) => {
         itemsMap[itm.id] = {
-          gst_percent: parseFloat(itm.gst_percent || 0) || 5,
-          cess_percent: parseFloat(itm.cess_percent || 0) || 0,
+          gst_percent: itm.gst_percent,
+          cess_percent: itm.cess_percent,
           hsn_code: itm.hsn_code || ""
         }
       })
@@ -94,19 +100,19 @@ function CreateSale() {
       const flatVariants = []
       pricingData.forEach((prod) => {
         const itemId = prod.product_id || prod.item_id
-        const itemMeta = itemsMap[itemId] || { gst_percent: 5, cess_percent: 0, hsn_code: "" }
+        const itemMeta = itemsMap[itemId]
 
         const variants = prod.variants || []
         variants.forEach((v) => {
           flatVariants.push({
             variant_id: v.variant_id,
-            display_name: `${prod.product_name || prod.item_name} - ${v.weight_grams}g`,
+            display_name: `${prod.product_name || prod.item_name} - ${v.size_label}`,
             mrp: v.mrp !== null && v.mrp !== undefined ? parseFloat(v.mrp) : null,
             b2c_price: v.b2c_price !== null && v.b2c_price !== undefined ? parseFloat(v.b2c_price) : null,
             b2b_price: v.b2b_price !== null && v.b2b_price !== undefined ? parseFloat(v.b2b_price) : null,
-            gst_percent: itemMeta.gst_percent,
-            cess_percent: itemMeta.cess_percent,
-            hsn_code: itemMeta.hsn_code
+            gst_percent: itemMeta ? itemMeta.gst_percent : null,
+            cess_percent: itemMeta ? itemMeta.cess_percent : null,
+            hsn_code: itemMeta ? itemMeta.hsn_code : ""
           })
         })
       })
@@ -243,65 +249,67 @@ function CreateSale() {
     )
   }
 
-  // Calculate live dynamic breakdown
-  const calculateTotals = () => {
-    let subtotal = 0
-    let totalDiscount = 0
-    let totalTaxable = 0
-    let totalGst = 0
-    let totalCgst = 0
-    let totalSgst = 0
-    let totalIgst = 0
+  const buildPayload = useCallback(() => ({
+    sale_type: saleType,
+    customer_phone: phone.trim(),
+    customer_name: customerName.trim() || null,
+    customer_state: customerState.trim() || null,
+    customer_gstin: customerGstin.trim() || null,
+    company_name: companyName.trim() || null,
+    is_b2b: !!customerGstin.trim(),
+    bill_type: billType,
+    address_id: addressId || null,
+    notes: notes.trim() || null,
+    items: items.map((itm) => ({
+      variant_id: itm.variant_id,
+      quantity: parseFloat(itm.quantity),
+      rate: parseFloat(itm.rate),
+      discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
+    }))
+  }), [saleType, phone, customerName, customerState, customerGstin, companyName, billType, addressId, notes, items])
 
-    const isInterstate = customerState.trim().toLowerCase() !== "Andhra Pradesh"
-
-    items.forEach((item) => {
-      const qty = parseFloat(item.quantity) || 0
-      const rate = parseFloat(item.rate) || 0
-      const disc = parseFloat(item.discount_percent) || 0
-
-      const vObj = variantsList.find((v) => v.variant_id === item.variant_id) || { gst_percent: 5 }
-      const lineGstPct = parseFloat(vObj.gst_percent || 0)
-
-      const lineGross = qty * rate
-      const lineDisc = lineGross * (disc / 100)
-      const lineTaxable = lineGross - lineDisc
-      const lineGst = lineTaxable * (lineGstPct / 100)
-
-      subtotal += lineGross
-      totalDiscount += lineDisc
-      totalTaxable += lineTaxable
-      totalGst += lineGst
-
-      if (isInterstate) {
-        totalIgst += lineGst
-      } else {
-        totalCgst += lineGst / 2
-        totalSgst += lineGst / 2
-      }
-    })
-
-    return {
-      subtotal,
-      totalDiscount,
-      totalTaxable,
-      totalGst,
-      totalCgst,
-      totalSgst,
-      totalIgst,
-      grandTotal: totalTaxable + totalGst
+  useEffect(() => {
+    if (
+      !items.length ||
+      items.some(
+        (itm) => !itm.variant_id || itm.quantity === "" || itm.rate === ""
+      )
+    ) {
+      setPreview(null)
+      setPreviewError("")
+      setPreviewLoading(false)
+      return
     }
-  }
 
-  const {
-    subtotal,
-    totalDiscount,
-    totalGst,
-    totalCgst,
-    totalSgst,
-    totalIgst,
-    grandTotal
-  } = calculateTotals()
+    const reqId = ++previewRequestIdRef.current
+    setPreviewLoading(true)
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await previewDirectSale(buildPayload())
+        if (reqId !== previewRequestIdRef.current) return
+        if (!res.ok) {
+          setPreviewError("Couldn't calculate totals")
+          setPreview(null)
+        } else {
+          const json = await res.json()
+          if (reqId !== previewRequestIdRef.current) return
+          setPreview(json.data)
+          setPreviewError("")
+        }
+      } catch {
+        if (reqId !== previewRequestIdRef.current) return
+        setPreviewError("Couldn't calculate totals")
+        setPreview(null)
+      } finally {
+        if (reqId === previewRequestIdRef.current) {
+          setPreviewLoading(false)
+        }
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [items, saleType, customerState, customerGstin, billType, buildPayload])
 
   const validateForm = () => {
     setValidationError("")
@@ -357,33 +365,17 @@ function CreateSale() {
     e.preventDefault()
     if (!validateForm()) return
 
+    const grandTotalVal = preview?.grand_total != null ? Number(preview.grand_total) : 0
     const ok = await confirm({
       title: `Record direct ${saleType} sale for ${customerName.trim() || phone.trim()}?`,
-      message: `Total amount: ₹${grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}. This will create a new direct sale entry.`,
+      message: `Total amount: ₹${grandTotalVal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}. This will create a new direct sale entry.`,
       confirmLabel: "Record Sale",
     })
     if (!ok) return
 
     setIsSaving(true)
     try {
-      const payload = {
-        sale_type: saleType,
-        customer_phone: phone.trim(),
-        customer_name: customerName.trim() || null,
-        customer_state: customerState.trim() || null,
-        customer_gstin: customerGstin.trim() || null,
-        company_name: companyName.trim() || null,
-        is_b2b: !!customerGstin.trim(),
-        bill_type: billType,
-        address_id: addressId || null,
-        notes: notes.trim() || null,
-        items: items.map((itm) => ({
-          variant_id: itm.variant_id,
-          quantity: parseFloat(itm.quantity),
-          rate: parseFloat(itm.rate),
-          discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
-        }))
-      }
+      const payload = buildPayload()
 
       const res = await createDirectSale(payload)
       if (!res.ok) {
@@ -632,13 +624,7 @@ function CreateSale() {
           ) : (
             <div className="space-y-4">
               {items.map((item, idx) => {
-                const lineGross = (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)
-                const lineDisc = lineGross * ((parseFloat(item.discount_percent) || 0) / 100)
-                const lineTaxable = lineGross - lineDisc
-
-                const vObj = variantsList.find((v) => v.variant_id === item.variant_id) || { gst_percent: 5 }
-                const lineGstVal = lineTaxable * (parseFloat(vObj.gst_percent || 0) / 100)
-                const lineTot = lineTaxable + lineGstVal
+                const lineTotalVal = preview?.items?.[idx]?.line_total
 
                 return (
                   <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 p-3.5 border border-slate-100 rounded-xl bg-slate-50/40 relative">
@@ -709,7 +695,9 @@ function CreateSale() {
                     {/* Total */}
                     <div className="sm:col-span-1.5 flex flex-col justify-center text-right pr-6 min-h-[45px]">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">Line Total</span>
-                      <span className="tabular-nums font-bold text-slate-800">₹{lineTot.toFixed(2)}</span>
+                      <span className="tabular-nums font-bold text-slate-800">
+                        {lineTotalVal != null ? `₹${Number(lineTotalVal).toFixed(2)}` : "—"}
+                      </span>
                     </div>
 
                     {/* Delete row button */}
@@ -772,34 +760,35 @@ function CreateSale() {
                   {items.map((item, idx) => {
                     const vObj = variantsList.find((v) => v.variant_id === item.variant_id)
                     const itemName = vObj ? vObj.display_name : "Unknown Item"
-                    const qty = parseFloat(item.quantity) || 0
-                    const rate = parseFloat(item.rate) || 0
-                    const discPct = parseFloat(item.discount_percent) || 0
-                    
-                    const lineGross = qty * rate
-                    const lineDisc = lineGross * (discPct / 100)
-                    const lineTaxable = lineGross - lineDisc
-                    const gstPct = vObj ? parseFloat(vObj.gst_percent || 0) : 5
-                    const lineGst = lineTaxable * (gstPct / 100)
-                    const lineTotal = lineTaxable + lineGst
+                    const pItem = preview?.items?.[idx]
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50">
                         <td className="px-3 py-2 font-bold text-slate-800">
                           <div className="truncate" title={itemName}>{itemName}</div>
                           <div className="md:hidden text-[10px] text-slate-400 font-normal truncate">
-                            Rate: ₹{rate.toFixed(2)}
+                            Rate: {item.rate != null && item.rate !== "" ? `₹${Number(item.rate).toFixed(2)}` : "—"}
                           </div>
                           <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
-                            {discPct > 0 ? `Disc: ${discPct}% • ` : ""}GST: {gstPct}%
+                            {pItem?.discount_percent != null ? `Disc: ${pItem.discount_percent}% • ` : ""}GST: {pItem?.gst_percent != null ? `${pItem.gst_percent}%` : "—"}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{qty}</td>
-                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{rate.toFixed(2)}</td>
-                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">₹{lineGross.toFixed(2)}</td>
-                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">{discPct}%</td>
-                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums whitespace-nowrap">{gstPct}%</td>
-                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">₹{lineTotal.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{item.quantity}</td>
+                        <td className="hidden md:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                          {item.rate != null && item.rate !== "" ? `₹${Number(item.rate).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="hidden xl:table-cell px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                          {pItem?.gross_amount != null ? `₹${Number(pItem.gross_amount).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums text-rose-700 whitespace-nowrap">
+                          {pItem?.discount_percent != null ? `${pItem.discount_percent}%` : "—"}
+                        </td>
+                        <td className="hidden lg:table-cell px-3 py-2 text-center tabular-nums whitespace-nowrap">
+                          {pItem?.gst_percent != null ? `${pItem.gst_percent}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                          {pItem?.line_total != null ? `₹${Number(pItem.line_total).toFixed(2)}` : "—"}
+                        </td>
                       </tr>
                     )
                   })}
@@ -810,28 +799,40 @@ function CreateSale() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Gross Subtotal</span>
-                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{subtotal.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">
+                  {preview?.total_gross_amount != null ? `₹${Number(preview.total_gross_amount).toFixed(2)}` : "—"}
+                </p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Allowed Discount</span>
-                <p className="text-base font-extrabold text-rose-700 tabular-nums">-₹{totalDiscount.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-rose-700 tabular-nums">
+                  {preview?.total_discount_amount != null ? `-₹${Number(preview.total_discount_amount).toFixed(2)}` : "—"}
+                </p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">GST Tax Amount</span>
-                <p className="text-base font-extrabold text-slate-800 tabular-nums">₹{totalGst.toFixed(2)}</p>
+                <p className="text-base font-extrabold text-slate-800 tabular-nums">
+                  {preview?.total_gst_amount != null ? `₹${Number(preview.total_gst_amount).toFixed(2)}` : "—"}
+                </p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Grand Invoice Value</span>
-                <p className="text-lg font-extrabold text-brand-700 tabular-nums">₹{grandTotal.toFixed(2)}</p>
+                <p className="text-lg font-extrabold text-brand-700 tabular-nums">
+                  {preview?.grand_total != null ? `₹${Number(preview.grand_total).toFixed(2)}` : "—"}
+                </p>
               </div>
             </div>
 
-            {(totalCgst > 0 || totalSgst > 0 || totalIgst > 0) && (
+            {preview && (Number(preview.total_cgst_amount) > 0 || Number(preview.total_sgst_amount) > 0 || Number(preview.total_igst_amount) > 0) && (
               <div className="flex flex-wrap gap-4 sm:gap-6 text-[11px] font-bold text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                {totalCgst > 0 && <span>CGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalCgst.toFixed(2)}</span></span>}
-                {totalSgst > 0 && <span>SGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalSgst.toFixed(2)}</span></span>}
-                {totalIgst > 0 && <span>IGST: <span className="tabular-nums font-extrabold text-slate-800">₹{totalIgst.toFixed(2)}</span></span>}
+                {Number(preview.total_cgst_amount) > 0 && <span>CGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_cgst_amount).toFixed(2)}</span></span>}
+                {Number(preview.total_sgst_amount) > 0 && <span>SGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_sgst_amount).toFixed(2)}</span></span>}
+                {Number(preview.total_igst_amount) > 0 && <span>IGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_igst_amount).toFixed(2)}</span></span>}
               </div>
+            )}
+
+            {previewError && (
+              <p className="text-xs text-error-800 font-semibold">{previewError}</p>
             )}
 
             <p className="text-[10px] text-slate-400 font-semibold leading-relaxed mt-2">
@@ -848,7 +849,7 @@ function CreateSale() {
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || previewLoading || !preview}
                 className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/10 active:scale-95 disabled:opacity-50 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4" />

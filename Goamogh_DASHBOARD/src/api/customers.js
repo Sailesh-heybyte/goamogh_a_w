@@ -32,8 +32,9 @@ export const updateCustomer = async (userId, customerData) => {
 
 
 export const toggleCustomerStatus = async (userId, isActive) => {
-  return customFetch(`/api/v1/sales/users/${userId}/status?is_active=${isActive}`, {
+  return customFetch(`/api/v1/sales/users/${userId}/status`, {
     method: "POST",
+    body: JSON.stringify({ is_active: isActive }),
   })
 }
 

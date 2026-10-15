@@ -122,18 +122,13 @@ export default function ProductDetailPage({ id }) {
         );
     }
 
-    const formatWeight = (grams) => {
-        if (!grams) return '';
-        if (grams >= 1000) return (grams / 1000) + ' kg';
-        return grams + 'g';
-    };
-
     // Prepare variants list
     const activeVariants = variants.map(v => ({
         id: v.id,
-        label: formatWeight(v.weight_grams),
+        label: v.size_label,
         price: v.b2c_price !== undefined && v.b2c_price !== null ? v.b2c_price : null,
         mrp: v.mrp !== undefined && v.mrp !== null ? v.mrp : null,
+        discountPercent: v.discount_percent,
         inStock: v.in_stock
     }));
 
@@ -142,8 +137,7 @@ export default function ProductDetailPage({ id }) {
     const selectedPrice = activeVariant?.price ?? null;
     const selectedMrp = activeVariant?.mrp ?? null;
     const isOutOfStock = activeVariant ? !activeVariant.inStock : true;
-    const hasDiscount = selectedMrp && selectedPrice && selectedMrp > selectedPrice;
-    const discountPercent = hasDiscount ? Math.round(((selectedMrp - selectedPrice) / selectedMrp) * 100) : 0;
+    const discountPercent = activeVariant?.discountPercent;
 
     const handleAddToCart = async () => {
         if (!activeVariant || !isAvailable) return;
@@ -152,11 +146,11 @@ export default function ProductDetailPage({ id }) {
             id: activeVariant.id, // variant UUID
             name: product.name,
             subtitle: product.description || '',
-            image: (product.images && product.images[0]) || '',
+            image: product.image,
             weight: activeVariant.label,
             price: selectedPrice,
             quantity: quantity,
-            origin: product.sourcing_location || 'India'
+            origin: product.sourcing_location
         };
 
         if (!user || !token) {
@@ -324,7 +318,7 @@ export default function ProductDetailPage({ id }) {
                                             {selectedPrice !== null ? (
                                                 <>
                                                     <span className="text-3xl font-bold text-[#d8b66a] font-mono">₹{selectedPrice}</span>
-                                                    {hasDiscount && (
+                                                    {discountPercent > 0 && (
                                                         <>
                                                             <span className="text-sm text-[#d6cca9]/50 line-through font-mono">₹{selectedMrp}</span>
                                                             <span className="text-[10px] bg-[#d8b66a]/15 text-[#d8b66a] px-2 py-0.5 rounded font-mono font-bold">

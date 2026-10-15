@@ -1,10 +1,22 @@
-import { useState, useEffect, useCallback } from "react"
-import { Plus, Edit2, Trash2, ShieldAlert, X, Truck, Search, Phone, Mail, MapPin, FileSpreadsheet, AlertTriangle, Building, ShieldCheck, Landmark, BookOpen } from "lucide-react"
-import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails } from "@/api/suppliers"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { Plus, Edit2, Trash2, ShieldAlert, X, Truck, Search, Phone, Mail, MapPin, FileSpreadsheet, AlertTriangle, Building, ShieldCheck, Landmark, BookOpen, FileText } from "lucide-react"
+import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails, uploadSupplierKyc, getSupplierKycViewUrl, verifySupplierKyc } from "@/api/suppliers"
 import Spinner from "@/components/ui/Spinner"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
+import { useToast } from "@/context/ToastContext"
+
+const KYC_DOCUMENT_TYPES = {
+  pan: "PAN Card",
+  aadhaar: "Aadhaar",
+  gst_certificate: "GST Certificate",
+  trade_license: "Trade License",
+  fssai: "FSSAI License",
+  cancelled_cheque: "Cancelled Cheque",
+  other: "Other",
+}
+
 const GSTIN_STATE_MAP = {
   "01": "Jammu & Kashmir",
   "02": "Himachal Pradesh",
@@ -81,6 +93,19 @@ function SupplierDirectory() {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
+  const { showSuccessToast } = useToast()
+
+  const [isKycUploadingCreate, setIsKycUploadingCreate] = useState(false)
+  const [isKycUploadingEdit, setIsKycUploadingEdit] = useState(false)
+  const [kycErrorCreate, setKycErrorCreate] = useState("")
+  const [kycErrorEdit, setKycErrorEdit] = useState("")
+  const [kycRemarks, setKycRemarks] = useState("")
+  const [kycRemarksError, setKycRemarksError] = useState("")
+  const [isKycVerifying, setIsKycVerifying] = useState(false)
+
+  const kycUploadReqRefCreate = useRef(0)
+  const kycUploadReqRefEdit = useRef(0)
+
   // Address copying state
   const [createSameAsBilling, setCreateSameAsBilling] = useState(false)
   const [editSameAsBilling, setEditSameAsBilling] = useState(false)
@@ -114,6 +139,10 @@ function SupplierDirectory() {
     cin: "",
     billing_address: "",
     shipping_address: "",
+    kyc_document_type: "",
+    kyc_document_number: "",
+    kyc_document_url: "",
+    kyc_document_name: "",
     contact_persons: [
       { name: "", email: "", mobile: "", desk_number: "", location: "" },
       { name: "", email: "", mobile: "", desk_number: "", location: "" }
@@ -151,6 +180,10 @@ function SupplierDirectory() {
     cin: "",
     billing_address: "",
     shipping_address: "",
+    kyc_document_type: "",
+    kyc_document_number: "",
+    kyc_document_url: "",
+    kyc_document_name: "",
     contact_persons: [
       { name: "", email: "", mobile: "", desk_number: "", location: "" },
       { name: "", email: "", mobile: "", desk_number: "", location: "" }
@@ -162,7 +195,7 @@ function SupplierDirectory() {
     setIsLoading(true)
     setError("")
     try {
-      const res = await getSuppliers({ active_only: showActiveOnly })
+      const res = await getSuppliers()
       if (!res.ok) {
         throw new Error("Failed to load supplier directory")
       }
@@ -173,7 +206,7 @@ function SupplierDirectory() {
     } finally {
       setIsLoading(false)
     }
-  }, [showActiveOnly])
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -210,7 +243,7 @@ function SupplierDirectory() {
           }
         } else {
           const json = await resObj.json()
-          const dataObj = json.data || json
+          const dataObj = json.data
           if (dataObj && (dataObj.city || dataObj.state)) {
             setCreateForm((prev) => ({
               ...prev,
@@ -259,7 +292,7 @@ function SupplierDirectory() {
           }
         } else {
           const json = await resObj.json()
-          const dataObj = json.data || json
+          const dataObj = json.data
           if (dataObj && (dataObj.city || dataObj.state)) {
             setEditForm((prev) => ({
               ...prev,
@@ -814,6 +847,149 @@ function SupplierDirectory() {
     return errs
   }
 
+  const handleKycFileSelect = async (e, isEdit) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      if (isEdit) {
+        setKycErrorEdit("File must be 5 MB or smaller")
+      } else {
+        setKycErrorCreate("File must be 5 MB or smaller")
+      }
+      return
+    }
+
+    const reqRef = isEdit ? kycUploadReqRefEdit : kycUploadReqRefCreate
+    const reqId = ++reqRef.current
+
+    if (isEdit) {
+      setIsKycUploadingEdit(true)
+      setKycErrorEdit("")
+    } else {
+      setIsKycUploadingCreate(true)
+      setKycErrorCreate("")
+    }
+
+    const docType = isEdit ? editForm.kyc_document_type : createForm.kyc_document_type
+
+    try {
+      const res = await uploadSupplierKyc(file, docType || undefined)
+      const json = await res.json().catch(() => ({}))
+
+      if (reqId !== reqRef.current) return
+
+      if (res.ok && json.data) {
+        const data = json.data
+        if (isEdit) {
+          setEditForm((prev) => ({
+            ...prev,
+            kyc_document_url: data.kyc_document_url || "",
+            kyc_document_name: data.kyc_document_name || "",
+            kyc_document_type: data.kyc_document_type || prev.kyc_document_type || "",
+          }))
+        } else {
+          setCreateForm((prev) => ({
+            ...prev,
+            kyc_document_url: data.kyc_document_url || "",
+            kyc_document_name: data.kyc_document_name || "",
+            kyc_document_type: data.kyc_document_type || prev.kyc_document_type || "",
+          }))
+        }
+      } else {
+        const msg = json.message || "Upload failed. Try again."
+        if (isEdit) setKycErrorEdit(msg)
+        else setKycErrorCreate(msg)
+      }
+    } catch {
+      if (reqId === reqRef.current) {
+        const msg = "Upload failed. Try again."
+        if (isEdit) setKycErrorEdit(msg)
+        else setKycErrorCreate(msg)
+      }
+    } finally {
+      if (reqId === reqRef.current) {
+        if (isEdit) setIsKycUploadingEdit(false)
+        else setIsKycUploadingCreate(false)
+      }
+    }
+  }
+
+  const handleRemoveKyc = (isEdit) => {
+    if (isEdit) {
+      setEditForm((prev) => ({
+        ...prev,
+        kyc_document_type: "",
+        kyc_document_number: "",
+        kyc_document_url: "",
+        kyc_document_name: "",
+      }))
+      setKycErrorEdit("")
+    } else {
+      setCreateForm((prev) => ({
+        ...prev,
+        kyc_document_type: "",
+        kyc_document_number: "",
+        kyc_document_url: "",
+        kyc_document_name: "",
+      }))
+      setKycErrorCreate("")
+    }
+  }
+
+  const handleViewKycDocument = async () => {
+    if (!selectedSupplier?.id) return
+    const win = window.open("about:blank", "_blank")
+    setKycErrorEdit("")
+    try {
+      const res = await getSupplierKycViewUrl(selectedSupplier.id)
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.data?.url) {
+        if (win) {
+          win.opener = null
+          win.location.href = json.data.url
+        }
+      } else {
+        win?.close()
+        setKycErrorEdit(res.status === 404 ? "No KYC document uploaded for this supplier." : (json.message || "Couldn't open document. Try again."))
+      }
+    } catch {
+      win?.close()
+      setKycErrorEdit("Couldn't open document. Try again.")
+    }
+  }
+
+  const handleVerifyOrRejectKyc = async (isVerified) => {
+    if (!selectedSupplier?.id) return
+    setKycErrorEdit("")
+    setKycRemarksError("")
+
+    const remarksTrimmed = kycRemarks.trim()
+    if (!isVerified && !remarksTrimmed) {
+      setKycRemarksError("Add a reason to reject")
+      return
+    }
+
+    setIsKycVerifying(true)
+    try {
+      const res = await verifySupplierKyc(selectedSupplier.id, isVerified, remarksTrimmed)
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.data) {
+        setSelectedSupplier(json.data)
+        setSuppliersList((prev) => prev.map((s) => (s.id === json.data.id ? json.data : s)))
+        setKycRemarks("")
+        showSuccessToast(isVerified ? "Supplier KYC marked as verified." : "Supplier KYC rejected.")
+      } else {
+        setKycErrorEdit(json.message || "Failed to update KYC status.")
+      }
+    } catch {
+      setKycErrorEdit("Failed to update KYC status.")
+    } finally {
+      setIsKycVerifying(false)
+    }
+  }
+
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
     setCreateErrors({})
@@ -897,6 +1073,10 @@ function SupplierDirectory() {
         cin: createForm.cin.trim() || null,
         billing_address: createForm.billing_address.trim() || null,
         shipping_address: createSameAsBilling ? (createForm.billing_address.trim() || null) : (createForm.shipping_address.trim() || null),
+        kyc_document_type: createForm.kyc_document_type || null,
+        kyc_document_number: createForm.kyc_document_number?.trim() || null,
+        kyc_document_url: createForm.kyc_document_url || null,
+        kyc_document_name: createForm.kyc_document_name || null,
         contact_persons: contactPersonsPayload
       }
 
@@ -943,6 +1123,10 @@ function SupplierDirectory() {
         cin: "",
         billing_address: "",
         shipping_address: "",
+        kyc_document_type: "",
+        kyc_document_number: "",
+        kyc_document_url: "",
+        kyc_document_name: "",
         contact_persons: [
           { name: "", email: "", mobile: "", desk_number: "", location: "" },
           { name: "", email: "", mobile: "", desk_number: "", location: "" }
@@ -963,6 +1147,9 @@ function SupplierDirectory() {
     setIsDetailLoading(true)
     setIsEditOpen(true)
     setEditErrors({})
+    setKycRemarks("")
+    setKycRemarksError("")
+    setKycErrorEdit("")
 
     try {
       const res = await getSupplierDetails(supplier.id)
@@ -970,8 +1157,9 @@ function SupplierDirectory() {
         throw new Error("Failed to load supplier details")
       }
       const json = await res.json()
-      const details = json.data || supplier
+      const details = json.data
       const bank = details.bank_details || {}
+      setSelectedSupplier(details)
 
       setEditForm({
         name: details.name || "",
@@ -1002,6 +1190,10 @@ function SupplierDirectory() {
         cin: details.cin || "",
         billing_address: details.billing_address || "",
         shipping_address: details.shipping_address || "",
+        kyc_document_type: details.kyc_document_type || "",
+        kyc_document_number: details.kyc_document_number || "",
+        kyc_document_url: details.kyc_document_url || "",
+        kyc_document_name: details.kyc_document_name || "",
         contact_persons: [
           {
             name: details.contact_persons?.[0]?.name || "",
@@ -1113,6 +1305,10 @@ function SupplierDirectory() {
         cin: editForm.cin.trim() || null,
         billing_address: editForm.billing_address.trim() || null,
         shipping_address: editSameAsBilling ? (editForm.billing_address.trim() || null) : (editForm.shipping_address.trim() || null),
+        kyc_document_type: editForm.kyc_document_type || null,
+        kyc_document_number: editForm.kyc_document_number?.trim() || null,
+        kyc_document_url: editForm.kyc_document_url || null,
+        kyc_document_name: editForm.kyc_document_name || null,
         contact_persons: contactPersonsPayload
       }
 
@@ -1273,16 +1469,23 @@ function SupplierDirectory() {
     }
   }
 
+  const suppliers = useMemo(
+    () => (showActiveOnly ? suppliersList.filter((s) => s.is_active === true) : suppliersList),
+    [suppliersList, showActiveOnly]
+  )
+
   // Client-side search filters
-  const filteredSuppliers = suppliersList.filter((vendor) => {
+  const filteredSuppliers = useMemo(() => {
     const term = searchQuery.toLowerCase().trim()
-    if (!term) return true
-    const nameMatch = vendor.name?.toLowerCase().includes(term)
-    const codeMatch = vendor.vendor_code?.toLowerCase().includes(term)
-    const emailMatch = vendor.email?.toLowerCase().includes(term)
-    const contactMatch = vendor.contact_name?.toLowerCase().includes(term)
-    return nameMatch || codeMatch || emailMatch || contactMatch
-  })
+    if (!term) return suppliers
+    return suppliers.filter((vendor) => {
+      const nameMatch = vendor.name?.toLowerCase().includes(term)
+      const codeMatch = vendor.vendor_code?.toLowerCase().includes(term)
+      const emailMatch = vendor.email?.toLowerCase().includes(term)
+      const contactMatch = vendor.contact_name?.toLowerCase().includes(term)
+      return nameMatch || codeMatch || emailMatch || contactMatch
+    })
+  }, [suppliers, searchQuery])
 
   if (isLoading) {
     return (
@@ -1470,17 +1673,38 @@ function SupplierDirectory() {
 
                     {/* Column 4: Status Badge */}
                     <td className="px-3 py-3 whitespace-nowrap">
-                      {vendor.is_active ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                          <span className="w-1 h-1 rounded-full mr-1 bg-emerald-500 shrink-0" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80">
-                          <span className="w-1 h-1 rounded-full mr-1 bg-rose-500 shrink-0" />
-                          Inactive
-                        </span>
-                      )}
+                      <div className="flex flex-col items-start">
+                        {vendor.is_active ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span className="w-1 h-1 rounded-full mr-1 bg-emerald-500 shrink-0" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80">
+                            <span className="w-1 h-1 rounded-full mr-1 bg-rose-500 shrink-0" />
+                            Inactive
+                          </span>
+                        )}
+                        {vendor.kyc_verified ? (
+                          <span className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold mt-1 bg-emerald-50 text-emerald-700">
+                            KYC ✓
+                          </span>
+                        ) : vendor.kyc_document_url ? (
+                          vendor.kyc_remarks ? (
+                            <span className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold mt-1 bg-rose-50 text-rose-700">
+                              KYC rejected
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold mt-1 bg-amber-50 text-amber-700">
+                              KYC pending
+                            </span>
+                          )
+                        ) : (
+                          <span className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold mt-1 bg-slate-100 text-slate-500">
+                            No KYC
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Column 5: Action Tools */}
@@ -2076,6 +2300,109 @@ function SupplierDirectory() {
                 </div>
               </div>
 
+              {/* KYC Document Section */}
+              <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
+                  <ShieldCheck className="w-5 h-5 text-brand-600" />
+                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">KYC Document (optional)</h4>
+                </div>
+
+                {kycErrorCreate && (
+                  <div className="p-3 rounded-xl bg-error-50 border border-error-100 text-error-800 text-xs font-semibold">
+                    {kycErrorCreate}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Document Type */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Document Type
+                    </label>
+                    <select
+                      value={createForm.kyc_document_type}
+                      onChange={(e) => handleCreateChange("kyc_document_type", e.target.value)}
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700"
+                    >
+                      <option value="">Select document type</option>
+                      {Object.entries(KYC_DOCUMENT_TYPES).map(([val, label]) => (
+                        <option key={val} value={val}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Document Number */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Document Number
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.kyc_document_number}
+                      onChange={(e) => handleCreateChange("kyc_document_number", e.target.value)}
+                      placeholder={createForm.kyc_document_type === "aadhaar" ? "Last 4 digits" : "e.g. ABCDE1234F"}
+                      maxLength={createForm.kyc_document_type === "aadhaar" ? 4 : undefined}
+                      className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-semibold text-slate-700"
+                    />
+                    {createForm.kyc_document_type === "aadhaar" && (
+                      <p className="text-[11px] text-slate-400 mt-1 font-medium leading-tight">
+                        Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI guidelines.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Document File Upload */}
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Document File (.pdf, .jpg, .jpeg, .png, max 5 MB)
+                  </label>
+
+                  {createForm.kyc_document_url ? (
+                    <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-4 h-4 text-brand-600 shrink-0" />
+                        <span className="text-xs font-bold text-slate-700 truncate">
+                          {createForm.kyc_document_name || "KYC Document"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKyc(false)}
+                        className="text-xs font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingCreate ? "opacity-50 pointer-events-none" : ""}`}>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleKycFileSelect(e, false)}
+                          disabled={isKycUploadingCreate}
+                          className="sr-only"
+                        />
+                        {isKycUploadingCreate ? (
+                          <>
+                            <Spinner size="xs" />
+                            <span>Uploading…</span>
+                          </>
+                        ) : (
+                          <span>Choose File</span>
+                        )}
+                      </label>
+                      {isKycUploadingCreate && (
+                        <span className="text-xs font-semibold text-slate-500 animate-pulse">Uploading…</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Section 6: Additional Notes */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
@@ -2106,7 +2433,7 @@ function SupplierDirectory() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || isKycUploadingCreate}
                   className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {isSaving ? <Spinner size="sm" /> : null}
@@ -2696,6 +3023,195 @@ function SupplierDirectory() {
                   </div>
                 </div>
 
+                {/* KYC Document Section */}
+                <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-brand-600" />
+                      <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">KYC Document (optional)</h4>
+                    </div>
+                    {selectedSupplier?.kyc_document_url && (
+                      <div className="flex flex-col items-end">
+                        {selectedSupplier.kyc_verified ? (
+                          <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                            Verified
+                          </span>
+                        ) : selectedSupplier.kyc_remarks ? (
+                          <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-rose-50 text-rose-700">
+                            Rejected
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700">
+                            Pending verification
+                          </span>
+                        )}
+                        {selectedSupplier.kyc_remarks && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Remarks: {selectedSupplier.kyc_remarks}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {kycErrorEdit && (
+                    <div className="p-3 rounded-xl bg-error-50 border border-error-100 text-error-800 text-xs font-semibold">
+                      {kycErrorEdit}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Document Type */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Document Type
+                      </label>
+                      <select
+                        value={editForm.kyc_document_type}
+                        onChange={(e) => handleEditChange("kyc_document_type", e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700"
+                      >
+                        <option value="">Select document type</option>
+                        {Object.entries(KYC_DOCUMENT_TYPES).map(([val, label]) => (
+                          <option key={val} value={val}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Document Number */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Document Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.kyc_document_number}
+                        onChange={(e) => handleEditChange("kyc_document_number", e.target.value)}
+                        placeholder={editForm.kyc_document_type === "aadhaar" ? "Last 4 digits" : "e.g. ABCDE1234F"}
+                        maxLength={editForm.kyc_document_type === "aadhaar" ? 4 : undefined}
+                        className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase font-semibold text-slate-700"
+                      />
+                      {editForm.kyc_document_type === "aadhaar" && (
+                        <p className="text-[11px] text-slate-400 mt-1 font-medium leading-tight">
+                          Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI guidelines.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Document File Upload */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Document File (.pdf, .jpg, .jpeg, .png, max 5 MB)
+                    </label>
+
+                    {editForm.kyc_document_url ? (
+                      <div className="flex flex-wrap items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50 gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-4 h-4 text-brand-600 shrink-0" />
+                          <span className="text-xs font-bold text-slate-700 truncate">
+                            {editForm.kyc_document_name || "KYC Document"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {selectedSupplier?.kyc_document_url && (
+                            <button
+                              type="button"
+                              onClick={handleViewKycDocument}
+                              className="text-xs font-bold text-brand-600 hover:text-brand-700 px-2.5 py-1 rounded-lg hover:bg-brand-50 transition-colors"
+                            >
+                              View document
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveKyc(true)}
+                            className="text-xs font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingEdit ? "opacity-50 pointer-events-none" : ""}`}>
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleKycFileSelect(e, true)}
+                            disabled={isKycUploadingEdit}
+                            className="sr-only"
+                          />
+                          {isKycUploadingEdit ? (
+                            <>
+                              <Spinner size="xs" />
+                              <span>Uploading…</span>
+                            </>
+                          ) : (
+                            <span>Choose File</span>
+                          )}
+                        </label>
+                        {isKycUploadingEdit && (
+                          <span className="text-xs font-semibold text-slate-500 animate-pulse">Uploading…</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Verification Actions (when selectedSupplier.kyc_document_url exists) */}
+                  {selectedSupplier?.kyc_document_url && (
+                    <div className="pt-3 border-t border-slate-100 space-y-3">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          Verification Remarks
+                        </label>
+                        <input
+                          type="text"
+                          value={kycRemarks}
+                          onChange={(e) => {
+                            setKycRemarks(e.target.value)
+                            if (kycRemarksError) setKycRemarksError("")
+                          }}
+                          placeholder="Optional note for verify; required for reject..."
+                          className="w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700"
+                        />
+                        {kycRemarksError && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{kycRemarksError}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {!selectedSupplier.kyc_verified && (
+                          <button
+                            type="button"
+                            disabled={isKycVerifying}
+                            onClick={() => handleVerifyOrRejectKyc(true)}
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isKycVerifying && <Spinner size="xs" />}
+                            <span>Mark as verified</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={isKycVerifying}
+                          onClick={() => handleVerifyOrRejectKyc(false)}
+                          className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {isKycVerifying && <Spinner size="xs" />}
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Changing the document or number resets verification.
+                  </p>
+                </div>
+
                 {/* Section 6: Additional Notes */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
@@ -2743,7 +3259,7 @@ function SupplierDirectory() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={isSaving || isKycUploadingEdit}
                     className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {isSaving ? <Spinner size="sm" /> : null}

@@ -8,22 +8,9 @@ import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 
-// Fallback permissions definition
-const DEFAULT_PERMISSIONS = [
-  { value: "stock_manage", label: "Stock Management", category: "Stock", description: "Permission to adjust stock levels and record damages" },
-  { value: "purchase_manage", label: "Purchase Management", category: "Purchase", description: "Permission to manage suppliers, purchase orders and purchase entries" },
-  { value: "production_manage", label: "Production Management", category: "Production", description: "Permission to manage and close work orders" },
-  { value: "pricing_manage", label: "Pricing Management", category: "Pricing", description: "Permission to configure daily B2C/B2B selling prices" }
-]
-
 function getPermissionLabel(permValue, permissionsList = []) {
-  if (permValue === "all") return "Full Access"
   const found = permissionsList.find((p) => p.value === permValue)
-  if (found) return found.label
-  return permValue
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ")
+  return found ? found.label : permValue
 }
 
 
@@ -33,7 +20,9 @@ function RoleManagement() {
   const navigate = useNavigate()
 
   const [rolesList, setRolesList] = useState([])
-  const [systemPermissions, setSystemPermissions] = useState(DEFAULT_PERMISSIONS)
+  const [systemPermissions, setSystemPermissions] = useState([])
+  const [permissionsLoading, setPermissionsLoading] = useState(true)
+  const [permissionsError, setPermissionsError] = useState("")
   const [selectedRolePermissions, setSelectedRolePermissions] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -87,41 +76,23 @@ function RoleManagement() {
   }
 
   const fetchPermissions = async () => {
+    setPermissionsLoading(true)
+    setPermissionsError("")
     try {
       const res = await getPermissions()
-      if (res.ok) {
-        const json = await res.json()
-        let parsed = []
-        if (Array.isArray(json.data)) {
-          parsed = json.data.map((p) => {
-            const val = p.code || p.key || p.value || ""
-            const firstWord = val.split("_")[0]
-            const category = p.category || (firstWord.charAt(0).toUpperCase() + firstWord.slice(1))
-            return {
-              value: val,
-              label: p.label || val.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-              description: p.description || p.label || "",
-              category,
-            }
-          })
-        } else if (json.data && typeof json.data === "object") {
-          parsed = Object.entries(json.data).map(([key, desc]) => {
-            const firstWord = key.split("_")[0]
-            const category = firstWord.charAt(0).toUpperCase() + firstWord.slice(1)
-            return {
-              value: key,
-              label: key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-              description: desc || "",
-              category,
-            }
-          })
-        }
-        if (parsed.length > 0) {
-          setSystemPermissions(parsed)
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load permissions:", err)
+      if (!res.ok) throw new Error("Couldn't load permissions")
+      const json = await res.json()
+      setSystemPermissions(
+        json.data.map((p) => ({
+          value: p.key,
+          label: p.label,
+          description: p.description,
+        }))
+      )
+    } catch {
+      setPermissionsError("Couldn't load permissions")
+    } finally {
+      setPermissionsLoading(false)
     }
   }
 
@@ -496,23 +467,44 @@ function RoleManagement() {
                   Configure Permissions <span className="text-error-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  {systemPermissions.map((perm) => (
-                    <label
-                      key={perm.value}
-                      className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={createForm.permissions.includes(perm.value)}
-                        onChange={() => handlePermissionToggle(perm.value, "create")}
-                        className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase">{perm.category}</p>
-                      </div>
-                    </label>
-                  ))}
+                  {permissionsLoading ? (
+                    <div className="col-span-full flex items-center justify-center py-6">
+                      <Spinner size="sm" />
+                    </div>
+                  ) : permissionsError ? (
+                    <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
+                      <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
+                      <button
+                        type="button"
+                        onClick={fetchPermissions}
+                        className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : systemPermissions.length === 0 ? (
+                    <p className="col-span-full text-center py-4 text-xs text-slate-400">
+                      No permissions available.
+                    </p>
+                  ) : (
+                    systemPermissions.map((perm) => (
+                      <label
+                        key={perm.value}
+                        className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={createForm.permissions.includes(perm.value)}
+                          onChange={() => handlePermissionToggle(perm.value, "create")}
+                          className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
+                        />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">{perm.label}</p>
+                          <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
+                        </div>
+                      </label>
+                    ))
+                  )}
                 </div>
                 {createErrors.permissions && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.permissions}</p>}
               </div>
@@ -529,7 +521,7 @@ function RoleManagement() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isCreating}
+                  disabled={isCreating || permissionsLoading || !!permissionsError}
                   className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isCreating ? <Spinner size="sm" /> : null}
@@ -604,23 +596,44 @@ function RoleManagement() {
                   Configure Permissions <span className="text-error-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  {systemPermissions.map((perm) => (
-                    <label
-                      key={perm.value}
-                      className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={editForm.permissions.includes(perm.value)}
-                        onChange={() => handlePermissionToggle(perm.value, "edit")}
-                        className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase">{perm.category}</p>
-                      </div>
-                    </label>
-                  ))}
+                  {permissionsLoading ? (
+                    <div className="col-span-full flex items-center justify-center py-6">
+                      <Spinner size="sm" />
+                    </div>
+                  ) : permissionsError ? (
+                    <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
+                      <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
+                      <button
+                        type="button"
+                        onClick={fetchPermissions}
+                        className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : systemPermissions.length === 0 ? (
+                    <p className="col-span-full text-center py-4 text-xs text-slate-400">
+                      No permissions available.
+                    </p>
+                  ) : (
+                    systemPermissions.map((perm) => (
+                      <label
+                        key={perm.value}
+                        className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={editForm.permissions.includes(perm.value)}
+                          onChange={() => handlePermissionToggle(perm.value, "edit")}
+                          className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
+                        />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">{perm.label}</p>
+                          <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
+                        </div>
+                      </label>
+                    ))
+                  )}
                 </div>
                 {editErrors.permissions && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.permissions}</p>}
               </div>
@@ -649,7 +662,7 @@ function RoleManagement() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isEditing}
+                  disabled={isEditing || permissionsLoading || !!permissionsError}
                   className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isEditing ? <Spinner size="sm" /> : null}

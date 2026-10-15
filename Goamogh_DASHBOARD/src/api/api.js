@@ -32,6 +32,10 @@ export const customFetch = async (endpoint, options = {}) => {
     ...options.headers,
   }
 
+  if (options.body instanceof FormData) {
+    delete options.headers["Content-Type"]
+  }
+
   if (accessToken) {
     options.headers["Authorization"] = `Bearer ${accessToken}`
   }

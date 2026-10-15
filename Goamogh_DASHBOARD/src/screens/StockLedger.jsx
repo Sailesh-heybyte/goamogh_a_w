@@ -136,7 +136,7 @@ function StockLedger() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { skip: 0, limit: 1000 }
+      const params = {}
 
       const res = await getItemLedger(item.item_type, item.id, params)
 
@@ -157,7 +157,7 @@ function StockLedger() {
     setIsHistoryLoading(true)
     setHistoryError("")
     try {
-      const params = { skip: 0, limit: 1000, direction: "in" }
+      const params = { direction: "in" }
       const res = await getItemLedger(item.item_type, item.id, params)
 
       if (!res.ok) {
@@ -430,7 +430,7 @@ function StockLedger() {
                               {item.item_type === "raw_material" ? "Raw Material" : "Finished Product"}
                             </div>
                             <div className="lg:hidden text-[10px] text-slate-400 truncate">
-                              Unit: {item.unit_code || "KG"} • {formatLastUpdated(item.updated_at)}
+                              Unit: {item.unit_code} • {formatLastUpdated(item.updated_at)}
                             </div>
                           </td>
                           <td className="hidden md:table-cell px-6 py-3.5 text-slate-600 font-bold uppercase text-[10px] whitespace-nowrap">
@@ -449,9 +449,9 @@ function StockLedger() {
                             )}
                           </td>
                           <td className="px-6 py-3.5 text-right tabular-nums font-extrabold text-sm text-slate-800 whitespace-nowrap">
-                            {parseFloat(item.stock_qty || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {item.stock_qty != null ? parseFloat(item.stock_qty).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
                           </td>
-                          <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-500 uppercase whitespace-nowrap">{item.unit_code || "KG"}</td>
+                          <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-500 uppercase whitespace-nowrap">{item.unit_code}</td>
                           <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-400 tabular-nums whitespace-nowrap">
                             {formatLastUpdated(item.updated_at)}
                           </td>
@@ -554,7 +554,7 @@ function StockLedger() {
                     <span>{selectedItem.item_type === "raw_material" ? "Raw Material" : "Finished Product"} Ledger</span>
                   </h3>
                   <p className="text-xs text-slate-500 font-bold mt-1 tabular-nums tracking-wide">
-                    {selectedItem.name} &bull; HSN: {selectedItem.hsn_code || "—"} &bull; Unit: {selectedItem.unit_code || "KG"}
+                    {selectedItem.name} &bull; HSN: {selectedItem.hsn_code || "—"} &bull; Unit: {selectedItem.unit_code}
                   </p>
                 </div>
               </div>
@@ -707,13 +707,13 @@ function StockLedger() {
                               )}
                             </td>
                             <td className="hidden xl:table-cell px-4 py-3.5 text-right tabular-nums font-bold text-rose-600 whitespace-nowrap">
-                              {debitStr ? `${debitStr} ${selectedItem.unit_code || "KG"}` : ""}
+                              {debitStr ? `${debitStr} ${selectedItem.unit_code}` : ""}
                             </td>
                             <td className="hidden md:table-cell px-4 py-3.5 text-right tabular-nums font-bold text-emerald-600 whitespace-nowrap">
-                              {creditStr ? `${creditStr} ${selectedItem.unit_code || "KG"}` : ""}
+                              {creditStr ? `${creditStr} ${selectedItem.unit_code}` : ""}
                             </td>
                             <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">
-                              {parseFloat(row.running_balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {selectedItem.unit_code || "KG"}
+                              {row.running_balance != null ? `${parseFloat(row.running_balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}` : "—"}
                             </td>
                           </tr>
                         )
@@ -853,7 +853,7 @@ function StockLedger() {
                               <div className="truncate" title={row.invoice_number || ""}>{row.invoice_number || "—"}</div>
                             </td>
                             <td className="px-4 py-3.5 text-right tabular-nums font-bold text-emerald-600 whitespace-nowrap">
-                              {row.quantity_received.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {selectedItem.unit_code || "KG"}
+                              {row.quantity_received != null ? `${Number(row.quantity_received).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}` : "—"}
                             </td>
                             <td className="hidden md:table-cell px-4 py-3.5 tabular-nums text-slate-600 text-[10px]">
                               <div className="truncate" title={row.batch_number || ""}>{row.batch_number || "—"}</div>

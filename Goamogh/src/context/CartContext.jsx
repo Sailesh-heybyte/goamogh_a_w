@@ -86,9 +86,7 @@ export function CartProvider({ children }) {
         return cart && Array.isArray(cart.items) ? cart.items : [];
     }, [cart]);
 
-    const cartCount = useMemo(() => {
-        return cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-    }, [cartItems]);
+    const cartCount = cart?.total_quantity ?? 0;
 
     const value = useMemo(() => ({
         cart,

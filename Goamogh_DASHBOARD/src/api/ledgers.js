@@ -4,7 +4,7 @@ import { customFetch } from "./api"
 export const getItemLedger = async (itemType, itemId, params = {}) => {
   const ledgerType = itemType === "raw_material" ? "raw-materials" : "products"
   const query = new URLSearchParams(params).toString()
-  return customFetch(`/api/v1/ledgers/${ledgerType}/${itemId}?${query}`)
+  return customFetch(query ? `/api/v1/ledgers/${ledgerType}/${itemId}?${query}` : `/api/v1/ledgers/${ledgerType}/${itemId}`)
 }
 
 

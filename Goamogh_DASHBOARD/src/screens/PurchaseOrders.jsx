@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Plus,
@@ -39,7 +39,6 @@ function PurchaseOrders() {
   const [selectedStatus, setSelectedStatus] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   // Modal Detail View
@@ -114,10 +113,8 @@ function PurchaseOrders() {
     setIsLoading(true)
     setError("")
     try {
-      const params = { skip, limit }
-      if (debouncedSearch.trim()) params.search = debouncedSearch.trim()
+      const params = {}
       if (selectedSupplierId && selectedSupplierId !== "all") params.supplier_id = selectedSupplierId
-      if (selectedStatus && selectedStatus !== "all") params.status = selectedStatus
 
       const res = await getPurchaseOrders(params)
       if (requestId !== latestRequestRef.current) return null
@@ -128,7 +125,6 @@ function PurchaseOrders() {
       if (requestId !== latestRequestRef.current) return null
       const data = json.data || []
       setOrders(data)
-      setTotal(json.meta.total)
       return data
     } catch (err) {
       if (requestId !== latestRequestRef.current) return null
@@ -139,11 +135,29 @@ function PurchaseOrders() {
         setIsLoading(false)
       }
     }
-  }, [debouncedSearch, selectedSupplierId, selectedStatus, skip])
+  }, [selectedSupplierId])
 
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
+
+  // Reset skip when filters change
+  useEffect(() => {
+    setSkip(0)
+  }, [debouncedSearch, selectedSupplierId, selectedStatus])
+
+  const filteredOrders = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase()
+    return orders.filter((order) => {
+      const matchesStatus = selectedStatus === "all" || !selectedStatus || order.status === selectedStatus
+      if (!matchesStatus) return false
+      if (!q) return true
+
+      const sName = order.supplier_name || order.supplier?.name || order.supplier?.contact_name || ""
+      return (order.po_number && order.po_number.toLowerCase().includes(q)) || sName.toLowerCase().includes(q)
+    })
+  }, [orders, selectedStatus, debouncedSearch])
+  const pageRows = filteredOrders.slice(skip, skip + limit)
 
   const handleStatusAction = async (poId, actionType) => {
     setActionLoadingId(poId)
@@ -343,7 +357,7 @@ function PurchaseOrders() {
             Retry
           </button>
         </div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center gap-3">
           <ShoppingCart className="w-12 h-12 text-slate-300" />
           <p>No purchase orders found matching the filter criteria.</p>
@@ -362,7 +376,7 @@ function PurchaseOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
-                {orders.map((order) => (
+                {pageRows.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                     {/* Supplier Name */}
                     <td className="pl-4 pr-2 py-4 text-slate-800 font-bold uppercase tracking-wide text-xs min-w-0">
@@ -454,7 +468,7 @@ function PurchaseOrders() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filteredOrders.length} onChange={setSkip} />
         </div>
       )}
 
@@ -526,7 +540,6 @@ function PurchaseOrders() {
                       {viewingOrder.items?.map((item, idx) => {
                         const isRM = !!item.raw_material_id
                         const itemName = isRM ? item.raw_material_name || item.raw_material?.name : item.product_name || item.product?.name
-                        const subtotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)
 
                         return (
                           <tr key={item.id || idx} className="hover:bg-slate-50/20">
@@ -543,17 +556,17 @@ function PurchaseOrders() {
                                   <p className="font-bold text-slate-800 leading-snug truncate" title={itemName || "Unknown Item"}>{itemName || "Unknown Item"}</p>
                                   <div className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">
                                     <span>{isRM ? "Raw Material" : "Finished Product"}</span>
-                                    <span className="md:hidden"> • ₹{(parseFloat(item.unit_price) || 0).toFixed(2)}</span>
+                                    <span className="md:hidden"> • {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}</span>
                                     <span className="lg:hidden"> • {item.hsn_code ? `HSN: ${item.hsn_code}` : ""}</span>
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap">
-                              {parseFloat(item.quantity).toFixed(2)} {item.unit_code || "KG"}
+                              {item.quantity != null ? `${parseFloat(item.quantity).toFixed(2)} ${item.unit_code}` : "—"}
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
-                              ₹{(parseFloat(item.unit_price) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              {item.unit_price != null ? `₹${parseFloat(item.unit_price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden lg:table-cell">
                               {item.gst_percent !== undefined && item.gst_percent !== null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}
@@ -562,7 +575,7 @@ function PurchaseOrders() {
                               {item.gst_amount !== undefined && item.gst_amount !== null ? `₹${parseFloat(item.gst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                             </td>
                             <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-800 whitespace-nowrap">
-                              ₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              {item.line_subtotal != null ? `₹${Number(item.line_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                             </td>
                           </tr>
                         )
@@ -580,21 +593,21 @@ function PurchaseOrders() {
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{(viewingOrder.subtotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {viewingOrder.subtotal != null ? `₹${Number(viewingOrder.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span>Total GST</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{(viewingOrder.gst_amount !== undefined ? viewingOrder.gst_amount : (viewingOrder.sales_tax_amount || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {(viewingOrder.gst_amount ?? viewingOrder.sales_tax_amount) != null ? `₹${Number(viewingOrder.gst_amount ?? viewingOrder.sales_tax_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
 
                   <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-800">
                     <span>Grand Total</span>
                     <span className="tabular-nums text-brand-700 text-base">
-                      ₹{(viewingOrder.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {viewingOrder.total_amount != null ? `₹${Number(viewingOrder.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 </div>

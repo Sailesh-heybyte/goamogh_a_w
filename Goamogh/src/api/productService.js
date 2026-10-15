@@ -2,7 +2,7 @@ import { API_PREFIX, handleResponse, API_BASE, apiFetch } from './apiClient';
 
 
 export async function fetchCategories(activeOnly = true) {
-    const response = await apiFetch(`${API_PREFIX}/inventory/categories?active_only=${activeOnly}`, {
+    const response = await apiFetch(`${API_PREFIX}/inventory/categories${activeOnly ? '' : '?active_only=false'}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -26,8 +26,6 @@ export const getCategoriesOnce = () => {
 
 export async function fetchProducts(params = {}) {
     const queryParams = new URLSearchParams();
-    queryParams.append('is_sellable', 'true');
-    queryParams.append('active_only', 'true');
 
     if (params.search) {
         queryParams.append('search', params.search);

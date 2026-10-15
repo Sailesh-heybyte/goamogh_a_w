@@ -33,3 +33,9 @@ export const updateWorkOrderStatus = async (woId, action, closeFields = {}) => {
   })
 }
 
+export const previewWorkOrderClose = async (woId, body) =>
+  customFetch(`/api/v1/work-orders/${woId}/close-preview`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+

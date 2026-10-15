@@ -29,12 +29,12 @@ export default function CartPage() {
             ...item,
             cartId: item.id, // map database record id to cartId
             name: item.product_name,
-            weight: item.weight_label,
+            weight: item.size_label,
             price: Number(item.price),
             mrp: item.mrp ? Number(item.mrp) : null,
             quantity: Number(item.quantity),
-            image: item.image || (item.images && item.images[0]) || '',
-            is_inactive: item.is_active === false || item.is_disabled === true || item.product_is_active === false || item.variant_is_active === false,
+            image: item.image,
+            is_inactive: item.is_active === false,
             is_out_of_stock: item.is_out_of_stock,
             insufficient_stock: item.insufficient_stock,
             available_quantity: item.available_quantity,
@@ -42,29 +42,19 @@ export default function CartPage() {
     }, [cart]);
 
     const cartTotals = useMemo(() => {
-        if (!cart) {
-            return {
-                total_taxable_amount: 0,
-                total_gst_amount: 0,
-                total_cess_amount: 0,
-                total_amount: 0
-            };
-        }
+        if (!cart) return null;
         return {
-            total_taxable_amount: Number(cart.total_taxable_amount || 0),
-            total_gst_amount: Number(cart.total_gst_amount || 0),
-            total_cess_amount: Number(cart.total_cess_amount || 0),
-            total_amount: Number(cart.total_amount || 0)
+            total_taxable_amount: cart.total_taxable_amount,
+            total_discount_amount: cart.total_discount_amount,
+            total_gst_amount: cart.total_gst_amount,
+            total_cess_amount: cart.total_cess_amount,
+            total_amount: cart.total_amount
         };
     }, [cart]);
 
     const [isMounted, setIsMounted] = useState(false);
     const [actionCartError, setCartError] = useState(null);
 
-    const [couponCode, setCouponCode] = useState('');
-    const [discountPercentage, setDiscountPercentage] = useState(0);
-    const [couponApplied, setCouponApplied] = useState(false);
-    const [couponError, setCouponError] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(true);
 
     const { user, token, triggerLoginModal, openLegalModal } = useAuth();
@@ -629,12 +619,10 @@ export default function CartPage() {
 
 
 
-    const subtotal = cartTotals.total_taxable_amount;
-    const discount = subtotal * (discountPercentage / 100);
-    const tax = cartTotals.total_gst_amount;
-    const gstPercent = Math.round((cartTotals.total_gst_amount / cartTotals.total_taxable_amount) * 100);
-    const cess = cartTotals.total_cess_amount;
-    const total = cartTotals.total_amount;
+    const subtotal = cartTotals?.total_taxable_amount;
+    const tax = cartTotals?.total_gst_amount;
+    const cess = cartTotals?.total_cess_amount;
+    const total = cartTotals?.total_amount;
 
     const hasInactiveItems = cartItems.some(item => item.is_inactive);
     const hasStockError = cartItems.some(item => item.is_out_of_stock || item.insufficient_stock);
@@ -707,23 +695,7 @@ export default function CartPage() {
         }
     };
 
-    const handleApplyCoupon = (e) => {
-        e.preventDefault();
-        const code = couponCode.trim().toUpperCase();
-        if (code === 'GOAMOGH10') {
-            setDiscountPercentage(10);
-            setCouponApplied(true);
-            setCouponError('');
-        } else if (code === '') {
-            setCouponError('Please enter a coupon code.');
-            setCouponApplied(false);
-            setDiscountPercentage(0);
-        } else {
-            setCouponError('Invalid coupon code. Try GOAMOGH10.');
-            setCouponApplied(false);
-            setDiscountPercentage(0);
-        }
-    };
+
 
 
 
@@ -842,7 +814,7 @@ export default function CartPage() {
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount Paid</span>
-                                <span className="text-[#d8b66a] font-mono text-sm font-bold">₹{Number(checkoutResponse.total_amount).toFixed(2)}</span>
+                                <span className="text-[#d8b66a] font-mono text-sm font-bold">{checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Status</span>
@@ -909,7 +881,7 @@ export default function CartPage() {
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount to Pay</span>
-                                <span className="text-[#d8b66a] font-mono text-base font-bold">₹{Number(checkoutResponse.total_amount).toFixed(2)}</span>
+                                <span className="text-[#d8b66a] font-mono text-base font-bold">{checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Delivery Address</span>
@@ -966,7 +938,7 @@ export default function CartPage() {
                                             <span>Starting Secure Payment...</span>
                                         </>
                                     ) : (
-                                        <span>Pay with Razorpay (₹{Number(checkoutResponse.total_amount).toFixed(2)})</span>
+                                        <span>Pay with Razorpay ({checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"})</span>
                                     )}
                                 </button>
                             )}
@@ -1408,9 +1380,9 @@ export default function CartPage() {
                                                 <div className="flex md:block justify-between items-center w-full md:w-[15%] md:text-center">
                                                     <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">Price</span>
                                                     <div className="flex flex-col md:items-center">
-                                                        <span className="font-mono text-sm text-[#efe3bf]">₹{item.price.toFixed(2)}</span>
-                                                        {item.mrp && item.mrp > item.price && (
-                                                            <span className="text-[11px] text-[#d6cca9]/50 line-through font-mono">₹{item.mrp.toFixed(2)}</span>
+                                                        <span className="font-mono text-sm text-[#efe3bf]">{item.price != null ? `₹${Number(item.price).toFixed(2)}` : "—"}</span>
+                                                        {item.mrp != null && item.mrp > item.price && (
+                                                            <span className="text-[11px] text-[#d6cca9]/50 line-through font-mono">₹{Number(item.mrp).toFixed(2)}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1444,14 +1416,14 @@ export default function CartPage() {
                                                     <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">Total</span>
                                                     <div className="flex flex-col md:items-end font-mono">
                                                         <span className="text-sm text-[#efe3bf]">
-                                                            ₹{Number(item.taxable_amount || (item.price * item.quantity)).toFixed(2)}
+                                                            {item.taxable_amount != null ? `₹${Number(item.taxable_amount).toFixed(2)}` : "—"}
                                                         </span>
                                                         {Number(item.gst_amount) > 0 && (
                                                             <span className="text-[10px] text-[#efe3bf]/40">
                                                                 +₹{Number(item.gst_amount).toFixed(2)} GST
                                                             </span>
                                                         )}
-                                                        {Number(item.total_amount) > 0 && (
+                                                        {item.total_amount != null && (
                                                             <span className="text-xs font-bold text-[#d8b66a] border-t border-[#d8b66a]/15 mt-1 pt-0.5">
                                                                 ₹{Number(item.total_amount).toFixed(2)}
                                                             </span>
@@ -1480,71 +1452,31 @@ export default function CartPage() {
                         <div className="lg:col-span-4 space-y-6">
                             {/* Summary Totals Box */}
                             <div className="border border-[#d8b66a]/10 rounded-[24px] bg-[#0b150d] p-6 md:p-8 shadow-xl space-y-6">
-                                {/* Discount Code Form */}
-                                <div className="space-y-2">
-                                    <label className="text-[#efe3bf] font-serif text-sm font-semibold block">Do you have a discount?</label>
-                                    <form onSubmit={handleApplyCoupon} className="relative flex items-center">
-                                        <input
-                                            type="text"
-                                            placeholder="Coupon code"
-                                            value={couponCode}
-                                            onChange={(e) => setCouponCode(e.target.value)}
-                                            className="w-full bg-[#1a2416] border border-[#d8b66a]/20 rounded-full px-5 py-3 text-white placeholder-[#d6cca9]/40 focus:border-[#d8b66a]/60 outline-none text-sm transition pr-12"
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="absolute right-1.5 bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] rounded-full w-9 h-9 flex items-center justify-center transition active:scale-95 shadow-md"
-                                            aria-label="Apply discount"
-                                        >
-                                            <ArrowRight size={16} />
-                                        </button>
-                                    </form>
-                                    {couponApplied && (
-                                        <div className="flex items-center justify-between text-xs text-green-400 font-mono mt-1.5 px-1.5">
-                                            <span>✓ 10% discount applied!</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setDiscountPercentage(0);
-                                                    setCouponApplied(false);
-                                                    setCouponCode('');
-                                                }}
-                                                className="underline hover:text-white"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    )}
-                                    {couponError && (
-                                        <p className="text-xs text-red-400 font-mono mt-1.5 px-1.5">✗ {couponError}</p>
-                                    )}
-                                </div>
-
                                 {/* Calculation Details */}
                                 <div className="border-t border-[#d8b66a]/15 pt-5 space-y-3 text-sm">
                                     <div className="flex justify-between text-[#d6cca9]/70 font-mono">
                                         <span>Subtotal</span>
-                                        <span>₹{subtotal.toFixed(2)}</span>
+                                        <span>{subtotal != null ? `₹${Number(subtotal).toFixed(2)}` : "—"}</span>
                                     </div>
-                                    {discount > 0 && (
+                                    {cartTotals?.total_discount_amount != null && Number(cartTotals.total_discount_amount) > 0 && (
                                         <div className="flex justify-between text-green-400 font-mono">
-                                            <span>Discount</span>
-                                            <span>-₹{discount.toFixed(2)}</span>
+                                            <span>You save</span>
+                                            <span>{cartTotals.total_discount_amount != null ? `₹${Number(cartTotals.total_discount_amount).toFixed(2)}` : "—"}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-[#d6cca9]/70 font-mono">
-                                        <span>GST ({gstPercent}%)</span>
-                                        <span>₹{tax.toFixed(2)}</span>
+                                        <span>GST</span>
+                                        <span>{tax != null ? `₹${Number(tax).toFixed(2)}` : "—"}</span>
                                     </div>
-                                    {cess > 0 && (
+                                    {cess != null && Number(cess) > 0 && (
                                         <div className="flex justify-between text-[#d6cca9]/70 font-mono">
                                             <span>Cess</span>
-                                            <span>₹{cess.toFixed(2)}</span>
+                                            <span>{cess != null ? `₹${Number(cess).toFixed(2)}` : "—"}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-white font-serif text-lg font-bold border-t border-[#d8b66a]/15 pt-4">
                                         <span>Total</span>
-                                        <span className="text-[#d8b66a] font-mono">₹{total.toFixed(2)}</span>
+                                        <span className="text-[#d8b66a] font-mono">{total != null ? `₹${Number(total).toFixed(2)}` : "—"}</span>
                                     </div>
 
                                     {/* Terms & Conditions Checkbox */}
@@ -1624,7 +1556,7 @@ export default function CartPage() {
                                                         <span>Placing Order...</span>
                                                     </>
                                                 ) : (
-                                                    <span>Place Order (₹{total.toFixed(2)})</span>
+                                                    <span>Place Order ({total != null ? `₹${Number(total).toFixed(2)}` : "—"})</span>
                                                 )}
                                             </button>
                                         )

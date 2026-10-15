@@ -30,3 +30,10 @@ export const updateIndent = async (indentId, indentData) => {
     body: JSON.stringify(indentData),
   })
 }
+
+export const previewIndent = async (payload) =>
+  customFetch("/api/v1/sales/indents/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+

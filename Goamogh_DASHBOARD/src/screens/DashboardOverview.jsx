@@ -1,36 +1,34 @@
+import { Navigate } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
-import { ShieldCheck, UserCheck } from "lucide-react"
 
 function DashboardOverview() {
-  const { user, isSuperAdmin } = useAuth()
+  const { hasPermission, isSuperAdmin, user } = useAuth()
 
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center">
-      <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center">
-        
-        {/* Dynamic Role Badge Pill */}
-        {isSuperAdmin ? (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border bg-brand-50 text-brand-700 border-brand-200">
-            <ShieldCheck className="w-4 h-4 mr-1.5 text-brand-600" />
-            Super Admin Console
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border bg-slate-50 text-slate-600 border-slate-200">
-            <UserCheck className="w-4 h-4 mr-1.5 text-slate-500" />
-            Staff Console ({user?.role?.name || user?.role_name || user?.role || "Admin"})
-          </span>
-        )}
-
-        <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Coming Soon</h2>
-          <p className="text-sm font-medium text-slate-500 max-w-md">
-            We are working hard to build this workspace section. Please check back later!
-          </p>
-        </div>
-        
-      </div>
-    </div>
+  const isAdminLikeUser = Boolean(
+    isSuperAdmin ||
+      user?.is_admin ||
+      user?.role?.name?.toLowerCase().includes("admin") ||
+      user?.role_name?.toLowerCase().includes("admin") ||
+      user?.role?.toString().toLowerCase().includes("admin")
   )
+
+  const checkPerm = (perm) => isSuperAdmin || isAdminLikeUser || hasPermission(perm)
+
+  if (checkPerm("catalog_manage")) return <Navigate to="/dashboard/categories" replace />
+  if (checkPerm("catalog_authorize")) return <Navigate to="/dashboard/products" replace />
+  if (checkPerm("certificate_manage")) return <Navigate to="/dashboard/certificates" replace />
+  if (checkPerm("price_view") || checkPerm("price_manage")) return <Navigate to="/dashboard/pricing" replace />
+  if (checkPerm("stock_manage")) return <Navigate to="/dashboard/inventory-dashboard" replace />
+  if (checkPerm("supplier_manage")) return <Navigate to="/dashboard/suppliers" replace />
+  if (checkPerm("work_order_manage")) return <Navigate to="/dashboard/work-orders" replace />
+  if (checkPerm("customer_manage")) return <Navigate to="/dashboard/customers" replace />
+  if (checkPerm("indent_manage")) return <Navigate to="/dashboard/indents" replace />
+  if (checkPerm("sales_manage")) return <Navigate to="/dashboard/sales" replace />
+  if (checkPerm("purchase_order_manage")) return <Navigate to="/dashboard/purchase/orders" replace />
+  if (checkPerm("goods_receipt_manage")) return <Navigate to="/dashboard/purchase/entries" replace />
+  if (checkPerm("all")) return <Navigate to="/dashboard/staff" replace />
+
+  return <Navigate to="/dashboard/categories" replace />
 }
 
 export default DashboardOverview

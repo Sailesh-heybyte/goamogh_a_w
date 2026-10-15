@@ -1,33 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, RotateCw } from 'lucide-react';
-
-const AnimatedCounter = ({ from = 0, to, duration = 2, suffix = '', decimals = 0 }) => {
-  const [count, setCount] = useState(from);
-
-  useEffect(() => {
-    let startTime;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
-      const next = from + (to - from) * progress;
-      setCount(Number(next.toFixed(decimals)));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [from, to, duration]);
-
-  return (
-    <span>
-      {count}
-      {suffix}
-    </span>
-  );
-};
+import { CheckCircle2, RotateCw, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { getCertificatesOnce, clearCertificatesCache } from '../../api/certificateService';
 
 export default function TransparencySection() {
   const [cardRotation, setCardRotation] = useState({ x: 0, y: 0 });
-  const [activeFeature, setActiveFeature] = useState(null);
+  const [certificates, setCertificates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const cardRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -36,28 +18,63 @@ export default function TransparencySection() {
       id: 'moisture',
       title: 'Moisture Control',
       description: 'Optimized to prevent degradation and mold growth.',
-      certRow: 'Total Ash'
     },
     {
       id: 'purity',
       title: 'Purity Testing',
       description: 'Verified absence of fillers, dyes, or synthetic additives.',
-      certRow: 'Volatile Oil'
     },
     {
       id: 'consistency',
       title: 'Consistency Analysis',
       description: 'Uniform essential oil content across every batch.',
-      certRow: 'Lead Content'
     }
   ];
 
-  const certificateData = [
-    { label: 'Total Ash', value: '5.4%', status: 'Pass' },
-    { label: 'Volatile Oil', value: '3.2%', status: 'Pass' },
-    { label: 'Lead Content', value: '<0.01ppm', status: 'Pass' },
-    { label: 'Aflatoxins', value: 'Negative', status: 'Pass' }
-  ];
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await getCertificatesOnce();
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      setCertificates(list);
+    } catch {
+      setError("Couldn't load certificates.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetch = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await getCertificatesOnce();
+        if (cancelled) return;
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setCertificates(list);
+      } catch {
+        if (!cancelled) {
+          setError("Couldn't load certificates.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetch();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRetry = () => {
+    clearCertificatesCache();
+    loadData();
+  };
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -69,8 +86,25 @@ export default function TransparencySection() {
 
   const handleMouseLeave = () => {
     setCardRotation({ x: 0, y: 0 });
-    setActiveFeature(null);
   };
+
+  const formatIssuedDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const latest = certificates[0] || null;
+  const count = certificates.length;
 
   return (
     <section
@@ -135,20 +169,12 @@ export default function TransparencySection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1, duration: 0.6 }}
-                onMouseEnter={() => setActiveFeature(feature.id)}
-                onMouseLeave={() => setActiveFeature(null)}
-                className="group cursor-pointer"
+                className="group"
               >
                 <div className="flex gap-4 items-start">
-                  <motion.div
-                    animate={{
-                      scale: activeFeature === feature.id ? 1.2 : 1,
-                      color: activeFeature === feature.id ? '#c5a47e' : '#c5a47e'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <div style={{ color: '#c5a47e' }}>
                     <CheckCircle2 size={24} className="md:w-7 md:h-7" />
-                  </motion.div>
+                  </div>
                   <div>
                     <h3 className="mb-1 text-xl md:text-2xl font-semibold text-white">
                       {feature.title}
@@ -163,18 +189,25 @@ export default function TransparencySection() {
           </div>
 
           {/* CTA Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-10 rounded-xl border-2 px-9 py-4 text-sm md:text-base font-semibold uppercase tracking-wider transition-all duration-300"
-            style={{
-              borderColor: '#c5a47e',
-              color: '#c5a47e',
-              backgroundColor: 'transparent'
-            }}
-          >
-            View Sample Report
-          </motion.button>
+          {(!isLoading && count === 0) ? null : (
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-block mt-10"
+            >
+              <Link
+                href="/certificates"
+                className="inline-block rounded-xl border-2 px-9 py-4 text-sm md:text-base font-semibold uppercase tracking-wider transition-all duration-300"
+                style={{
+                  borderColor: '#c5a47e',
+                  color: '#c5a47e',
+                  backgroundColor: 'transparent'
+                }}
+              >
+                View All Certificates
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Right Column - 3D Certificate Card */}
@@ -220,74 +253,73 @@ export default function TransparencySection() {
               <h3 className="text-center text-xl md:text-4xl font-bold" style={{ color: '#1a1a1a' }}>
                 CERTIFICATE OF ANALYSIS
               </h3>
-              <p
-                className="mt-2 text-center text-sm md:text-lg"
-                style={{ color: '#666' }}
-              >
-                Batch #GM-SR-2024-008
-              </p>
             </div>
 
-            {/* Certificate Table */}
-            <div className="mb-6 space-y-2 md:space-y-3">
-              {certificateData.map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  animate={{
-                    backgroundColor:
-                      activeFeature === features[idx]?.id
-                        ? 'rgba(197, 164, 126, 0.1)'
-                        : 'transparent',
-                    x: activeFeature === features[idx]?.id ? 4 : 0
-                  }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-2 gap-4 rounded-lg border border-transparent p-2 md:p-3"
-                  style={{
-                    borderColor:
-                      activeFeature === features[idx]?.id
-                        ? 'rgba(197, 164, 126, 0.3)'
-                        : 'transparent'
-                  }}
+            {/* Card Content State */}
+            {isLoading ? (
+              <div className="py-8 space-y-4">
+                <div className="h-6 bg-gray-200 rounded animate-pulse w-3/4 mx-auto" />
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2 mx-auto" />
+                <div className="h-10 bg-gray-200 rounded animate-pulse w-1/3 mx-auto mt-6" />
+              </div>
+            ) : error ? (
+              <div className="py-8 text-center space-y-2">
+                <p className="text-sm md:text-base font-medium" style={{ color: '#666' }}>
+                  {error}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="text-sm font-semibold underline hover:opacity-80 transition cursor-pointer"
+                  style={{ color: '#c5a47e' }}
                 >
-                  <div>
-                    <p className="text-sm md:text-lg font-medium" style={{ color: '#666' }}>
-                      {item.label}
+                  Retry
+                </button>
+              </div>
+            ) : count === 0 || !latest ? (
+              <div className="py-8 text-center">
+                <p className="text-sm md:text-lg font-medium" style={{ color: '#666' }}>
+                  Certificates coming soon.
+                </p>
+              </div>
+            ) : (
+              <div className="py-4 space-y-5 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <FileText size={28} className="md:w-8 md:h-8" style={{ color: '#c5a47e' }} />
+                </div>
+                <div>
+                  <h4 className="text-lg md:text-2xl font-bold leading-snug px-2" style={{ color: '#1a1a1a' }}>
+                    {latest.title}
+                  </h4>
+                  {latest.issued_on && (
+                    <p className="mt-2 text-xs md:text-sm font-medium" style={{ color: '#666' }}>
+                      Issued {formatIssuedDate(latest.issued_on)}
                     </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg md:text-2xl font-bold" style={{ color: '#1a1a1a' }}>
-                      {item.label.includes('Ash') && (
-                        <AnimatedCounter from={0} to={5.4} suffix="%" decimals={1} />
-                      )}
-                      {item.label.includes('Oil') && (
-                        <AnimatedCounter from={0} to={3.2} suffix="%" decimals={1} />
-                      )}
-                      {!item.label.includes('Ash') && !item.label.includes('Oil') && item.value}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <a
+                    href={latest.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border-2 px-5 py-2 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"
+                    style={{
+                      borderColor: '#c5a47e',
+                      color: '#c5a47e',
+                      backgroundColor: 'transparent'
+                    }}
+                  >
+                    Open PDF ↗
+                  </a>
+                </div>
+              </div>
+            )}
 
-            {/* Pass Status with Stamp Effect */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-6">
-              <p className="text-sm" style={{ color: '#999' }}>
-                This document verifies that the batch complies with all health and safety standards.
+            {/* Bottom row */}
+            <div className="border-t border-gray-200 pt-5 mt-4 text-center">
+              <p className="text-xs md:text-sm font-medium" style={{ color: '#666' }}>
+                {count} {count === 1 ? 'certificate' : 'certificates'} published
               </p>
-              <motion.div
-                initial={{ scale: 0, rotate: -30 }}
-                whileInView={{ scale: 1, rotate: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5, duration: 0.6, type: 'spring' }}
-                className="px-4 py-2 rounded-lg font-bold text-sm"
-                style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: 'white',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
-                }}
-              >
-                ✓ PASSED
-              </motion.div>
             </div>
           </div>
         </motion.div>

@@ -261,7 +261,7 @@ function CreatePurchaseOrder() {
           ? rawMaterials.find((rm) => rm.id === row.itemId)
           : products.find((p) => p.id === row.itemId)
 
-        const unitCode = selectedItemObj?.unit_code || "KG"
+        const unitCode = selectedItemObj?.unit_code ?? ""
 
         return {
           raw_material_id: isRM ? row.itemId : null,

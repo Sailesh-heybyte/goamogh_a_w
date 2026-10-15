@@ -483,28 +483,15 @@ export default function ProfilePage() {
     };
 
     const detailHelpers = selectedOrderDetails ? {
-        saleOrIndentNumber: selectedOrderDetails.sale_number || selectedOrderDetails.indent_number || '',
-        isSale: !!selectedOrderDetails.sale_number,
-        taxableAmount: selectedOrderDetails.total_taxable_amount !== undefined
-            ? selectedOrderDetails.total_taxable_amount
-            : selectedOrderDetails.totals?.total_taxable || 0,
-        cgstAmount: selectedOrderDetails.total_cgst_amount !== undefined
-            ? selectedOrderDetails.total_cgst_amount
-            : selectedOrderDetails.totals?.cgst_amount || 0,
-        sgstAmount: selectedOrderDetails.total_sgst_amount !== undefined
-            ? selectedOrderDetails.total_sgst_amount
-            : selectedOrderDetails.totals?.sgst_amount || 0,
-        igstAmount: selectedOrderDetails.total_igst_amount !== undefined
-            ? selectedOrderDetails.total_igst_amount
-            : selectedOrderDetails.totals?.igst_amount || 0,
-        totalCess: selectedOrderDetails.total_cess_amount !== undefined
-            ? selectedOrderDetails.total_cess_amount
-            : selectedOrderDetails.totals?.total_cess || 0,
-        grandTotal: selectedOrderDetails.total_amount !== undefined
-            ? selectedOrderDetails.total_amount
-            : selectedOrderDetails.totals?.grand_total || 0,
-        orderItems: selectedOrderDetails.invoice_lines || selectedOrderDetails.items || [],
-        orderStatus: selectedOrderDetails.status || (selectedOrderDetails.sale_number ? 'completed' : 'pending')
+        saleOrIndentNumber: selectedOrderDetails.sale_number,
+        taxableAmount: selectedOrderDetails.total_taxable_amount,
+        cgstAmount: selectedOrderDetails.total_cgst_amount,
+        sgstAmount: selectedOrderDetails.total_sgst_amount,
+        igstAmount: selectedOrderDetails.total_igst_amount,
+        totalCess: selectedOrderDetails.total_cess_amount,
+        grandTotal: selectedOrderDetails.total_amount,
+        orderItems: selectedOrderDetails.items ?? [],
+        orderStatus: selectedOrderDetails.status
     } : null;
 
     // Loading State
@@ -869,7 +856,7 @@ export default function ProfilePage() {
                                                         <div key={item.id || idx} className="p-4 flex flex-col sm:flex-row justify-between gap-4">
                                                             <div>
                                                                 <p className="text-white font-serif font-bold text-sm">{item.product_name}</p>
-                                                                <p className="text-[11px] text-[#efe3bf]/50 mt-0.5 font-mono">Weight: {item.weight_label || `${item.weight_grams}g`} • Rate: ₹{Number(item.rate).toFixed(2)}</p>
+                                                                <p className="text-[11px] text-[#efe3bf]/50 mt-0.5 font-mono">Size: {item.size_label} • Rate: ₹{Number(item.rate).toFixed(2)}</p>
                                                             </div>
                                                             <div className="flex items-center justify-between sm:justify-end gap-10">
                                                                 <div className="text-left sm:text-right">
@@ -890,35 +877,35 @@ export default function ProfilePage() {
                                             <div className="border-t border-[#d8b66a]/10 pt-4 space-y-2.5 max-w-sm ml-auto">
                                                 <div className="flex justify-between text-[#efe3bf]/60 text-xs font-mono">
                                                     <span>Taxable Amount</span>
-                                                    <span>₹{Number(detailHelpers.taxableAmount).toFixed(2)}</span>
+                                                    <span>{detailHelpers.taxableAmount != null ? `₹${Number(detailHelpers.taxableAmount).toFixed(2)}` : "—"}</span>
                                                 </div>
                                                 {Number(detailHelpers.cgstAmount) > 0 && (
                                                     <div className="flex justify-between text-[#efe3bf]/50 text-xs font-mono">
                                                         <span>CGST</span>
-                                                        <span>₹{Number(detailHelpers.cgstAmount).toFixed(2)}</span>
+                                                        <span>{detailHelpers.cgstAmount != null ? `₹${Number(detailHelpers.cgstAmount).toFixed(2)}` : "—"}</span>
                                                     </div>
                                                 )}
                                                 {Number(detailHelpers.sgstAmount) > 0 && (
                                                     <div className="flex justify-between text-[#efe3bf]/50 text-xs font-mono">
                                                         <span>SGST</span>
-                                                        <span>₹{Number(detailHelpers.sgstAmount).toFixed(2)}</span>
+                                                        <span>{detailHelpers.sgstAmount != null ? `₹${Number(detailHelpers.sgstAmount).toFixed(2)}` : "—"}</span>
                                                     </div>
                                                 )}
                                                 {Number(detailHelpers.igstAmount) > 0 && (
                                                     <div className="flex justify-between text-[#efe3bf]/50 text-xs font-mono">
                                                         <span>IGST</span>
-                                                        <span>₹{Number(detailHelpers.igstAmount).toFixed(2)}</span>
+                                                        <span>{detailHelpers.igstAmount != null ? `₹${Number(detailHelpers.igstAmount).toFixed(2)}` : "—"}</span>
                                                     </div>
                                                 )}
                                                 {Number(detailHelpers.totalCess) > 0 && (
                                                     <div className="flex justify-between text-[#efe3bf]/50 text-xs font-mono">
                                                         <span>Cess</span>
-                                                        <span>₹{Number(detailHelpers.totalCess).toFixed(2)}</span>
+                                                        <span>{detailHelpers.totalCess != null ? `₹${Number(detailHelpers.totalCess).toFixed(2)}` : "—"}</span>
                                                     </div>
                                                 )}
                                                 <div className="flex justify-between text-white font-serif font-bold text-sm border-t border-[#d8b66a]/10 pt-3">
                                                     <span>Grand Total</span>
-                                                    <span className="text-[#d8b66a] font-mono font-bold text-base">₹{Number(detailHelpers.grandTotal).toFixed(2)}</span>
+                                                    <span className="text-[#d8b66a] font-mono font-bold text-base">{detailHelpers.grandTotal != null ? `₹${Number(detailHelpers.grandTotal).toFixed(2)}` : "—"}</span>
                                                 </div>
                                             </div>
 
@@ -1149,10 +1136,7 @@ export default function ProfilePage() {
                                                             <span className="flex items-center gap-1"><Clock size={11} /> {order.created_at ? formatDate(order.created_at) : 'Date N/A'}</span>
                                                             <span>•</span>
                                                             <span>
-                                                                {order.totals?.total_quantity !== undefined || order.invoice_lines !== undefined
-                                                                    ? `${order.invoice_lines?.reduce((sum, item) => sum + item.quantity, 0) || order.totals?.total_quantity || 0} items`
-                                                                    : 'Click to view'
-                                                                }
+                                                                {order.total_quantity != null ? `${order.total_quantity} items` : "—"}
                                                             </span>
                                                         </div>
                                                     </div>

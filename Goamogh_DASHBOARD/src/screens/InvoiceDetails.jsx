@@ -138,7 +138,7 @@ function InvoiceDetails() {
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
               <img
-                src="/logo/Goamogh%20golden.png"
+                src="/brand/goamogh-golden.png"
                 alt="Goamogh logo"
                 className="h-12 w-12 object-contain bg-transparent"
               />
@@ -203,32 +203,27 @@ function InvoiceDetails() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {sale.items?.map((item, idx) => {
-                  const gross = item.quantity * item.rate
-                  const disc = gross * ((item.discount_percent || 0) / 100)
-                  const taxable = gross - disc
-                  return (
+                {sale.items?.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-slate-50/20 transition-colors">
                       <td className="px-2 py-3 text-center text-slate-400 font-bold whitespace-nowrap hidden md:table-cell">{idx + 1}</td>
                       <td className="px-3 py-3 min-w-0">
                         <p className="font-bold text-slate-900 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
                         <div className="text-[10px] text-slate-400 tabular-nums truncate">
                           <span>HSN: {item.hsn_code || "—"}</span>
-                          <span className="md:hidden"> • Rate: ₹{parseFloat(item.rate).toFixed(2)}</span>
-                          <span className="lg:hidden"> • GST: {parseFloat(item.gst_percent || 0).toFixed(2)}%</span>
+                          <span className="md:hidden"> • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</span>
+                          <span className="lg:hidden"> • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</span>
                         </div>
                       </td>
                       <td className="px-2 py-3 tabular-nums text-center text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.hsn_code || "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">₹{parseFloat(item.rate).toFixed(2)}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{parseFloat(item.discount_percent || 0).toFixed(2)}%</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap hidden lg:table-cell">₹{taxable.toFixed(2)}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{parseFloat(item.gst_percent || 0).toFixed(2)}%</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">₹{parseFloat(item.gst_amount || 0).toFixed(2)}</td>
-                      <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">₹{parseFloat(item.total_amount).toFixed(2)}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity != null ? item.quantity : "—"}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">{item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap hidden lg:table-cell">{item.taxable_amount != null ? `₹${parseFloat(item.taxable_amount).toFixed(2)}` : "—"}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.gst_amount != null ? `₹${parseFloat(item.gst_amount).toFixed(2)}` : "—"}</td>
+                      <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">{item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}</td>
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>
@@ -254,7 +249,7 @@ function InvoiceDetails() {
                   </span>
                 )}
               </div>
-              <p>Settled Amount: <span className="tabular-nums font-bold text-slate-900">₹{parseFloat(invoice.paid_amount || 0).toFixed(2)}</span></p>
+              <p>Settled Amount: <span className="tabular-nums font-bold text-slate-900">{invoice.paid_amount != null ? `₹${parseFloat(invoice.paid_amount).toFixed(2)}` : "—"}</span></p>
               {invoice.notes && <p className="text-[10px] text-slate-400 mt-1 leading-normal font-semibold">Memo: {invoice.notes}</p>}
             </div>
 
@@ -273,45 +268,45 @@ function InvoiceDetails() {
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5 text-slate-600 font-semibold">
             <div className="flex justify-between">
               <span>Gross Total:</span>
-              <span className="tabular-nums text-slate-900">₹{parseFloat(invoice.total_taxable_amount + (sale.total_discount_amount || 0)).toFixed(2)}</span>
+              <span className="tabular-nums text-slate-900">{invoice.total_gross_amount != null ? `₹${parseFloat(invoice.total_gross_amount).toFixed(2)}` : "—"}</span>
             </div>
 
-            {(sale.total_discount_amount || 0) > 0 && (
+            {invoice.total_discount_amount > 0 && (
               <div className="flex justify-between text-rose-700 text-[11px]">
                 <span>Total Discount Applied:</span>
-                <span className="tabular-nums">-₹{parseFloat(sale.total_discount_amount).toFixed(2)}</span>
+                <span className="tabular-nums">{invoice.total_discount_amount != null ? `-₹${parseFloat(invoice.total_discount_amount).toFixed(2)}` : "—"}</span>
               </div>
             )}
 
             <div className="flex justify-between pt-1.5 border-t border-slate-200">
               <span>Taxable Value:</span>
-              <span className="tabular-nums text-slate-900 font-bold">₹{parseFloat(invoice.total_taxable_amount).toFixed(2)}</span>
+              <span className="tabular-nums text-slate-900 font-bold">{invoice.total_taxable_amount != null ? `₹${parseFloat(invoice.total_taxable_amount).toFixed(2)}` : "—"}</span>
             </div>
 
             {invoice.total_cgst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>CGST:</span>
-                <span className="tabular-nums">₹{parseFloat(invoice.total_cgst_amount).toFixed(2)}</span>
+                <span className="tabular-nums">{invoice.total_cgst_amount != null ? `₹${parseFloat(invoice.total_cgst_amount).toFixed(2)}` : "—"}</span>
               </div>
             )}
 
             {invoice.total_sgst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>SGST:</span>
-                <span className="tabular-nums">₹{parseFloat(invoice.total_sgst_amount).toFixed(2)}</span>
+                <span className="tabular-nums">{invoice.total_sgst_amount != null ? `₹${parseFloat(invoice.total_sgst_amount).toFixed(2)}` : "—"}</span>
               </div>
             )}
 
             {invoice.total_igst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>IGST:</span>
-                <span className="tabular-nums">₹{parseFloat(invoice.total_igst_amount).toFixed(2)}</span>
+                <span className="tabular-nums">{invoice.total_igst_amount != null ? `₹${parseFloat(invoice.total_igst_amount).toFixed(2)}` : "—"}</span>
               </div>
             )}
 
             <div className="border-t border-slate-200 pt-2.5 flex justify-between items-baseline text-slate-900 font-bold">
               <span className="text-xs uppercase">Grand Invoice Value:</span>
-              <span className="text-base font-extrabold tabular-nums text-brand-700">₹{parseFloat(invoice.total_amount).toFixed(2)}</span>
+              <span className="text-base font-extrabold tabular-nums text-brand-700">{invoice.total_amount != null ? `₹${parseFloat(invoice.total_amount).toFixed(2)}` : "—"}</span>
             </div>
 
             <div className="pt-4 border-t border-slate-200 flex flex-col items-end pr-1 gap-1 text-[10px] text-slate-400">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Users,
   Search,
@@ -89,7 +89,6 @@ function Customers() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   // Current Operations
@@ -143,21 +142,20 @@ function Customers() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setSkip(0)
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery])
+
+  useEffect(() => {
+    setSkip(0)
+  }, [debouncedSearch, statusFilter])
 
   const fetchCustomers = useCallback(async () => {
     const requestId = ++latestRequestRef.current
     setIsLoading(true)
     setError("")
     try {
-      const params = { search: debouncedSearch, skip, limit }
-      if (statusFilter !== "all") {
-        params.is_active = statusFilter === "active"
-      }
-      const res = await getCustomers(params)
+      const res = await getCustomers()
       if (requestId !== latestRequestRef.current) return
       if (!res.ok) {
         throw new Error("Failed to load customers catalog.")
@@ -165,7 +163,6 @@ function Customers() {
       const json = await res.json()
       if (requestId !== latestRequestRef.current) return
       setCustomers(json.data || [])
-      setTotal(json.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred.")
@@ -174,11 +171,29 @@ function Customers() {
         setIsLoading(false)
       }
     }
-  }, [debouncedSearch, statusFilter, skip, limit])
+  }, [])
 
   useEffect(() => {
     fetchCustomers()
   }, [fetchCustomers])
+
+  const filtered = useMemo(() => {
+    const search = debouncedSearch.trim().toLowerCase()
+    return customers.filter((c) => {
+      if (statusFilter !== "all" && c.is_active !== (statusFilter === "active")) {
+        return false
+      }
+      if (search) {
+        const matches = [c.first_name, c.last_name, c.company_name, c.email, c.phone].some(
+          (field) => (field || "").toLowerCase().includes(search)
+        )
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [customers, statusFilter, debouncedSearch])
+
+  const pageRows = filtered.slice(skip, skip + limit)
 
   // Handle manual customer creation
   const handleCreateSubmit = async (e) => {
@@ -547,7 +562,7 @@ function Customers() {
     setModalLoading(true)
     setIsHistoryOpen(true)
     try {
-      const res = await getCustomerOrders(customer.id, { skip: 0, limit: 100 })
+      const res = await getCustomerOrders(customer.id)
       if (!res.ok) throw new Error("Could not retrieve customer purchases history.")
       const json = await res.json()
       setOrderHistory(json.data || [])
@@ -642,7 +657,7 @@ function Customers() {
             Retry
           </button>
         </div>
-      ) : customers.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 font-medium shadow-sm">
           No customer records matching lookup filters.
         </div>
@@ -660,7 +675,7 @@ function Customers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
-                {customers.map((c) => {
+                {pageRows.map((c) => {
                     const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Customer"
                     const initial = (c.first_name || "C")[0].toUpperCase()
                     return (
@@ -795,7 +810,7 @@ function Customers() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filtered.length} onChange={setSkip} />
         </div>
       )}      {/* MODAL 1: ADD CUSTOMER */}
       {isCreateOpen && (
@@ -1363,7 +1378,7 @@ function Customers() {
                           <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden md:table-cell">{order.sale_type}</td>
                           <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap">{order.status}</td>
                           <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden lg:table-cell">{order.payment_status}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">₹{parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">{order.total_amount != null ? `₹${parseFloat(order.total_amount).toFixed(2)}` : "—"}</td>
                           <td className="px-3 py-2.5 text-slate-400 tabular-nums whitespace-nowrap hidden md:table-cell">{formatShortDate(order.created_at)}</td>
                         </tr>
                       ))}

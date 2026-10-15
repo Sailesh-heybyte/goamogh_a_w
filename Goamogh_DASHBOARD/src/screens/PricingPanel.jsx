@@ -135,27 +135,27 @@ function PricingPanel() {
 
       if (isNaN(mrpNum) || mrpNum <= 0) {
         hasValidationError = true
-        validationMsg = `MRP for ${formatWeight(v.weight_grams)} variant must be a positive number.`
+        validationMsg = `MRP for ${v.size_label} variant must be a positive number.`
         break
       }
       if (isNaN(b2cNum) || b2cNum <= 0) {
         hasValidationError = true
-        validationMsg = `B2C price for ${formatWeight(v.weight_grams)} variant must be a positive number.`
+        validationMsg = `B2C price for ${v.size_label} variant must be a positive number.`
         break
       }
       if (isNaN(b2bNum) || b2bNum <= 0) {
         hasValidationError = true
-        validationMsg = `B2B price for ${formatWeight(v.weight_grams)} variant must be a positive number.`
+        validationMsg = `B2B price for ${v.size_label} variant must be a positive number.`
         break
       }
       if (b2cNum > mrpNum) {
         hasValidationError = true
-        validationMsg = `B2C price cannot exceed MRP for the ${formatWeight(v.weight_grams)} variant.`
+        validationMsg = `B2C price cannot exceed MRP for the ${v.size_label} variant.`
         break
       }
       if (b2bNum > mrpNum) {
         hasValidationError = true
-        validationMsg = `B2B price cannot exceed MRP for the ${formatWeight(v.weight_grams)} variant.`
+        validationMsg = `B2B price cannot exceed MRP for the ${v.size_label} variant.`
         break
       }
 
@@ -224,12 +224,6 @@ function PricingPanel() {
     }
   }
 
-  const formatWeight = (grams) => {
-    if (grams >= 1000) {
-      return `${grams / 1000} KG`
-    }
-    return `${grams} GM`
-  }
 
 
 
@@ -517,8 +511,8 @@ function PricingPanel() {
                       return (
                         <tr key={v.variant_id} className="hover:bg-slate-50/30">
                           {/* Weight format */}
-                          <td className="px-2 sm:px-4 py-3.5 text-slate-800 font-bold whitespace-nowrap truncate" title={formatWeight(v.weight_grams)}>
-                            {formatWeight(v.weight_grams)}
+                          <td className="px-2 sm:px-4 py-3.5 text-slate-800 font-bold whitespace-nowrap truncate" title={v.size_label}>
+                            {v.size_label}
                           </td>
 
                           {/* MRP */}

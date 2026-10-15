@@ -67,10 +67,10 @@ function PurchaseEntries() {
     setIsSelectPOOpen(true)
     setIsLoadingPOs(true)
     try {
-      const res = await getPurchaseOrders({ receivable: true, limit: 1000 })
+      const res = await getPurchaseOrders()
       if (!res.ok) throw new Error("Failed to load open purchase orders")
       const json = await res.json()
-      setReceivableOrders(json.data || [])
+      setReceivableOrders((json.data || []).filter((po) => po.is_receivable === true))
     } catch (err) {
       alert(err.message || "Failed to load open purchase orders")
     } finally {
@@ -232,10 +232,10 @@ function PurchaseEntries() {
                     <td className="px-2 py-4 text-right whitespace-nowrap">
                       <div>
                         <p className="text-slate-800 font-bold tabular-nums">
-                          ₹{(entry.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          {entry.total_amount != null ? `₹${Number(entry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                         </p>
                         <p className="text-[10px] text-slate-400 font-bold tabular-nums">
-                          Tax: ₹{(entry.total_tax || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          {entry.total_tax != null ? `Tax: ₹${Number(entry.total_tax).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                         </p>
                       </div>
                     </td>
@@ -445,7 +445,7 @@ function PurchaseEntries() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Rounding Adjustment</span>
                   <span className="text-sm tabular-nums font-bold text-slate-800 mt-0.5 block">
-                    ₹{(viewingEntry.rounding_adjustment || 0).toFixed(2)}
+                    {viewingEntry.rounding_adjustment != null ? `₹${Number(viewingEntry.rounding_adjustment).toFixed(2)}` : "—"}
                   </span>
                 </div>
               </div>
@@ -474,29 +474,29 @@ function PurchaseEntries() {
                               <p className="font-bold text-slate-800 truncate" title={itemName || "Inventory Item"}>{itemName || "Inventory Item"}</p>
                               <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                                 <span>HSN: {item.hsn_code || "—"}</span>
-                                <span className="md:hidden"> • Rate: ₹{(parseFloat(item.unit_price) || 0).toFixed(2)}</span>
+                                <span className="md:hidden"> • Rate: {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}</span>
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap">
-                              <div className="truncate" title={parseFloat(item.quantity_received).toFixed(2)}>
-                                {parseFloat(item.quantity_received).toFixed(2)}
+                              <div className="truncate" title={item.quantity_received != null ? parseFloat(item.quantity_received).toFixed(2) : "—"}>
+                                {item.quantity_received != null ? parseFloat(item.quantity_received).toFixed(2) : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
-                              <div className="truncate" title={`₹${(parseFloat(item.unit_price) || 0).toFixed(2)}`}>
-                                ₹{(parseFloat(item.unit_price) || 0).toFixed(2)}
+                              <div className="truncate" title={item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}>
+                                {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
-                              <div className="truncate" title={`₹${(parseFloat(item.subtotal) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}>
-                                ₹{(parseFloat(item.subtotal) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              <div className="truncate" title={item.subtotal != null ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}>
+                                {item.subtotal != null ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
                               {viewingEntry.is_interstate ? (
                                 <>
-                                  <div className="truncate" title={`IGST ₹${(parseFloat(item.igst_amount) || 0).toFixed(2)}`}>
-                                    IGST ₹{(parseFloat(item.igst_amount) || 0).toFixed(2)}
+                                  <div className="truncate" title={item.igst_amount != null ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}` : "—"}>
+                                    {item.igst_amount != null ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}` : "—"}
                                   </div>
                                   <div className="text-[10px] text-slate-400 truncate" title={`@ ${item.gst_percent}%`}>
                                     @ {item.gst_percent}%
@@ -504,11 +504,11 @@ function PurchaseEntries() {
                                 </>
                               ) : (
                                 <>
-                                  <div className="truncate" title={`CGST ₹${(parseFloat(item.cgst_amount) || 0).toFixed(2)}`}>
-                                    CGST ₹{(parseFloat(item.cgst_amount) || 0).toFixed(2)}
+                                  <div className="truncate" title={item.cgst_amount != null ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}` : "—"}>
+                                    {item.cgst_amount != null ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}` : "—"}
                                   </div>
-                                  <div className="truncate" title={`SGST ₹${(parseFloat(item.sgst_amount) || 0).toFixed(2)}`}>
-                                    SGST ₹{(parseFloat(item.sgst_amount) || 0).toFixed(2)}
+                                  <div className="truncate" title={item.sgst_amount != null ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}` : "—"}>
+                                    {item.sgst_amount != null ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}` : "—"}
                                   </div>
                                   <div className="text-[10px] text-slate-400 truncate" title={`@ ${item.gst_percent / 2}% each`}>
                                     @ {item.gst_percent / 2}% each
@@ -517,8 +517,8 @@ function PurchaseEntries() {
                               )}
                             </td>
                             <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-800 whitespace-nowrap">
-                              <div className="truncate" title={`₹${(parseFloat(item.total_amount) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}>
-                                ₹{(parseFloat(item.total_amount) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              <div className="truncate" title={item.total_amount != null ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}>
+                                {item.total_amount != null ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                               </div>
                             </td>
                           </tr>
@@ -537,7 +537,7 @@ function PurchaseEntries() {
                   <div className="flex justify-between">
                     <span>Taxable Subtotal</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{((viewingEntry.total_amount || 0) - (viewingEntry.total_tax || 0) - (parseFloat(viewingEntry.total_cess) || 0) - (parseFloat(viewingEntry.others) || 0) - (parseFloat(viewingEntry.rounding_adjustment) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {viewingEntry.taxable_subtotal != null ? `₹${Number(viewingEntry.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
 
@@ -545,7 +545,7 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>IGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{(viewingEntry.total_tax || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {viewingEntry.igst_amount != null ? `₹${Number(viewingEntry.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                   ) : (
@@ -553,13 +553,13 @@ function PurchaseEntries() {
                       <div className="flex justify-between">
                         <span>CGST Amount</span>
                         <span className="tabular-nums text-slate-800 font-bold">
-                          ₹{((viewingEntry.total_tax || 0) / 2).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          {viewingEntry.cgst_amount != null ? `₹${Number(viewingEntry.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>SGST Amount</span>
                         <span className="tabular-nums text-slate-800 font-bold">
-                          ₹{((viewingEntry.total_tax || 0) / 2).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          {viewingEntry.sgst_amount != null ? `₹${Number(viewingEntry.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                         </span>
                       </div>
                     </>
@@ -569,7 +569,7 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Cess Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{parseFloat(viewingEntry.total_cess).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {viewingEntry.total_cess != null ? `₹${parseFloat(viewingEntry.total_cess).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                   )}
@@ -578,7 +578,7 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Shipping / Other Charges</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{parseFloat(viewingEntry.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {viewingEntry.others != null ? `₹${parseFloat(viewingEntry.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                   )}
@@ -587,7 +587,7 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Rounding Adjustment</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{(viewingEntry.rounding_adjustment || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {viewingEntry.rounding_adjustment != null ? `₹${Number(viewingEntry.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                   )}
@@ -598,7 +598,7 @@ function PurchaseEntries() {
                       <span>Grand Total</span>
                     </span>
                     <span className="tabular-nums text-brand-700">
-                      ₹{(viewingEntry.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {viewingEntry.total_amount != null ? `₹${Number(viewingEntry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 </div>

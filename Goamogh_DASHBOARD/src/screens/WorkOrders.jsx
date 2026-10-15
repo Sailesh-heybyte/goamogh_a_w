@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
   Plus,
@@ -22,7 +22,8 @@ import {
   getWorkOrders,
   getWorkOrderDetails,
   createWorkOrder,
-  updateWorkOrderStatus
+  updateWorkOrderStatus,
+  previewWorkOrderClose
 } from "@/api/workOrders"
 import { getItems } from "@/api/items"
 import Spinner from "@/components/ui/Spinner"
@@ -58,7 +59,6 @@ function WorkOrders() {
   const [selectedStatus, setSelectedStatus] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
-  const [total, setTotal] = useState(0)
   const latestRequestRef = useRef(0)
 
   // Modal Visibility States
@@ -101,20 +101,20 @@ function WorkOrders() {
   const [closeErrors, setCloseErrors] = useState({})
   const [isClosing, setIsClosing] = useState(false)
 
+  // Close Form Preview State
+  const [closePreview, setClosePreview] = useState(null)
+  const [closePreviewError, setClosePreviewError] = useState("")
+  const closePreviewRequestIdRef = useRef(0)
+
   // Fetch baseline dropdown options (products & raw materials) and work orders
   const fetchBaselineData = useCallback(async () => {
     try {
-      const [prodRes, rmRes] = await Promise.all([
-        getItems({ item_type: "finished_good", active_only: true, limit: 1000 }),
-        getItems({ item_type: "raw_material", active_only: true, limit: 1000 })
-      ])
-      if (prodRes.ok) {
-        const prodJson = await prodRes.json()
-        setProductsList(prodJson.data || [])
-      }
-      if (rmRes.ok) {
-        const rmJson = await rmRes.json()
-        setRawMaterialsList(rmJson.data || [])
+      const itemsRes = await getItems()
+      if (itemsRes.ok) {
+        const itemsJson = await itemsRes.json()
+        const data = itemsJson.data || []
+        setProductsList(data.filter((i) => i.item_type === "finished_good" && i.is_active === true))
+        setRawMaterialsList(data.filter((i) => i.item_type === "raw_material" && i.is_active === true))
       }
     } catch (err) {
       console.error("Failed to load baseline filter data:", err)
@@ -126,13 +126,9 @@ function WorkOrders() {
     setIsLoading(true)
     setError("")
     try {
-      const params = {
-        skip,
-        limit
-      }
+      const params = {}
       if (selectedProductId) params.product_id = selectedProductId
       if (selectedRawMaterialId) params.raw_material_id = selectedRawMaterialId
-      if (selectedStatus) params.status = selectedStatus
 
       const res = await getWorkOrders(params)
       if (requestId !== latestRequestRef.current) return
@@ -143,7 +139,6 @@ function WorkOrders() {
       const json = await res.json()
       if (requestId !== latestRequestRef.current) return
       setWorkOrdersList(json.data || [])
-      setTotal(json.meta.total)
     } catch (err) {
       if (requestId !== latestRequestRef.current) return
       setError(err.message || "An error occurred while fetching work orders.")
@@ -152,7 +147,7 @@ function WorkOrders() {
         setIsLoading(false)
       }
     }
-  }, [selectedProductId, selectedRawMaterialId, selectedStatus, skip, limit])
+  }, [selectedProductId, selectedRawMaterialId])
 
   // Get specific work order details
   const handleViewDetails = async (woIdVal) => {
@@ -180,6 +175,11 @@ function WorkOrders() {
   useEffect(() => {
     fetchWorkOrdersList()
   }, [fetchWorkOrdersList])
+
+  // Reset skip when filters or search change
+  useEffect(() => {
+    setSkip(0)
+  }, [searchQuery, selectedProductId, selectedRawMaterialId, selectedStatus])
 
   useEffect(() => {
     if (woId && woId !== openedWoIdRef.current) {
@@ -310,27 +310,16 @@ function WorkOrders() {
       other_cost: "",
       other_cost_tax: ""
     })
+    setClosePreview(null)
+    setClosePreviewError("")
     setCloseErrors({})
     setIsCloseFormOpen(true)
   }
 
   const handleOutputQtyChange = (val) => {
-    const outputVal = parseFloat(val)
-    const inputVal = selectedWorkOrder ? parseFloat(selectedWorkOrder.total_input_qty ?? 0) : 0
-
-    let calculatedWastage = ""
-    if (!isNaN(outputVal)) {
-      if (outputVal > inputVal) {
-        calculatedWastage = "0.00"
-      } else {
-        calculatedWastage = (inputVal - outputVal).toFixed(2)
-      }
-    }
-
     setCloseForm((prev) => ({
       ...prev,
-      output_qty: val,
-      wastage_qty: calculatedWastage
+      output_qty: val
     }))
 
     // Clear specific errors if typed
@@ -338,12 +327,67 @@ function WorkOrders() {
       const newErrs = { ...prev }
       delete newErrs.output_qty
       delete newErrs.wastage_qty
-      if (outputVal > inputVal) {
-        newErrs.output_qty = "Output quantity cannot exceed input quantity"
-      }
+      delete newErrs.yieldReconciliation
       return newErrs
     })
   }
+
+  // Effect to preview close work order calculations
+  useEffect(() => {
+    if (!isCloseFormOpen || !selectedWorkOrder || closeForm.output_qty === "") {
+      setClosePreview(null)
+      setClosePreviewError("")
+      return
+    }
+
+    const reqId = ++closePreviewRequestIdRef.current
+
+    const timer = setTimeout(async () => {
+      try {
+        const body = {
+          output_qty: Number(closeForm.output_qty),
+          machinery_cost: closeForm.machinery_cost === "" ? 0 : Number(closeForm.machinery_cost),
+          machinery_cost_tax: closeForm.machinery_cost_tax === "" ? 0 : Number(closeForm.machinery_cost_tax),
+          transport_cost: closeForm.transport_cost === "" ? 0 : Number(closeForm.transport_cost),
+          transport_cost_tax: closeForm.transport_cost_tax === "" ? 0 : Number(closeForm.transport_cost_tax),
+          worker_cost: closeForm.worker_cost === "" ? 0 : Number(closeForm.worker_cost),
+          worker_cost_tax: closeForm.worker_cost_tax === "" ? 0 : Number(closeForm.worker_cost_tax),
+          other_cost: closeForm.other_cost === "" ? 0 : Number(closeForm.other_cost),
+          other_cost_tax: closeForm.other_cost_tax === "" ? 0 : Number(closeForm.other_cost_tax)
+        }
+
+        const res = await previewWorkOrderClose(selectedWorkOrder.id, body)
+        if (reqId !== closePreviewRequestIdRef.current) return
+        if (!res.ok) {
+          setClosePreviewError("Couldn't calculate preview")
+          setClosePreview(null)
+        } else {
+          const json = await res.json()
+          if (reqId !== closePreviewRequestIdRef.current) return
+          setClosePreview(json.data)
+          setClosePreviewError("")
+        }
+      } catch {
+        if (reqId !== closePreviewRequestIdRef.current) return
+        setClosePreviewError("Couldn't calculate preview")
+        setClosePreview(null)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [
+    isCloseFormOpen,
+    selectedWorkOrder,
+    closeForm.output_qty,
+    closeForm.machinery_cost,
+    closeForm.machinery_cost_tax,
+    closeForm.transport_cost,
+    closeForm.transport_cost_tax,
+    closeForm.worker_cost,
+    closeForm.worker_cost_tax,
+    closeForm.other_cost,
+    closeForm.other_cost_tax
+  ])
 
   // Submit Close Work Order
   const handleCloseSubmit = async (e) => {
@@ -351,8 +395,6 @@ function WorkOrders() {
     setCloseErrors({})
 
     const outputNum = parseFloat(closeForm.output_qty)
-    const wastageNum = parseFloat(closeForm.wastage_qty)
-    const inputNum = selectedWorkOrder ? parseFloat(selectedWorkOrder.total_input_qty ?? 0) : 0
     const machineryCostNum = closeForm.machinery_cost === "" ? 0 : parseFloat(closeForm.machinery_cost)
     const machineryCostTaxNum = closeForm.machinery_cost_tax === "" ? 0 : parseFloat(closeForm.machinery_cost_tax)
     const transportCostNum = closeForm.transport_cost === "" ? 0 : parseFloat(closeForm.transport_cost)
@@ -365,12 +407,6 @@ function WorkOrders() {
     const errors = {}
     if (isNaN(outputNum) || outputNum < 0) {
       errors.output_qty = "Please enter a valid positive output quantity"
-    }
-    if (outputNum > inputNum) {
-      errors.output_qty = "Output quantity cannot exceed input quantity"
-    }
-    if (isNaN(wastageNum) || wastageNum < 0) {
-      errors.wastage_qty = "Please enter a valid positive wastage quantity"
     }
     if (isNaN(machineryCostNum) || machineryCostNum < 0) {
       errors.machinery_cost = "Please enter a valid machinery cost (>= 0)"
@@ -402,12 +438,11 @@ function WorkOrders() {
       return
     }
 
-    // Yield Reconciliation Validation
-    const totalYield = outputNum + wastageNum
-    // Allowing minor float precision tolerances (e.g. 0.001)
-    if (Math.abs(totalYield - inputNum) > 0.001) {
+    if (!closePreview || closePreview.yield_valid !== true) {
       setCloseErrors({
-        yieldReconciliation: `The sum of output quantity and wastage quantity (${totalYield.toFixed(2)}) must exactly equal the input quantity (${inputNum.toFixed(2)}). Please correct the values.`
+        yieldReconciliation: closePreview?.yield_percent != null
+          ? `Yield ${closePreview.yield_percent}% is outside the acceptable range.`
+          : "Yield is outside the acceptable range."
       })
       return
     }
@@ -423,7 +458,7 @@ function WorkOrders() {
       // Backend expects standard ISO string format: YYYY-MM-DDTHH:MM:SSZ
       const payload = {
         output_qty: outputNum,
-        wastage_qty: wastageNum,
+        wastage_qty: closePreview.wastage_qty,
         batch_number: closeForm.batch_number.trim() || null,
         batch_date: closeForm.batch_date ? new Date(closeForm.batch_date).toISOString() : null,
         expiry_date: closeForm.expiry_date ? new Date(closeForm.expiry_date).toISOString() : null,
@@ -555,17 +590,21 @@ function WorkOrders() {
     }
   }
 
-  // Client-side text filter combined with backend queries
-  const filteredWorkOrders = workOrdersList.filter((wo) => {
+  // Client-side text and status filter
+  const filteredWorkOrders = useMemo(() => {
     const searchLower = searchQuery.toLowerCase().trim()
-    if (!searchLower) return true
+    return workOrdersList.filter((wo) => {
+      if (selectedStatus && wo.status !== selectedStatus) return false
+      if (!searchLower) return true
 
-    const woNumMatch = wo.work_order_number?.toLowerCase().includes(searchLower)
-    const prodNameMatch = wo.product_name?.toLowerCase().includes(searchLower)
-    const rmNameMatch = wo.raw_material_name?.toLowerCase().includes(searchLower)
+      const woNumMatch = wo.work_order_number?.toLowerCase().includes(searchLower)
+      const prodNameMatch = wo.product_name?.toLowerCase().includes(searchLower)
+      const rmNameMatch = wo.raw_material_name?.toLowerCase().includes(searchLower)
 
-    return woNumMatch || prodNameMatch || rmNameMatch
-  })
+      return woNumMatch || prodNameMatch || rmNameMatch
+    })
+  }, [workOrdersList, selectedStatus, searchQuery])
+  const pageRows = filteredWorkOrders.slice(skip, skip + limit)
 
   // Format status badges
   const renderStatusBadge = (status) => {
@@ -621,10 +660,12 @@ function WorkOrders() {
     }
   }
 
-  const outputNum = parseFloat(closeForm.output_qty) || 0
-  const wastageNum = parseFloat(closeForm.wastage_qty) || 0
-  const inputNum = selectedWorkOrder ? parseFloat(selectedWorkOrder.total_input_qty ?? 0) : 0
-  const isYieldMismatch = isCloseFormOpen && (Math.abs(outputNum + wastageNum - inputNum) > 0.001)
+  const inputUnitOf = (wo) => {
+    const u = (wo?.raw_materials || []).map(r => r.unit_code)
+    return u.length > 0 && u.every(x => x === u[0]) ? u[0] : ""
+  }
+
+  const isYieldMismatch = closePreview ? closePreview.yield_valid === false : false
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
@@ -763,7 +804,7 @@ function WorkOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
-                {filteredWorkOrders.map((wo) => (
+                {pageRows.map((wo) => (
                   <tr key={wo.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-3 py-3 font-bold text-slate-900 tracking-tight tabular-nums text-[11px] min-w-0">
                       <div className="truncate" title={wo.work_order_number}>{wo.work_order_number}</div>
@@ -777,7 +818,7 @@ function WorkOrders() {
                         ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ")
                         : wo.raw_material_name || "—"}
                     </td>
-                    <td className="px-3 py-3 text-right font-extrabold text-slate-900 min-w-0 whitespace-nowrap tabular-nums hidden lg:table-cell">{parseFloat(wo.total_input_qty ?? 0).toFixed(2)} KG</td>
+                    <td className="px-3 py-3 text-right font-extrabold text-slate-900 min-w-0 whitespace-nowrap tabular-nums hidden lg:table-cell">{wo.total_input_qty != null ? `${parseFloat(wo.total_input_qty).toFixed(2)}${inputUnitOf(wo) ? ` ${inputUnitOf(wo)}` : ""}` : "—"}</td>
                     <td className="px-3 py-3 whitespace-nowrap min-w-0">{renderStatusBadge(wo.status)}</td>
                     <td className="px-3 py-3 whitespace-nowrap text-slate-500 min-w-0 text-xs font-normal tabular-nums hidden lg:table-cell">
                       {wo.created_at ? (
@@ -802,7 +843,7 @@ function WorkOrders() {
               </tbody>
             </table>
           </div>
-          <Pagination skip={skip} limit={limit} total={total} onChange={setSkip} />
+          <Pagination skip={skip} limit={limit} total={filteredWorkOrders.length} onChange={setSkip} />
         </div>
       )}
 
@@ -878,7 +919,7 @@ function WorkOrders() {
                     {createForm.raw_materials.map((row, index) => {
                       const selectedRm = rawMaterialsList.find((r) => r.id === row.raw_material_id)
                       const availableStock = selectedRm ? (selectedRm.stock_qty ?? selectedRm.live_stock_qty ?? null) : null
-                      const unitCode = selectedRm?.unit_code || selectedRm?.uom || "KG"
+                      const unitCode = selectedRm?.unit_code
                       const requestedQty = parseFloat(row.input_qty || 0)
                       const isStockExceeded = availableStock != null && requestedQty > Number(availableStock)
 
@@ -895,7 +936,7 @@ function WorkOrders() {
                                 <option value="">Select raw material...</option>
                                 {rawMaterialsList.map((rm) => {
                                   const stockVal = rm.stock_qty ?? rm.live_stock_qty ?? null
-                                  const uom = rm.unit_code || rm.uom || "KG"
+                                  const uom = rm.unit_code
                                   return (
                                     <option key={rm.id} value={rm.id}>
                                       {rm.name} {stockVal != null ? `— Stock: ${stockVal} ${uom}` : ""}
@@ -1111,10 +1152,10 @@ function WorkOrders() {
                         {selectedWorkOrder.raw_materials && selectedWorkOrder.raw_materials.length > 0 ? (
                           <div className="space-y-1 mt-1 max-h-[120px] overflow-y-auto custom-scrollbar">
                             {selectedWorkOrder.raw_materials.map((rm, idx) => {
-                              const inputVal = parseFloat(rm.input_qty || 0)
+                              const inputVal = rm.input_qty != null ? parseFloat(rm.input_qty) : null
                               const liveVal = rm.live_stock_qty != null ? parseFloat(rm.live_stock_qty) : null
-                              const unit = rm.unit_code || rm.uom || "KG"
-                              const hasEnoughStock = liveVal == null || liveVal >= inputVal
+                              const unit = rm.unit_code
+                              const hasEnoughStock = liveVal == null || inputVal == null || liveVal >= inputVal
 
                               return (
                                 <div key={idx} className="flex justify-between items-center text-xs font-bold text-slate-800 gap-4 py-0.5">
@@ -1122,7 +1163,7 @@ function WorkOrders() {
                                     {rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`}
                                   </span>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-slate-700 tabular-nums">{inputVal.toFixed(2)} {unit}</span>
+                                    <span className="text-slate-700 tabular-nums">{rm.input_qty != null ? `${parseFloat(rm.input_qty).toFixed(2)} ${unit}` : "—"}</span>
                                     {liveVal != null && (
                                       <span
                                         className={`text-[10px] px-1.5 py-0.5 rounded tabular-nums font-bold border ${hasEnoughStock
@@ -1141,7 +1182,7 @@ function WorkOrders() {
                           </div>
                         ) : (
                           <p className="text-xs font-bold text-slate-800 mt-0.5 truncate" title={selectedWorkOrder.raw_material_name}>
-                            {selectedWorkOrder.raw_material_name || "—"} ({parseFloat(selectedWorkOrder.total_input_qty || 0).toFixed(2)} KG)
+                            {selectedWorkOrder.raw_material_name || "—"} ({selectedWorkOrder.total_input_qty != null ? `${parseFloat(selectedWorkOrder.total_input_qty).toFixed(2)}${inputUnitOf(selectedWorkOrder) ? ` ${inputUnitOf(selectedWorkOrder)}` : ""}` : "—"})
                           </p>
                         )}
                       </div>
@@ -1152,43 +1193,40 @@ function WorkOrders() {
                   <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                     <div className="bg-slate-50 border-b border-slate-100 px-4 py-2.5 flex items-center gap-2">
                       <Hash className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quantity Reconciliation (KG)</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quantity Reconciliation</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 text-xs">
                       <div className="p-3">
                         <span className="text-[10px] font-bold text-slate-400">Input Qty</span>
-                        <p className="text-sm font-extrabold text-slate-800 mt-0.5">{parseFloat(selectedWorkOrder.total_input_qty ?? 0).toFixed(2)}</p>
+                        <p className="text-sm font-extrabold text-slate-800 mt-0.5">{selectedWorkOrder.total_input_qty != null ? `${parseFloat(selectedWorkOrder.total_input_qty).toFixed(2)}${inputUnitOf(selectedWorkOrder) ? ` ${inputUnitOf(selectedWorkOrder)}` : ""}` : "—"}</p>
                       </div>
                       <div className="p-3">
                         <span className="text-[10px] font-bold text-slate-400">Output Qty</span>
-                        <p className="text-sm font-extrabold text-brand-700 mt-0.5">{parseFloat(selectedWorkOrder.output_qty).toFixed(2)}</p>
+                        <p className="text-sm font-extrabold text-brand-700 mt-0.5">{selectedWorkOrder.output_qty != null ? `${parseFloat(selectedWorkOrder.output_qty).toFixed(2)}${selectedWorkOrder.unit_code ? ` ${selectedWorkOrder.unit_code}` : ""}` : "—"}</p>
                       </div>
                       <div className="p-3">
                         <span className="text-[10px] font-bold text-slate-400">Wastage Qty</span>
-                        <p className="text-sm font-extrabold text-error-800 mt-0.5">{parseFloat(selectedWorkOrder.wastage_qty).toFixed(2)}</p>
+                        <p className="text-sm font-extrabold text-error-800 mt-0.5">{selectedWorkOrder.wastage_qty != null ? `${parseFloat(selectedWorkOrder.wastage_qty).toFixed(2)}${selectedWorkOrder.unit_code ? ` ${selectedWorkOrder.unit_code}` : ""}` : "—"}</p>
                       </div>
                       <div className="p-3">
                         <span className="text-[10px] font-bold text-slate-400">Remaining Stock</span>
-                        <p className="text-sm font-extrabold text-indigo-600 mt-0.5">{parseFloat(selectedWorkOrder.remaining_stock_qty).toFixed(2)}</p>
+                        <p className="text-sm font-extrabold text-indigo-600 mt-0.5">{selectedWorkOrder.remaining_stock_qty != null ? parseFloat(selectedWorkOrder.remaining_stock_qty).toFixed(2) : "—"}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Batch and Compliance Compliance (Visible if closed) */}
                   {selectedWorkOrder.status === "closed" && (() => {
-                    const matCost = parseFloat(selectedWorkOrder.material_cost || selectedWorkOrder.costing?.material_cost || 0)
-                    const matTax = parseFloat(selectedWorkOrder.material_cost_tax || selectedWorkOrder.costing?.material_cost_tax || 0)
-                    const machCost = parseFloat(selectedWorkOrder.machinery_cost || selectedWorkOrder.costing?.machinery_cost || 0)
-                    const machTax = parseFloat(selectedWorkOrder.machinery_cost_tax || selectedWorkOrder.costing?.machinery_cost_tax || 0)
-                    const transCost = parseFloat(selectedWorkOrder.transport_cost || selectedWorkOrder.costing?.transport_cost || 0)
-                    const transTax = parseFloat(selectedWorkOrder.transport_cost_tax || selectedWorkOrder.costing?.transport_cost_tax || 0)
-                    const laborCost = parseFloat(selectedWorkOrder.worker_cost || selectedWorkOrder.costing?.worker_cost || 0)
-                    const laborTax = parseFloat(selectedWorkOrder.worker_cost_tax || selectedWorkOrder.costing?.worker_cost_tax || 0)
-                    const otherCost = parseFloat(selectedWorkOrder.other_cost || selectedWorkOrder.costing?.other_cost || 0)
-                    const otherTax = parseFloat(selectedWorkOrder.other_cost_tax || selectedWorkOrder.costing?.other_cost_tax || 0)
-
-                    const calcTotalCost = matCost + machCost + transCost + laborCost + otherCost
-                    const calcTotalTax = matTax + machTax + transTax + laborTax + otherTax
+                    const matCost = selectedWorkOrder.material_cost ?? selectedWorkOrder.costing?.material_cost
+                    const matTax = selectedWorkOrder.material_cost_tax ?? selectedWorkOrder.costing?.material_cost_tax
+                    const machCost = selectedWorkOrder.machinery_cost ?? selectedWorkOrder.costing?.machinery_cost
+                    const machTax = selectedWorkOrder.machinery_cost_tax ?? selectedWorkOrder.costing?.machinery_cost_tax
+                    const transCost = selectedWorkOrder.transport_cost ?? selectedWorkOrder.costing?.transport_cost
+                    const transTax = selectedWorkOrder.transport_cost_tax ?? selectedWorkOrder.costing?.transport_cost_tax
+                    const laborCost = selectedWorkOrder.worker_cost ?? selectedWorkOrder.costing?.worker_cost
+                    const laborTax = selectedWorkOrder.worker_cost_tax ?? selectedWorkOrder.costing?.worker_cost_tax
+                    const otherCost = selectedWorkOrder.other_cost ?? selectedWorkOrder.costing?.other_cost
+                    const otherTax = selectedWorkOrder.other_cost_tax ?? selectedWorkOrder.costing?.other_cost_tax
 
                     return (
                       <>
@@ -1206,33 +1244,49 @@ function WorkOrders() {
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Raw Materials:</span>
-                              <span className="text-right tabular-nums font-bold">₹{matCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums font-bold">₹{matTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">{matCost != null ? `₹${parseFloat(matCost).toFixed(2)}` : "—"}</span>
+                              <span className="text-right tabular-nums font-bold">{matTax != null ? `₹${parseFloat(matTax).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Machinery:</span>
-                              <span className="text-right tabular-nums font-bold">₹{machCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums font-bold">₹{machTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">{machCost != null ? `₹${parseFloat(machCost).toFixed(2)}` : "—"}</span>
+                              <span className="text-right tabular-nums font-bold">{machTax != null ? `₹${parseFloat(machTax).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Transport:</span>
-                              <span className="text-right tabular-nums font-bold">₹{transCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums font-bold">₹{transTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">{transCost != null ? `₹${parseFloat(transCost).toFixed(2)}` : "—"}</span>
+                              <span className="text-right tabular-nums font-bold">{transTax != null ? `₹${parseFloat(transTax).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Labour:</span>
-                              <span className="text-right tabular-nums font-bold">₹{laborCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums font-bold">₹{laborTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">{laborCost != null ? `₹${parseFloat(laborCost).toFixed(2)}` : "—"}</span>
+                              <span className="text-right tabular-nums font-bold">{laborTax != null ? `₹${parseFloat(laborTax).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-medium text-slate-700">
                               <span>Others:</span>
-                              <span className="text-right tabular-nums font-bold">₹{otherCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums font-bold">₹{otherTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums font-bold">{otherCost != null ? `₹${parseFloat(otherCost).toFixed(2)}` : "—"}</span>
+                              <span className="text-right tabular-nums font-bold">{otherTax != null ? `₹${parseFloat(otherTax).toFixed(2)}` : "—"}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 font-extrabold text-slate-900 border-t border-slate-200 pt-2 text-[13px]">
                               <span>Total:</span>
-                              <span className="text-right tabular-nums text-brand-700">₹{calcTotalCost.toFixed(2)}</span>
-                              <span className="text-right tabular-nums text-brand-700">₹{calcTotalTax.toFixed(2)}</span>
+                              <span className="text-right tabular-nums text-brand-700">
+                                {selectedWorkOrder.total_direct_cost != null ? `₹${parseFloat(selectedWorkOrder.total_direct_cost).toFixed(2)}` : "—"}
+                              </span>
+                              <span className="text-right tabular-nums text-brand-700">
+                                {selectedWorkOrder.total_tax != null ? `₹${parseFloat(selectedWorkOrder.total_tax).toFixed(2)}` : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between font-extrabold text-slate-900 border-t border-slate-100 pt-2 text-[13px]">
+                              <span>Total production cost & tax:</span>
+                              <span className="tabular-nums text-brand-700">
+                                {selectedWorkOrder.total_cost_incl_tax != null ? `₹${parseFloat(selectedWorkOrder.total_cost_incl_tax).toFixed(2)}` : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between font-bold text-slate-800 text-xs">
+                              <span>Cost per unit:</span>
+                              <span className="tabular-nums text-slate-800">
+                                {selectedWorkOrder.cost_per_unit != null ? `₹${parseFloat(selectedWorkOrder.cost_per_unit).toFixed(2)}` : "—"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1402,11 +1456,11 @@ function WorkOrders() {
             </div>
 
             {/* Error alerts banner */}
-            {(isYieldMismatch || closeErrors.api) && (
+            {(isYieldMismatch || closeErrors.api || closeErrors.yieldReconciliation || closePreviewError) && (
               <div className="p-3.5 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0 animate-in fade-in duration-200">
                 <AlertTriangle className="w-4 h-4 text-error-500 shrink-0 mt-0.5" />
                 <span>
-                  {closeErrors.api || `Error: Output (${outputNum.toFixed(2)}) + Wastage (${wastageNum.toFixed(2)}) does not equal Input (${inputNum.toFixed(2)}). Yield must be fully reconciled.`}
+                  {closeErrors.api || closeErrors.yieldReconciliation || closePreviewError || (closePreview?.yield_percent != null ? `Yield ${closePreview.yield_percent}% is outside the acceptable range.` : "Yield is outside the acceptable range.")}
                 </span>
               </div>
             )}
@@ -1414,7 +1468,7 @@ function WorkOrders() {
             {selectedWorkOrder && (
               <div className="text-xs bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center justify-between shrink-0 font-semibold text-slate-700">
                 <span>Order Ref: {selectedWorkOrder.work_order_number}</span>
-                <span>Input Qty: {selectedWorkOrder.total_input_qty} KG</span>
+                <span>Input Qty: {selectedWorkOrder.total_input_qty}{inputUnitOf(selectedWorkOrder) ? ` ${inputUnitOf(selectedWorkOrder)}` : ""}</span>
               </div>
             )}
 
@@ -1423,7 +1477,7 @@ function WorkOrders() {
                 {/* Output Qty */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Output Product Quantity (KG) <span className="text-error-500 font-bold">*</span>
+                    Output Product Quantity ({selectedWorkOrder.unit_code}) <span className="text-error-500 font-bold">*</span>
                   </label>
                   <input
                     type="number"
@@ -1441,18 +1495,18 @@ function WorkOrders() {
                 {/* Wastage Qty */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Wastage Quantity (KG) <span className="text-error-500 font-bold">*</span>
+                    Wastage Quantity ({selectedWorkOrder.unit_code}) <span className="text-error-500 font-bold">*</span>
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={closeForm.wastage_qty}
+                    value={closePreview?.wastage_qty ?? ""}
                     readOnly
                     placeholder="Calculated automatically..."
                     className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:outline-none transition-all font-semibold text-slate-500 cursor-not-allowed select-none"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block font-semibold">
-                    Automatically calculated as: Input Qty - Output Qty
+                    Calculated by the system
                   </span>
                   {closeErrors.wastage_qty && (
                     <p className="text-xs text-error-800 font-semibold mt-1">{closeErrors.wastage_qty}</p>
@@ -1667,49 +1721,34 @@ function WorkOrders() {
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700 space-y-1.5">
                   <div className="flex justify-between">
                     <span>Raw Material Cost:</span>
-                    <span className="tabular-nums text-slate-700 font-bold">₹{(selectedWorkOrder.costing?.material_cost || 0).toFixed(2)}</span>
+                    <span className="tabular-nums text-slate-700 font-bold">{selectedWorkOrder.costing?.material_cost != null ? `₹${Number(selectedWorkOrder.costing.material_cost).toFixed(2)}` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
                     <span>Raw Material Tax (Read-only):</span>
-                    <span className="tabular-nums text-slate-500">₹{(selectedWorkOrder.costing?.material_cost_tax || 0).toFixed(2)}</span>
+                    <span className="tabular-nums text-slate-500">{selectedWorkOrder.costing?.material_cost_tax != null ? `₹${Number(selectedWorkOrder.costing.material_cost_tax).toFixed(2)}` : "—"}</span>
                   </div>
                   <div className="flex justify-between border-t border-slate-100 pt-1">
-                    <span>Overhead Cost:</span>
+                    <span>Total direct cost:</span>
                     <span className="tabular-nums text-slate-700 font-bold">
-                      ₹{(
-                        (parseFloat(closeForm.machinery_cost) || 0) +
-                        (parseFloat(closeForm.transport_cost) || 0) +
-                        (parseFloat(closeForm.worker_cost) || 0) +
-                        (parseFloat(closeForm.other_cost) || 0)
-                      ).toFixed(2)}
+                      {closePreview?.total_direct_cost != null ? `₹${Number(closePreview.total_direct_cost).toFixed(2)}` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>Overhead Tax:</span>
+                    <span>Total tax:</span>
                     <span className="tabular-nums text-slate-500">
-                      ₹{(
-                        (parseFloat(closeForm.machinery_cost_tax) || 0) +
-                        (parseFloat(closeForm.transport_cost_tax) || 0) +
-                        (parseFloat(closeForm.worker_cost_tax) || 0) +
-                        (parseFloat(closeForm.other_cost_tax) || 0)
-                      ).toFixed(2)}
+                      {closePreview?.total_tax != null ? `₹${Number(closePreview.total_tax).toFixed(2)}` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-1.5">
                     <span>Total production cost & tax:</span>
                     <span className="tabular-nums text-brand-700">
-                      ₹{(
-                        (selectedWorkOrder.costing?.material_cost || 0) +
-                        (selectedWorkOrder.costing?.material_cost_tax || 0) +
-                        (parseFloat(closeForm.machinery_cost) || 0) +
-                        (parseFloat(closeForm.machinery_cost_tax) || 0) +
-                        (parseFloat(closeForm.transport_cost) || 0) +
-                        (parseFloat(closeForm.transport_cost_tax) || 0) +
-                        (parseFloat(closeForm.worker_cost) || 0) +
-                        (parseFloat(closeForm.worker_cost_tax) || 0) +
-                        (parseFloat(closeForm.other_cost) || 0) +
-                        (parseFloat(closeForm.other_cost_tax) || 0)
-                      ).toFixed(2)}
+                      {closePreview?.total_cost_incl_tax != null ? `₹${Number(closePreview.total_cost_incl_tax).toFixed(2)}` : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-slate-800">
+                    <span>Cost per unit:</span>
+                    <span className="tabular-nums text-slate-800">
+                      {closePreview?.cost_per_unit != null ? `₹${Number(closePreview.cost_per_unit).toFixed(2)}` : "—"}
                     </span>
                   </div>
                 </div>

@@ -89,7 +89,7 @@ function Login() {
 
         {/* Logo and Header */}
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Goamogh</h1>
+          <img src="/brand/goamogh-golden.png" alt="Goamogh" className="h-9 w-auto object-contain mx-auto" />
           <p className="text-sm font-medium text-slate-500 mt-1">Sign in to access your dashboard</p>
         </div>
 
@@ -194,17 +194,13 @@ function Login() {
           </div>
 
           {/* Auxiliary Options */}
-          <div className="flex items-center justify-between mt-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
-              />
-              Remember me
-            </label>
+          <div className="flex items-center justify-end mt-2">
             <a
               href="#"
-              onClick={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate("/forgot-password")
+              }}
               className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors"
             >
               Forgot password?

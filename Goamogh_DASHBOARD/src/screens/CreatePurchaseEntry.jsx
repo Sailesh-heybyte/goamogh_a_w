@@ -93,8 +93,6 @@ function CreatePurchaseEntry() {
   const [shipToState, setShipToState] = useState("Andhra Pradesh")
   const [roundingAdjustment, setRoundingAdjustment] = useState("")
   const [warnings, setWarnings] = useState([])
-  const [globalPriceTolerance, setGlobalPriceTolerance] = useState(10)
-  const [globalQtyTolerance, setGlobalQtyTolerance] = useState(10)
   const [items, setItems] = useState([])
 
   // Direct Purchase Support States
@@ -147,8 +145,6 @@ function CreatePurchaseEntry() {
       setSuppliers(bundle.suppliers)
       setProductsList(bundle.products)
       setRawMaterialsList(bundle.raw_materials)
-      setGlobalPriceTolerance(bundle.settings.purchase_price_tolerance_pct)
-      setGlobalQtyTolerance(bundle.settings.purchase_qty_tolerance_pct)
 
       // 2. Load PO details if poId is provided
       if (poId) {
@@ -168,10 +164,14 @@ function CreatePurchaseEntry() {
           name: item.raw_material_id
             ? item.raw_material_name || item.raw_material?.name
             : item.product_name || item.product?.name,
-          unit_code: item.unit_code || "KG",
+          unit_code: item.unit_code,
           po_quantity: item.quantity,
           remaining_quantity: item.remaining_quantity,
           po_unit_price: item.unit_price,
+          min_quantity: item.min_quantity,
+          max_quantity: item.max_quantity,
+          min_unit_price: item.min_unit_price,
+          max_unit_price: item.max_unit_price,
           quantity_received: item.remaining_quantity.toString(),
           unit_price: item.unit_price.toString(),
           gst_percent: item.gst_percent !== undefined && item.gst_percent !== null ? item.gst_percent.toString() : "",
@@ -256,7 +256,7 @@ function CreatePurchaseEntry() {
                   raw_material_id: peItem.raw_material_id,
                   product_id: peItem.product_id,
                   name: itemName,
-                  unit_code: peItem.unit_code || "KG",
+                  unit_code: peItem.unit_code,
                   po_quantity: null,
                   po_unit_price: null,
                   quantity_received: peItem.quantity_received.toString(),
@@ -309,7 +309,7 @@ function CreatePurchaseEntry() {
       raw_material_id: "",
       product_id: "",
       name: "",
-      unit_code: "KG",
+      unit_code: "",
       po_quantity: null,
       po_unit_price: null,
       quantity_received: "",
@@ -342,7 +342,7 @@ function CreatePurchaseEntry() {
           raw_material_id: null,
           product_id: null,
           name: "",
-          unit_code: "KG",
+          unit_code: "",
           gst_percent: "",
           gst_amount: ""
         }
@@ -364,7 +364,7 @@ function CreatePurchaseEntry() {
             raw_material_id: selectedId,
             product_id: null,
             name: rm ? rm.name : "",
-            unit_code: rm ? rm.unit_code || "KG" : "KG",
+            unit_code: rm ? rm.unit_code : "",
             gst_percent: rm ? (rm.gst_percent !== undefined && rm.gst_percent !== null ? rm.gst_percent.toString() : "") : "",
             gst_amount: ""
           }
@@ -375,7 +375,7 @@ function CreatePurchaseEntry() {
             raw_material_id: null,
             product_id: selectedId,
             name: prod ? prod.name : "",
-            unit_code: "KG",
+            unit_code: prod ? prod.unit_code : "",
             gst_percent: prod ? (prod.gst_percent !== undefined && prod.gst_percent !== null ? prod.gst_percent.toString() : "") : "",
             gst_amount: ""
           }
@@ -478,6 +478,7 @@ function CreatePurchaseEntry() {
       const peIdForPreview = (createdPeId && createdPeId !== "client-preview") ? createdPeId : "client-preview"
 
       const apiPreview = {
+        ...previewResponse,
         id: peIdForPreview,
         status: "draft",
         po_id: poId || null,
@@ -485,20 +486,6 @@ function CreatePurchaseEntry() {
         invoice_number: invoiceNumber.trim(),
         invoice_date: invoiceDate ? new Date(invoiceDate + "T12:00:00Z").toISOString() : null,
         others: parseFloat(others) || 0,
-        rounding_adjustment: parseFloat(roundingAdjustment) || 0,
-        ship_to_state: shipToState,
-        is_interstate: previewResponse.is_interstate,
-        total_tax: parseFloat(previewResponse.total_tax) || 0,
-        total_cess: parseFloat(previewResponse.cess_amount || previewResponse.total_cess) || 0,
-        total_amount: parseFloat(previewResponse.total_amount) || 0,
-        cgst_amount: parseFloat(previewResponse.cgst_amount) || 0,
-        sgst_amount: parseFloat(previewResponse.sgst_amount) || 0,
-        igst_amount: parseFloat(previewResponse.igst_amount) || 0,
-        items: items.map((item) => ({
-          ...item,
-          quantity_received: parseFloat(item.quantity_received),
-          unit_price: parseFloat(item.unit_price),
-        }))
       }
 
       if (!createdPeId || createdPeId === "client-preview") {
@@ -921,250 +908,115 @@ function CreatePurchaseEntry() {
             <span>Match Arriving Quantities</span>
           </h3>
 
-          <div className="w-full">
-            <table className="w-full text-left border-collapse table-fixed">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                  <th className={`px-2 sm:px-4 py-3 ${poDetails ? "w-[44%] md:w-[28%] lg:w-[22%]" : "w-[40%] md:w-[28%] lg:w-[24%]"}`}>Received Item</th>
-                  {poDetails && <th className="hidden md:table-cell px-2 sm:px-4 py-3 w-[12%] text-right">PO Terms</th>}
-                  <th className="px-2 sm:px-4 py-3 w-[26%] md:w-[15%] lg:w-[11%]">Qty Received</th>
-                  <th className="px-2 sm:px-4 py-3 w-[26%] md:w-[15%] lg:w-[11%]">Unit Price Received</th>
-                  <th className="hidden lg:table-cell px-2 sm:px-4 py-3 w-[8%]">GST %</th>
-                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[8%]">GST Amt</th>
-                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[10%]">Batch Date</th>
-                  <th className="hidden xl:table-cell px-2 sm:px-4 py-3 w-[10%]">Expiry Date</th>
-                  <th className="hidden md:table-cell px-2 sm:px-4 py-3 text-right w-[14%] lg:w-[10%]">Est. Subtotal</th>
-                  {!poDetails && <th className="px-1 sm:px-2 py-3 text-center w-[8%] md:w-[6%]">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
-                {items.map((row) => {
-                  const qtyRecv = parseFloat(row.quantity_received) || 0
-                  const uPrice = parseFloat(row.unit_price) || 0
-                  const estSubtotal = qtyRecv * uPrice
-                  const isRM = !!row.raw_material_id
+          <div className="divide-y divide-slate-100">
+            {items.map((row, index) => {
+              const qtyRecv = parseFloat(row.quantity_received) || 0
+              const uPrice = parseFloat(row.unit_price) || 0
+              const isRM = !!row.raw_material_id
 
-                   const supplierPriceTol = poDetails?.supplier?.price_tolerance_pct
-                   const supplierQtyTol = poDetails?.supplier?.qty_tolerance_pct
- 
-                   const priceTolerance = (supplierPriceTol !== undefined && supplierPriceTol !== null)
-                     ? parseFloat(supplierPriceTol)
-                     : globalPriceTolerance
- 
-                   const qtyTolerance = (supplierQtyTol !== undefined && supplierQtyTol !== null)
-                     ? parseFloat(supplierQtyTol)
-                     : globalQtyTolerance
+              const isQtyWarning = poDetails && row.min_quantity != null ? (qtyRecv < row.min_quantity || qtyRecv > row.max_quantity) : false
+              const isPriceWarning = poDetails && row.min_unit_price != null ? (uPrice < row.min_unit_price || uPrice > row.max_unit_price) : false
 
-                  const poQty = parseFloat(row.po_quantity) || 0
-                  const poPrice = parseFloat(row.po_unit_price) || 0
+              const poQty = parseFloat(row.po_quantity) || 0
+              const poPrice = parseFloat(row.po_unit_price) || 0
 
-                  const remainingQty = parseFloat(row.remaining_quantity) || 0
-                  const minQty = remainingQty * (1 - qtyTolerance / 100)
-                  const maxQty = remainingQty + poQty * (qtyTolerance / 100)
-                  const minPrice = poPrice * (1 - priceTolerance / 100)
-                  const maxPrice = poPrice * (1 + priceTolerance / 100)
-
-                  const isQtyWarning = poDetails ? (qtyRecv < minQty || qtyRecv > maxQty) : false
-                  const isPriceWarning = poDetails ? (uPrice < minPrice || uPrice > maxPrice) : false
-
-                  return (
-                    <tr key={row.id} className="hover:bg-slate-50/20 align-top">
-                      {/* Name Details / Selection */}
-                      <td className="px-2 sm:px-4 py-3">
-                        {poDetails ? (
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRM ? "bg-amber-400" : "bg-blue-400"}`} />
-                            <div className="min-w-0">
-                              <p className="font-bold text-slate-800 leading-snug truncate" title={row.name || "Unknown Item"}>{row.name || "Unknown Item"}</p>
-                              <p className="text-[9px] text-slate-400 font-bold mt-0.5 truncate">
-                                Type: {isRM ? "Raw Material" : "Finished Product"}
-                              </p>
-                            </div>
+              return (
+                <div key={row.id} className="py-4">
+                  {/* Top Line */}
+                  <div className="flex flex-wrap gap-3 items-start justify-between">
+                    {/* Left: Dot + Item Name + Type */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      {poDetails ? (
+                        <>
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRM ? "bg-amber-400" : "bg-blue-400"}`} />
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 leading-snug truncate" title={row.name || "Unknown Item"}>{row.name || "Unknown Item"}</p>
+                            <p className="text-[9px] text-slate-400 font-bold mt-0.5 truncate">
+                              Type: {isRM ? "Raw Material" : "Finished Product"}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="flex flex-col gap-2 min-w-0">
-                            <div className="flex gap-2.5 flex-wrap">
-                              <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name={`item-type-${row.id}`}
-                                  value="raw_material"
-                                  checked={row._type !== "product"}
-                                  onChange={() => handleItemTypeChange(row.id, "raw_material")}
-                                  className="text-brand-600 focus:ring-brand-500 w-3 h-3"
-                                />
-                                <span>Raw</span>
-                              </label>
-                              <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name={`item-type-${row.id}`}
-                                  value="product"
-                                  checked={row._type === "product"}
-                                  onChange={() => handleItemTypeChange(row.id, "product")}
-                                  className="text-brand-600 focus:ring-brand-500 w-3 h-3"
-                                />
-                                <span>Finished</span>
-                              </label>
-                            </div>
-
-                            {row._type !== "product" ? (
-                              <select
-                                value={row.raw_material_id || ""}
-                                onChange={(e) => handleDirectItemSelect(row.id, "raw_material", e.target.value)}
-                                className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
-                              >
-                                <option value="">Select Raw Material...</option>
-                                {rawMaterialsList.map((rm) => (
-                                  <option key={rm.id} value={rm.id}>
-                                    {rm.name}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <select
-                                value={row.product_id || ""}
-                                onChange={(e) => handleDirectItemSelect(row.id, "product", e.target.value)}
-                                className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
-                              >
-                                <option value="">Select Finished Product...</option>
-                                {productsList.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col gap-2 min-w-0">
+                          <div className="flex gap-2.5 flex-wrap">
+                            <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`item-type-${row.id}`}
+                                value="raw_material"
+                                checked={row._type !== "product"}
+                                onChange={() => handleItemTypeChange(row.id, "raw_material")}
+                                className="text-brand-600 focus:ring-brand-500 w-3 h-3"
+                              />
+                              <span>Raw</span>
+                            </label>
+                            <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`item-type-${row.id}`}
+                                value="product"
+                                checked={row._type === "product"}
+                                onChange={() => handleItemTypeChange(row.id, "product")}
+                                className="text-brand-600 focus:ring-brand-500 w-3 h-3"
+                              />
+                              <span>Finished</span>
+                            </label>
                           </div>
-                        )}
-                        <div className="md:hidden text-[10px] text-slate-400 font-normal truncate mt-1">
-                          {poDetails ? `PO: ${poQty.toFixed(2)} ${row.unit_code} @ ₹${poPrice.toFixed(2)} • ` : ""}Est: ₹{estSubtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </div>
-                        <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
-                          GST: {row.gst_percent || 0}% {row.gst_amount ? `(₹${row.gst_amount})` : ""}
-                        </div>
-                        <div className="xl:hidden text-[10px] text-slate-400 font-normal truncate">
-                          {row.batch_date ? `Batch: ${row.batch_date}` : ""} {row.expiry_date ? `• Exp: ${row.expiry_date}` : ""}
-                        </div>
-                      </td>
 
-                      {/* PO Qty / Price */}
-                      {poDetails && (
-                        <td className="hidden md:table-cell px-2 sm:px-4 py-3 text-right tabular-nums text-slate-600 text-xs whitespace-nowrap">
-                          <div className="font-bold">{poQty.toFixed(2)} {row.unit_code}</div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">@ ₹{poPrice.toFixed(2)}</div>
-                        </td>
+                          {row._type !== "product" ? (
+                            <select
+                              value={row.raw_material_id || ""}
+                              onChange={(e) => handleDirectItemSelect(row.id, "raw_material", e.target.value)}
+                              className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
+                            >
+                              <option value="">Select Raw Material...</option>
+                              {rawMaterialsList.map((rm) => (
+                                <option key={rm.id} value={rm.id}>
+                                  {rm.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              value={row.product_id || ""}
+                              onChange={(e) => handleDirectItemSelect(row.id, "product", e.target.value)}
+                              className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white font-semibold text-slate-700 truncate"
+                            >
+                              <option value="">Select Finished Product...</option>
+                              {productsList.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                       )}
+                    </div>
 
-                      {/* Received Qty */}
-                      <td className="px-2 sm:px-4 py-3">
-                        <div className="relative">
-                          <input
-                            type="number"
-                            step="0.0001"
-                            disabled={poDetails?.status === "cancelled"}
-                            value={row.quantity_received}
-                            onChange={(e) => handleItemChange(row.id, "quantity_received", e.target.value)}
-                            className={`w-full pl-1.5 pr-7 sm:pl-2 sm:pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isQtyWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
-                              }`}
-                          />
-                          <span className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
-                            {row.unit_code}
+                    {/* Middle: Ordered PO Terms & Allowed limits */}
+                    {poDetails && (
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-500">
+                          Ordered {poQty.toFixed(2)} {row.unit_code} @ ₹{poPrice.toFixed(2)}
+                        </span>
+                        {row.min_quantity != null && (
+                          <span className="text-[11px] text-slate-400">
+                            Allowed {row.min_quantity} – {row.max_quantity} {row.unit_code}
                           </span>
-                        </div>
-                        {qtyRecv > 0 && isQtyWarning && (
-                          <p className="text-[9px] text-error-800 font-bold mt-1 text-right animate-pulse">
-                            ⚠️ Dev. &gt; {qtyTolerance}%
-                          </p>
                         )}
-                      </td>
+                      </div>
+                    )}
 
-                      {/* Received Unit Price */}
-                      <td className="px-2 sm:px-4 py-3">
-                        <div className="relative">
-                          <span className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            disabled={poDetails?.status === "cancelled"}
-                            value={row.unit_price}
-                            onChange={(e) => handleItemChange(row.id, "unit_price", e.target.value)}
-                            className={`w-full pl-4 pr-1 sm:pl-5 sm:pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isPriceWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
-                              }`}
-                          />
-                        </div>
-                        {uPrice > 0 && isPriceWarning && (
-                          <p className="text-[9px] text-error-800 font-bold mt-1 text-right animate-pulse">
-                            ⚠️ Dev. &gt; {priceTolerance}%
-                          </p>
-                        )}
-                      </td>
-
-                      {/* GST % manual override */}
-                      <td className="hidden lg:table-cell px-2 sm:px-4 py-3">
-                        <div className="relative">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="100"
-                            disabled={poDetails?.status === "cancelled"}
-                            value={row.gst_percent}
-                            onChange={(e) => handleItemChange(row.id, "gst_percent", e.target.value)}
-                            placeholder="GST %"
-                            className="w-full pl-2 pr-5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">%</span>
-                        </div>
-                      </td>
-
-                      {/* GST Amt manual override */}
-                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
-                        <div className="relative">
-                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold tabular-nums">₹</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            disabled={poDetails?.status === "cancelled"}
-                            value={row.gst_amount}
-                            onChange={(e) => handleItemChange(row.id, "gst_amount", e.target.value)}
-                            placeholder="Auto"
-                            className="w-full pl-4 pr-1.5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                        </div>
-                      </td>
-
-                      {/* Batch Date */}
-                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
-                        <input
-                          type="date"
-                          disabled={poDetails?.status === "cancelled"}
-                          value={row.batch_date}
-                          onChange={(e) => handleItemChange(row.id, "batch_date", e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
-                        />
-                      </td>
-
-                      {/* Expiry Date */}
-                      <td className="hidden xl:table-cell px-2 sm:px-4 py-3">
-                        <input
-                          type="date"
-                          disabled={poDetails?.status === "cancelled"}
-                          value={row.expiry_date}
-                          onChange={(e) => handleItemChange(row.id, "expiry_date", e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
-                        />
-                      </td>
-
-                      {/* Est Subtotal */}
-                      <td className="hidden md:table-cell px-2 sm:px-4 py-3 text-right tabular-nums font-bold text-slate-700 whitespace-nowrap">
-                        ₹{estSubtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
-
-                      {/* Row Deletion Action */}
-                      {!poDetails && (
-                        <td className="px-1 sm:px-2 py-3 text-center whitespace-nowrap">
+                    {/* Right: Est. Subtotal + Status chip */}
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold tabular-nums text-slate-900">
+                          {previewData?.items?.[index]?.subtotal != null
+                            ? `₹${Number(previewData.items[index].subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                            : "—"}
+                        </span>
+                        {!poDetails && (
                           <button
                             type="button"
                             onClick={() => handleRemoveDirectItem(row.id)}
@@ -1173,51 +1025,191 @@ function CreatePurchaseEntry() {
                           >
                             <XCircle className="w-4 h-4" />
                           </button>
-                        </td>
+                        )}
+                      </div>
+                      {isQtyWarning ? (
+                        <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700">
+                          Qty outside limit
+                        </span>
+                      ) : isPriceWarning ? (
+                        <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700">
+                          Price differs
+                        </span>
+                      ) : poDetails ? (
+                        <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                          Matches PO
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Field Grid */}
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+                    {/* 1. Qty received */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Qty Received
+                      </label>
+                      <div className="relative w-full min-w-0">
+                        <input
+                          type="number"
+                          step="0.0001"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.quantity_received}
+                          onChange={(e) => handleItemChange(row.id, "quantity_received", e.target.value)}
+                          className={`w-full pl-2.5 pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isQtyWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
+                            }`}
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
+                          {row.unit_code}
+                        </span>
+                      </div>
+                      {qtyRecv > 0 && isQtyWarning && (
+                        <p className="text-[9px] text-error-800 font-bold mt-1 text-right animate-pulse">
+                          ⚠️ Outside tolerance
+                        </p>
                       )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* 2. Unit price */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Unit Price
+                      </label>
+                      <div className="relative w-full min-w-0">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.unit_price}
+                          onChange={(e) => handleItemChange(row.id, "unit_price", e.target.value)}
+                          className={`w-full pl-5 pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isPriceWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
+                            }`}
+                        />
+                      </div>
+                      {uPrice > 0 && isPriceWarning && (
+                        <p className="text-[9px] text-error-800 font-bold mt-1 text-right animate-pulse">
+                          ⚠️ Outside tolerance
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 3. GST % */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        GST %
+                      </label>
+                      <div className="relative w-full min-w-0">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.gst_percent}
+                          onChange={(e) => handleItemChange(row.id, "gst_percent", e.target.value)}
+                          placeholder="GST %"
+                          className="w-full pl-2 pr-5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">%</span>
+                      </div>
+                    </div>
+
+                    {/* 4. GST Amt */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        GST Amt
+                      </label>
+                      <div className="relative w-full min-w-0">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold tabular-nums">₹</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.gst_amount}
+                          onChange={(e) => handleItemChange(row.id, "gst_amount", e.target.value)}
+                          placeholder="Auto"
+                          className="w-full pl-5 pr-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 5. Batch Date */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Batch Date
+                      </label>
+                      <div className="w-full min-w-0">
+                        <input
+                          type="date"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.batch_date}
+                          onChange={(e) => handleItemChange(row.id, "batch_date", e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 6. Expiry Date */}
+                    <div className="flex flex-col min-w-0">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Expiry Date
+                      </label>
+                      <div className="w-full min-w-0">
+                        <input
+                          type="date"
+                          disabled={poDetails?.status === "cancelled"}
+                          value={row.expiry_date}
+                          onChange={(e) => handleItemChange(row.id, "expiry_date", e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
-          {!poDetails && (
-            <div className="pt-3 border-t border-slate-100 flex justify-start">
-              <button
-                type="button"
-                onClick={handleAddDirectItem}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 bg-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5 text-slate-500" />
-                <span>Add Item Row</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Action Button: Save Draft Preview */}
-        {!previewData && (
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSavingDraft || poDetails?.status === "cancelled"}
-              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSavingDraft ? (
-                <>
-                  <Spinner size="xs" />
-                  <span>Saving draft entry...</span>
-                </>
-              ) : (
-                <>
-                  <Calculator className="w-4 h-4" />
-                  <span>Preview Tax & Totals</span>
-                </>
+          {/* Footer under the list */}
+          <div className="border-t border-slate-100 pt-4 mt-2 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-500">{items.length} items</span>
+              {!poDetails && (
+                <button
+                  type="button"
+                  onClick={handleAddDirectItem}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 bg-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Add Item Row</span>
+                </button>
               )}
-            </button>
+            </div>
+
+            {!previewData && (
+              <button
+                type="submit"
+                disabled={isSavingDraft || poDetails?.status === "cancelled"}
+                className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Spinner size="xs" />
+                    <span>Saving draft entry...</span>
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="w-4 h-4" />
+                    <span>Preview Tax & Totals</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </form>
 
       {/* Preview Billing & Authorized Commit Stock Block */}
@@ -1231,7 +1223,7 @@ function CreatePurchaseEntry() {
                 <div className="flex justify-between">
                   <span>Taxable Subtotal</span>
                   <span className="tabular-nums text-slate-800 font-bold">
-                    ₹{((previewData.total_amount || 0) - (previewData.total_tax || 0) - (parseFloat(previewData.total_cess || previewData.cess_amount) || 0) - (parseFloat(previewData.others) || 0) - (parseFloat(previewData.rounding_adjustment) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    {previewData.taxable_subtotal != null ? `₹${Number(previewData.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                   </span>
                 </div>
 
@@ -1239,7 +1231,7 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>IGST Amount</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{(previewData.igst_amount !== undefined ? previewData.igst_amount : (previewData.total_tax || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {previewData.igst_amount != null ? `₹${Number(previewData.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 ) : (
@@ -1247,13 +1239,13 @@ function CreatePurchaseEntry() {
                     <div className="flex justify-between">
                       <span>CGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{(previewData.cgst_amount !== undefined ? previewData.cgst_amount : ((previewData.total_tax || 0) / 2)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {previewData.cgst_amount != null ? `₹${Number(previewData.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>SGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        ₹{(previewData.sgst_amount !== undefined ? previewData.sgst_amount : ((previewData.total_tax || 0) / 2)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        {previewData.sgst_amount != null ? `₹${Number(previewData.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                       </span>
                     </div>
                   </>
@@ -1263,7 +1255,7 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Cess Amount</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{parseFloat(previewData.total_cess || previewData.cess_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {(previewData.total_cess ?? previewData.cess_amount) != null ? `₹${Number(previewData.total_cess ?? previewData.cess_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 )}
@@ -1272,7 +1264,7 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Shipping / Other Charges</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{parseFloat(previewData.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {previewData.others != null ? `₹${Number(previewData.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 )}
@@ -1281,7 +1273,7 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Rounding Adjustment</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      ₹{parseFloat(previewData.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      {previewData.rounding_adjustment != null ? `₹${Number(previewData.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
                 )}
@@ -1289,7 +1281,7 @@ function CreatePurchaseEntry() {
                 <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-800">
                   <span>Grand Total</span>
                   <span className="tabular-nums text-brand-700 text-base">
-                    ₹{(previewData.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    {previewData.total_amount != null ? `₹${Number(previewData.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
                   </span>
                 </div>
               </div>

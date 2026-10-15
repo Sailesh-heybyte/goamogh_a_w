@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Plus, Edit2, ShieldAlert, X, FolderOpen, AlertTriangle, Calendar, Search } from "lucide-react"
-import { getCategories, createCategory, updateCategory, getCategoryDetails } from "@/api/categories"
+import { getCategoriesCached, clearCategoriesCache, createCategory, updateCategory, getCategoryDetails } from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
@@ -51,12 +51,8 @@ function CategoryManagement() {
     setError("")
     try {
       // Fetch both active and inactive categories
-      const res = await getCategories(false)
-      if (!res.ok) {
-        throw new Error("Failed to load category list")
-      }
-      const json = await res.json()
-      setCategoriesList(json.data || [])
+      const data = await getCategoriesCached(false)
+      setCategoriesList(data || [])
     } catch (err) {
       setError(err.message || "Something went wrong")
     } finally {
@@ -157,6 +153,7 @@ function CategoryManagement() {
 
       setIsCreateOpen(false)
       setCreateForm({ name: "", description: "", image: "" })
+      clearCategoriesCache()
       fetchCategories()
     } catch (err) {
       if (err.message !== "Validation failed") {
@@ -179,7 +176,7 @@ function CategoryManagement() {
         throw new Error("Failed to load category details")
       }
       const json = await res.json()
-      const details = json.data || category
+      const details = json.data
 
       setEditForm({
         name: details.name,
@@ -234,6 +231,7 @@ function CategoryManagement() {
       }
 
       setIsEditOpen(false)
+      clearCategoriesCache()
       fetchCategories()
     } catch (err) {
       if (err.message !== "Validation failed") {

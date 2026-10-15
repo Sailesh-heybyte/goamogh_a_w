@@ -29,3 +29,9 @@ export const updateSalesOrderStatus = async (saleId, action) => {
   })
 }
 
+export const previewDirectSale = async (payload) =>
+  customFetch("/api/v1/sales/direct/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+

@@ -28,7 +28,7 @@ export default function CustomerFeedback() {
     setIsLoading(true)
     setError("")
     try {
-      const data = await getCustomerFeedbacks({ skip: 0, limit: 50 })
+      const data = await getCustomerFeedbacks()
       setFeedbacks(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error("Failed to load customer feedbacks:", err)

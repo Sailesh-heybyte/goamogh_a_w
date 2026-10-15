@@ -6,8 +6,8 @@ import { customFetch } from "./api"
  * @param {number} limit
  * @returns {Promise<Response>}
  */
-export const getStaff = async (skip = 0, limit = 50) => {
-  return customFetch(`/api/v1/auth/staff?skip=${skip}&limit=${limit}`)
+export const getStaff = async () => {
+  return customFetch("/api/v1/auth/staff")
 }
 
 /**

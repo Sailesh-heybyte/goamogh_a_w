@@ -199,7 +199,7 @@ function InventoryDashboard() {
                       )}
                     </td>
                     <td className="px-2 md:px-4 py-3 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">
-                      {parseFloat(item.stock_qty || 0).toFixed(2)} {item.unit_code || "KG"}
+                      {item.stock_qty != null ? `${parseFloat(item.stock_qty).toFixed(2)} ${item.unit_code}` : "—"}
                     </td>
                     <td className="px-2 md:px-4 py-3 text-center whitespace-nowrap">
                       <button

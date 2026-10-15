@@ -70,7 +70,7 @@ function StaffManagement() {
     setError("")
     try {
       const [staffRes, rolesRes] = await Promise.all([
-        getStaff(0, 50),
+        getStaff(),
         getRoles(),
       ])
 
