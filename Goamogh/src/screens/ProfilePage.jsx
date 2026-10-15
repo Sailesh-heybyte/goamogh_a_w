@@ -959,10 +959,6 @@ export default function ProfilePage() {
                                                         <p className="text-white text-xs leading-relaxed">{selectedOrderDetails.delivery_address}</p>
                                                     </div>
                                                     <div className="space-y-3">
-                                                        <div>
-                                                            <span className="text-[10px] text-[#efe3bf]/40 uppercase tracking-wider block">Payment Method</span>
-                                                            <p className="text-white text-xs font-bold uppercase tracking-wider mt-0.5">{selectedOrderDetails.payment_method || 'Cash on Delivery (COD)'}</p>
-                                                        </div>
                                                         {selectedOrderDetails.notes && (
                                                             <div>
                                                                 <span className="text-[10px] text-[#efe3bf]/40 uppercase tracking-wider block">Customer Notes</span>
