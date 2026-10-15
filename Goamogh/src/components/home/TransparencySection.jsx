@@ -36,7 +36,7 @@ export default function TransparencySection() {
     setError(null);
     try {
       const res = await getCertificatesOnce();
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      const list = Array.isArray(res?.data) ? res.data : [];
       setCertificates(list);
     } catch {
       setError("Couldn't load certificates.");
@@ -47,13 +47,13 @@ export default function TransparencySection() {
 
   useEffect(() => {
     let cancelled = false;
-    const fetch = async () => {
+    const loadOnMount = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const res = await getCertificatesOnce();
         if (cancelled) return;
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const list = Array.isArray(res?.data) ? res.data : [];
         setCertificates(list);
       } catch {
         if (!cancelled) {
@@ -65,7 +65,7 @@ export default function TransparencySection() {
         }
       }
     };
-    fetch();
+    loadOnMount();
     return () => {
       cancelled = true;
     };

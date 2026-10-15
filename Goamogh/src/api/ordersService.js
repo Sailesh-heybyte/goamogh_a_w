@@ -1,8 +1,8 @@
 import { API_PREFIX, handleResponse, apiFetch } from './apiClient';
 
 
-export async function fetchOrderHistory(token, skip = 0, limit = 50) {
-    const response = await apiFetch(`${API_PREFIX}/orders?skip=${skip}&limit=${limit}`, {
+export async function fetchOrderHistory(token) {
+    const response = await apiFetch(`${API_PREFIX}/orders`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,

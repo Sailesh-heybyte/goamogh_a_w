@@ -19,7 +19,7 @@ export default function CertificatesPage() {
     setError(null);
     try {
       const res = await getCertificatesOnce();
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      const list = Array.isArray(res?.data) ? res.data : [];
       setCertificates(list);
     } catch {
       setError("Failed to load certificates.");
@@ -30,13 +30,13 @@ export default function CertificatesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const fetch = async () => {
+    const loadOnMount = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const res = await getCertificatesOnce();
         if (cancelled) return;
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const list = Array.isArray(res?.data) ? res.data : [];
         setCertificates(list);
       } catch {
         if (!cancelled) {
@@ -48,7 +48,7 @@ export default function CertificatesPage() {
         }
       }
     };
-    fetch();
+    loadOnMount();
     return () => {
       cancelled = true;
     };

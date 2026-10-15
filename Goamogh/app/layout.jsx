@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
     '@type': 'Organization',
     'name': 'Goamogh',
     'url': 'https://goamogh.com',
-    'logo': 'https://goamogh.com/images/logo.png',
+    'logo': 'https://goamogh.com/brand/goamogh-golden.png',
     'description': 'Goamogh offers premium, artisan spices and hand-pounded blends crafted to elevate modern home cooking.',
     'contactPoint': {
       '@type': 'ContactPoint',

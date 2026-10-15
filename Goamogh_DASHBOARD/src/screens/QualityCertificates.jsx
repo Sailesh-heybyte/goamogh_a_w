@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react"
 import {
   Plus,
   Search,
-  FileText,
   ExternalLink,
   Edit2,
   Trash2,
