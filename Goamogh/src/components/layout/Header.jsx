@@ -13,32 +13,8 @@ export default function Header() {
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [guestCartCount, setGuestCartCount] = useState(0);
-    const { user, token, logout, triggerLoginModal } = useAuth();
+    const { user, logout, triggerLoginModal } = useAuth();
     const { cartCount } = useCart();
-
-    useEffect(() => {
-        if (user && token) return;
-
-        const updateCount = () => {
-            try {
-                const saved = localStorage.getItem('spiceCart');
-                const items = saved ? JSON.parse(saved) : [];
-                const count = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-                setGuestCartCount(count);
-            } catch (e) {
-                setGuestCartCount(0);
-            }
-        };
-
-        updateCount();
-        window.addEventListener('cart-updated', updateCount);
-        window.addEventListener('storage', updateCount);
-        return () => {
-            window.removeEventListener('cart-updated', updateCount);
-            window.removeEventListener('storage', updateCount);
-        };
-    }, [user, token]);
 
     const navItems = [
         { name: 'Shop', path: '/shop' },
@@ -237,9 +213,9 @@ export default function Header() {
                             aria-label="View Cart"
                         >
                             <ShoppingBag size={18} strokeWidth={2} />
-                            {(user && token ? cartCount : guestCartCount) > 0 && (
+                            {cartCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-[#d8b66a] text-[#0b150d] text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center border border-[#1a2b21] px-1">
-                                    {user && token ? cartCount : guestCartCount}
+                                    {cartCount}
                                 </span>
                             )}
                         </Link>
@@ -276,9 +252,9 @@ export default function Header() {
                         aria-label="View Cart"
                     >
                         <ShoppingBag size={18} strokeWidth={2} />
-                        {(user && token ? cartCount : guestCartCount) > 0 && (
+                        {cartCount > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 bg-[#d8b66a] text-[#0b150d] text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center border border-[#1a2416] px-1">
-                                {user && token ? cartCount : guestCartCount}
+                                {cartCount}
                             </span>
                         )}
                     </Link>

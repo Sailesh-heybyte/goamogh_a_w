@@ -126,18 +126,10 @@ export default function ShopPage() {
     loadProducts();
   }, [activeCategory, debouncedSearchQuery]);
 
-  const addToCart = async (product, activeWeight, selectedPrice) => {
+  const addToCart = async (product, activeWeight) => {
     const matchedVariant = product.weights.find(w => w.label === activeWeight);
-    const itemData = {
-      id: matchedVariant?.id || product.id,
-      name: product.name,
-      subtitle: product.subtitle || '',
-      image: product.image,
-      weight: activeWeight,
-      price: selectedPrice,
-      quantity: 1,
-      origin: product.origin || 'India'
-    };
+    if (!matchedVariant) return;
+    const itemData = { id: matchedVariant.id, quantity: 1 };
 
     if (!user || !token) {
       // Save pending item to global state so it can be added post-login
@@ -409,7 +401,7 @@ export default function ShopPage() {
                       ) : (
                         <button
                           disabled={isOutOfStock || selectedPrice === null}
-                          onClick={() => addToCart(product, activeWeight, selectedPrice)}
+                          onClick={() => addToCart(product, activeWeight)}
                           className={`w-full font-bold py-2.5 px-4 rounded-full transition-all duration-300 transform active:scale-95 text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg h-[38px] ${isOutOfStock || selectedPrice === null
                             ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
                             : 'bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] shadow-black/10 hover:shadow-[#d8b66a]/5'

@@ -28,8 +28,6 @@ export default function LoginModal() {
     const [resendTimer, setResendTimer] = useState(0);
     const [expiryTimer, setExpiryTimer] = useState(0);
     const [termsAccepted, setTermsAccepted] = useState(true);
-    
-    const countryCode = '+91'; // Default country code
     const otpInputRef = useRef(null);
 
     // Count down both timers
@@ -160,17 +158,9 @@ export default function LoginModal() {
                 if (loginPendingItem) {
                     try {
                         const token = response.data.access_token;
-                        const dbItem = {
-                            id: loginPendingItem.id,
-                            name: loginPendingItem.name,
-                            subtitle: loginPendingItem.subtitle || '',
-                            image: loginPendingItem.image,
-                            weight: loginPendingItem.weight,
-                            price: loginPendingItem.price,
-                            quantity: loginPendingItem.quantity || 1,
-                            origin: loginPendingItem.origin || 'India'
-                        };
+                        const dbItem = { id: loginPendingItem.id, quantity: loginPendingItem.quantity };
                         await addToDbCart(token, dbItem);
+                        setLoginPendingItem(null);
                         reloadCart();
                     } catch (cartErr) {
                         console.error('Failed to sync pending item to database cart:', cartErr);

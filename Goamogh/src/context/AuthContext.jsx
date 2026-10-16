@@ -143,12 +143,9 @@ export function AuthProvider({ children }) {
             localStorage.removeItem('goamogh_user');
             localStorage.removeItem('goamogh_admin_token');
             localStorage.removeItem('customer_token');
-            localStorage.removeItem('spiceCart');
             try {
                 sessionStorage.clear();
             } catch (_) {}
-            // Trigger cart sync event & global auth logout event
-            window.dispatchEvent(new Event('cart-updated'));
             window.dispatchEvent(new CustomEvent('goamogh-auth-logout'));
             window.dispatchEvent(new Event('storage'));
         }
@@ -183,11 +180,6 @@ export function AuthProvider({ children }) {
 
             setToken(accessToken);
             setUser(userObj);
-
-            // Trigger global cart count rebuild
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('cart-updated'));
-            }
         }
         return response;
     };

@@ -142,16 +142,7 @@ export default function ProductDetailPage({ id }) {
     const handleAddToCart = async () => {
         if (!activeVariant || !isAvailable) return;
 
-        const itemData = {
-            id: activeVariant.id, // variant UUID
-            name: product.name,
-            subtitle: product.description || '',
-            image: product.image,
-            weight: activeVariant.label,
-            price: selectedPrice,
-            quantity: quantity,
-            origin: product.sourcing_location
-        };
+        const itemData = { id: activeVariant.id, quantity };
 
         if (!user || !token) {
             // Save pending item to global state so it can be added post-login

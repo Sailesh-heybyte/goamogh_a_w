@@ -29,8 +29,6 @@ export default function LoginPage() {
     const [resendTimer, setResendTimer] = useState(0);
     const [expiryTimer, setExpiryTimer] = useState(0);
     const [termsAccepted, setTermsAccepted] = useState(true);
-    
-    const countryCode = '+91'; // Default country code
     const otpInputRef = useRef(null);
 
     // Redirect to shop if user is already logged in
@@ -158,18 +156,8 @@ export default function LoginPage() {
                 // Sync pending cart item if exists
                 if (loginPendingItem) {
                     try {
-                        const dbItem = {
-                            id: loginPendingItem.id,
-                            name: loginPendingItem.name,
-                            subtitle: loginPendingItem.subtitle || '',
-                            image: loginPendingItem.image,
-                            weight: loginPendingItem.weight,
-                            price: loginPendingItem.price,
-                            quantity: loginPendingItem.quantity || 1,
-                            origin: loginPendingItem.origin || 'India'
-                        };
+                        const dbItem = { id: loginPendingItem.id, quantity: loginPendingItem.quantity };
                         await addToDbCart(verifiedToken, dbItem, loginPendingItem.quantity || 1);
-                        // Clear pending item state
                         setLoginPendingItem(null);
                         reloadCart();
                     } catch (cartErr) {
