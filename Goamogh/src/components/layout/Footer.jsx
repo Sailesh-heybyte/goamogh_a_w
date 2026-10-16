@@ -1,11 +1,28 @@
 "use client";
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, ShieldCheck, ChevronRight } from 'lucide-react';
 import { SOCIAL_LINKS } from '../social/socialLinks';
+import { getCategoriesOnce } from '../../api/productService';
 
 export default function Footer() {
     const { openLegalModal } = useAuth();
+    const [shopCategories, setShopCategories] = useState([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCategoriesOnce()
+            .then((res) => {
+                if (isMounted && res && res.success && Array.isArray(res.data)) {
+                    setShopCategories(res.data.slice(0, 4));
+                }
+            })
+            .catch(() => {});
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <footer className="relative w-full bg-black text-white pt-20 pb-8 px-6 md:px-12 border-t border-white/10">
@@ -17,10 +34,14 @@ export default function Footer() {
                     <div>
                         <h4 className="font-sans font-bold text-[10px] tracking-[0.2em] text-[#d8b66a] mb-6 uppercase">SHOP</h4>
                         <ul className="space-y-3 font-sans text-xs text-white/80">
-                            <li><Link href="/shop?category=spices" className="hover:text-[#d8b66a] transition-colors">Spices</Link></li>
-                            <li><Link href="/shop?category=whole-spices" className="hover:text-[#d8b66a] transition-colors">Whole Spices</Link></li>
-                            <li><Link href="/shop?category=nuts" className="hover:text-[#d8b66a] transition-colors">Nuts</Link></li>
-                            <li><Link href="/shop?category=collections" className="hover:text-[#d8b66a] transition-colors">Collections</Link></li>
+                            <li><Link href="/shop" className="hover:text-[#d8b66a] transition-colors">All Products</Link></li>
+                            {shopCategories.map((c) => (
+                                <li key={c.id}>
+                                    <Link href={`/shop?category_id=${c.id}`} className="hover:text-[#d8b66a] transition-colors">
+                                        {c.name}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 

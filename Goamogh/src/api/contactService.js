@@ -10,10 +10,10 @@ export async function submitContactEnquiry(payload) {
         body: JSON.stringify({
             name: payload.name,
             email: payload.email,
-            phone: payload.phone || '',
-            inquiry_topic: payload.inquiry_topic || payload.subject || 'General Inquiry',
+            phone: payload.phone,
+            inquiry_topic: payload.inquiry_topic,
             message: payload.message,
-            terms_accepted: payload.terms_accepted ?? true
+            terms_accepted: payload.terms_accepted
         }),
     });
     return handleResponse(response);

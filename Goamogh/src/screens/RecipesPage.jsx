@@ -1,8 +1,8 @@
 "use client";
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
-import { Utensils, Clock, Users, ChevronRight, Play, Star, X, Check, Quote, MessageSquare, Sparkles } from 'lucide-react';
+import { Clock, Users, ChevronRight, X, Sparkles } from 'lucide-react';
 
 const recipes = [
   {
@@ -21,10 +21,6 @@ const recipes = [
       "Stir in 1/2 tsp Goamogh Turmeric and 1/8 tsp freshly cracked black pepper.",
       "Simmer gently for 2-3 minutes to allow the spices to bloom.",
       "Pour into a mug, cool slightly, and sweeten with honey if desired."
-    ],
-    testimonials: [
-      { name: "Dr. Ananya R.", comment: "The purity is evident in the vibrant color and clean earthy aroma.", rating: 5 },
-      { name: "Karan Seth", comment: "My daily morning ritual now. The warmth of Goamogh Turmeric is unmatched.", rating: 5 }
     ]
   },
   {
@@ -43,9 +39,6 @@ const recipes = [
       "Add ginger-garlic paste, chopped tomatoes, and cook until oil separates.",
       "Stir in Goamogh Red Chilli powder and coriander powder with a splash of water.",
       "Add vegetables or protein and simmer gently until tender."
-    ],
-    testimonials: [
-      { name: "Chef Rohan", comment: "The rich natural color this chilli brings is incredible. Heat with real character.", rating: 5 }
     ]
   },
   {
@@ -63,9 +56,6 @@ const recipes = [
       "Simmer turmeric, black pepper and cinnamon stick in water for 3–4 minutes.",
       "Strain into a glass and allow to cool slightly.",
       "Finish with fresh lemon juice and a touch of raw honey if desired."
-    ],
-    testimonials: [
-      { name: "Priya M.", comment: "Light, clean, and incredibly refreshing first thing in the morning.", rating: 5 }
     ]
   },
   {
@@ -83,9 +73,6 @@ const recipes = [
       "Lightly crush cinnamon, cloves, cardamom pods, peppercorns, and ginger.",
       "Simmer in 250 ml water for 5 minutes until deeply aromatic.",
       "Strain into cups. Add a small splash of milk or jaggery if desired."
-    ],
-    testimonials: [
-      { name: "Siddharth N.", comment: "Replaced my heavy milk tea. So aromatic and light on the stomach.", rating: 5 }
     ]
   },
   {
@@ -103,9 +90,6 @@ const recipes = [
       "Lightly roast cumin seeds in a dry pan until fragrant.",
       "Steep the roasted cumin and crushed pepper in hot water for 7–8 minutes.",
       "Strain, add fresh lemon juice and a pinch of black salt before serving."
-    ],
-    testimonials: [
-      { name: "Lata R.", comment: "So soothing after a heavy dinner. The roasted cumin aroma is delicious.", rating: 5 }
     ]
   },
   {
@@ -124,9 +108,6 @@ const recipes = [
       "Whisk yoghurt with Kashmiri chilli powder, fennel powder, cumin, and ginger powder.",
       "Sauté cinnamon, cloves, cardamom and bay leaf in pan. Add yoghurt mixture over low heat, stirring continuously.",
       "Add potatoes and 1 cup water. Cover and simmer gently (dum) for 20–25 minutes until rich and thick."
-    ],
-    testimonials: [
-      { name: "Vikram S.", comment: "Authentic Kashmiri flavor! The fennel and chilli balance is perfection.", rating: 5 }
     ]
   },
   {
@@ -145,9 +126,6 @@ const recipes = [
       "Sauté sliced onions in mustard oil until deeply caramelised brown.",
       "Add ginger-garlic paste, coriander, cumin and chilli powder with a splash of water until oil separates.",
       "Add marinated chicken, cook for 8 minutes, add hot water and simmer covered for 25 minutes. Finish with freshly cracked black pepper."
-    ],
-    testimonials: [
-      { name: "Gurpreet S.", comment: "Proper Punjabi style black pepper chicken. Bold, aromatic, and rich.", rating: 5 }
     ]
   },
   {
@@ -166,9 +144,6 @@ const recipes = [
       "Marinate chicken with turmeric, pepper, ginger-garlic and salt.",
       "Heat sesame oil, crackle curry leaves, sauté onions, ginger-garlic and tomatoes.",
       "Add chicken and ground Chettinad masala. Simmer covered for 25 minutes. Finish with freshly cracked black pepper and curry leaves."
-    ],
-    testimonials: [
-      { name: "Subramanian M.", comment: "The coarse roasted masala gives it incredible texture and deep peppery heat.", rating: 5 }
     ]
   },
   {
@@ -187,9 +162,6 @@ const recipes = [
       "Heat coconut oil, sauté cinnamon, cloves, curry leaves, ginger, garlic, green chillies and shallots.",
       "Add turmeric, black pepper, tomatoes, and thin coconut milk. Bring to a gentle simmer for 7 minutes.",
       "Add fish fillets, cover and cook for 8 minutes without aggressive stirring. Finish with thick coconut milk, cracked pepper, and coconut oil."
-    ],
-    testimonials: [
-      { name: "Meera K.", comment: "Extremely delicate and soothing. The coconut milk and black pepper pairing is divine.", rating: 5 }
     ]
   }
 ];
@@ -230,12 +202,7 @@ const MagneticCard = ({ children, className = "" }) => {
   );
 };
 
-const getAverageRating = (testimonials) =>
-  testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length;
-
 const RecipeCard = ({ recipe, index, onClick, onHover }) => {
-  const averageRating = getAverageRating(recipe.testimonials);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -272,18 +239,6 @@ const RecipeCard = ({ recipe, index, onClick, onHover }) => {
             <Clock size={12} className="text-[#d8b66a]" />
             <span>{recipe.time}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={12}
-                  className={i < Math.round(averageRating) ? "fill-[#d8b66a] text-[#d8b66a]" : "text-[#d8b66a]/40"}
-                />
-              ))}
-            </div>
-            <span>{averageRating.toFixed(1)}</span>
-          </div>
         </div>
       </div>
 
@@ -297,14 +252,13 @@ const RecipeCard = ({ recipe, index, onClick, onHover }) => {
 };
 
 const RecipeModal = ({ recipe, onClose }) => {
-  if (!recipe) return null;
-
   useEffect(() => {
+    if (!recipe) return;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [recipe]);
+
+  if (!recipe) return null;
 
   return (
     <motion.div
@@ -409,36 +363,7 @@ const RecipeModal = ({ recipe, onClose }) => {
             </div>
           </div>
 
-          {/* Testimonials */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-px w-8 bg-[#d8b66a]" />
-              <span className="text-[9px] uppercase tracking-[0.35em] eyebrow-gold font-bold">The Connoisseur's Word</span>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              {recipe.testimonials.map((t, i) => (
-                <div
-                  key={i}
-                  className="bg-black/30 border border-white/5 rounded-2xl p-4 relative overflow-hidden group hover:border-[#d8b66a]/20 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-1.5 mb-2">
-                    {[...Array(5)].map((_, star) => (
-                      <Star key={star} size={12} fill={star < t.rating ? "#d8b66a" : "none"} className={star < t.rating ? "text-[#d8b66a]" : "text-white/10"} />
-                    ))}
-                  </div>
-                  <p className="text-[#f2e7c8] text-xs sm:text-sm mb-3 leading-relaxed font-serif">"{t.comment}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#d8b66a] to-[#b98b35] flex items-center justify-center text-[#1a2416] font-bold uppercase text-[10px] shadow-md">
-                      {t.name.charAt(0)}
-                    </div>
-                    <div>
-                      <span className="text-[#d8b66a] text-xs font-bold tracking-wider block uppercase">{t.name}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+
 
           {/* Action Button */}
           <div className="pt-4 border-t border-white/10">
