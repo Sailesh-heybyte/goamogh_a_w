@@ -1,9 +1,9 @@
 import PrivacyPage from '../../src/screens/PrivacyPage';
 
 export const metadata = {
-    title: 'Privacy Policy | Goamogh',
+    title: 'Privacy Policy | Go Amogh',
     description:
-        'Goamogh Privacy Policy. Read how we collect, protect, and use your personal data securely for order processing and delivery.',
+        'Official Privacy Policy of Go Amogh (OPC) Private Limited in compliance with the Digital Personal Data Protection Act, 2023.',
 };
 
 export default function PrivacyRoute() {

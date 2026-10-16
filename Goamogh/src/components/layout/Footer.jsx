@@ -129,7 +129,23 @@ export default function Footer() {
                             </li>
                             <li>
                                 <button
-                                    onClick={() => openLegalModal('privacy')}
+                                    onClick={() => openLegalModal('refund')}
+                                    className="hover:text-[#d8b66a] text-left transition-colors cursor-pointer"
+                                >
+                                    Cancellation & Refund
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    onClick={() => openLegalModal('shipping')}
+                                    className="hover:text-[#d8b66a] text-left transition-colors cursor-pointer"
+                                >
+                                    Shipping & Delivery
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    onClick={() => openLegalModal('cookies')}
                                     className="hover:text-[#d8b66a] text-left transition-colors cursor-pointer"
                                 >
                                     Cookie Policy
@@ -221,9 +237,9 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row justify-between items-center mt-8 text-[10px] text-white/50 font-sans uppercase tracking-widest">
+                <div className="flex flex-col md:flex-row justify-between items-center mt-8 text-[10px] text-white/50 font-sans uppercase tracking-widest gap-4">
                     <p>© 2026 Go Amogh (OPC) Private Limited. All Rights Reserved.</p>
-                    <div className="flex gap-8 mt-4 md:mt-0">
+                    <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
                         <button
                             onClick={() => openLegalModal('privacy')}
                             className="cursor-pointer hover:text-[#d8b66a] transition"
@@ -235,6 +251,18 @@ export default function Footer() {
                             className="cursor-pointer hover:text-[#d8b66a] transition"
                         >
                             Terms & Conditions
+                        </button>
+                        <button
+                            onClick={() => openLegalModal('refund')}
+                            className="cursor-pointer hover:text-[#d8b66a] transition"
+                        >
+                            Cancellation & Refund
+                        </button>
+                        <button
+                            onClick={() => openLegalModal('shipping')}
+                            className="cursor-pointer hover:text-[#d8b66a] transition"
+                        >
+                            Shipping Policy
                         </button>
                         <span className="cursor-pointer hover:text-white">Sitemap</span>
                     </div>

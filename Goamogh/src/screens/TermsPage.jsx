@@ -1,133 +1,185 @@
 'use client';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, ShieldCheck, CheckCircle, ArrowLeft, RefreshCw, Truck, Cookie, Building2 } from 'lucide-react';
+import { FileText, CheckCircle, ArrowLeft, Building, Truck, RefreshCw, Cookie } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TermsPage() {
-    const [activeSection, setActiveSection] = useState('all');
+    const [selectedSection, setSelectedSection] = useState('all');
 
     return (
         <main className="min-h-screen bg-[#1a2416] text-[#efe3bf] pt-32 pb-24 px-4 md:px-8 selection:bg-[#d8b66a] selection:text-[#0b150d]">
-            <div className="max-w-4xl mx-auto space-y-12">
-                <Link
-                    href="/shop"
-                    className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#d8b66a] hover:text-[#efe3bf] transition duration-200 cursor-pointer"
-                >
-                    <ArrowLeft size={16} />
-                    <span>Back to Shop</span>
-                </Link>
+            <div className="max-w-4xl mx-auto space-y-10">
+                <div className="flex items-center justify-between">
+                    <Link
+                        href="/shop"
+                        className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#d8b66a] hover:text-[#efe3bf] transition duration-200 cursor-pointer"
+                    >
+                        <ArrowLeft size={16} />
+                        <span>Back to Shop</span>
+                    </Link>
+                    <Link
+                        href="/privacy"
+                        className="inline-flex items-center gap-1.5 text-xs text-[#d8b66a]/80 hover:text-[#efe3bf] transition font-mono underline"
+                    >
+                        <span>View Privacy Policy</span>
+                    </Link>
+                </div>
 
                 <div className="space-y-4 border-b border-[#d8b66a]/15 pb-8">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0b150d] border border-[#d8b66a]/20 text-[#d8b66a] text-xs uppercase tracking-widest font-mono">
                         <FileText size={14} />
-                        <span>Official Website Legal Policies</span>
+                        <span>Official Website Policies</span>
                     </div>
                     <h1
-                        className="text-4xl md:text-5xl font-serif text-white"
+                        className="text-3xl md:text-5xl font-serif text-white tracking-wide"
                         style={{ fontFamily: "'Cinzel', serif" }}
                     >
                         TERMS & POLICIES
                     </h1>
-                    <p className="text-xs text-[#d8b66a]/80 font-mono">
-                        Go Amogh (OPC) Private Limited • Published & Effective 2026
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        <button
-                            onClick={() => setActiveSection('all')}
-                            className={`px-3 py-1 rounded-full text-xs font-mono transition cursor-pointer ${activeSection === 'all' ? 'bg-[#d8b66a] text-[#0b150d] font-bold' : 'bg-[#0b150d] text-[#d6cca9]/70 hover:text-white border border-[#d8b66a]/20'}`}
-                        >
-                            All Policies
-                        </button>
-                        <button
-                            onClick={() => setActiveSection('terms')}
-                            className={`px-3 py-1 rounded-full text-xs font-mono transition cursor-pointer ${activeSection === 'terms' ? 'bg-[#d8b66a] text-[#0b150d] font-bold' : 'bg-[#0b150d] text-[#d6cca9]/70 hover:text-white border border-[#d8b66a]/20'}`}
-                        >
-                            Part B: Terms & Conditions
-                        </button>
-                        <button
-                            onClick={() => setActiveSection('refunds')}
-                            className={`px-3 py-1 rounded-full text-xs font-mono transition cursor-pointer ${activeSection === 'refunds' ? 'bg-[#d8b66a] text-[#0b150d] font-bold' : 'bg-[#0b150d] text-[#d6cca9]/70 hover:text-white border border-[#d8b66a]/20'}`}
-                        >
-                            Part C: Cancellation & Refunds
-                        </button>
-                        <button
-                            onClick={() => setActiveSection('shipping')}
-                            className={`px-3 py-1 rounded-full text-xs font-mono transition cursor-pointer ${activeSection === 'shipping' ? 'bg-[#d8b66a] text-[#0b150d] font-bold' : 'bg-[#0b150d] text-[#d6cca9]/70 hover:text-white border border-[#d8b66a]/20'}`}
-                        >
-                            Part D: Shipping & Delivery
-                        </button>
-                        <button
-                            onClick={() => setActiveSection('cookies')}
-                            className={`px-3 py-1 rounded-full text-xs font-mono transition cursor-pointer ${activeSection === 'cookies' ? 'bg-[#d8b66a] text-[#0b150d] font-bold' : 'bg-[#0b150d] text-[#d6cca9]/70 hover:text-white border border-[#d8b66a]/20'}`}
-                        >
-                            Part E: Cookie Policy
-                        </button>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-[#d8b66a]/80 font-mono">
+                        <span>Effective Date: 12 October 2026</span>
+                        <span>•</span>
+                        <span>Version 1.0</span>
+                        <span>•</span>
+                        <span>Parts B, C, D & E</span>
                     </div>
                 </div>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#0b150d] border border-[#d8b66a]/20 rounded-[32px] p-8 md:p-12 shadow-2xl space-y-10 font-sans text-sm md:text-base leading-relaxed text-[#d6cca9]/85"
-                >
-                    <div className="p-6 bg-[#1a2416] border border-[#d8b66a]/20 rounded-2xl space-y-2.5 text-xs font-mono">
-                        <p className="text-white font-bold text-sm">Go Amogh (OPC) Private Limited</p>
-                        <p className="text-[#efe3bf]/90">
-                            Registered Office: Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramanagar,
-                            Patimedha, Nidadavole, East Godavari District, Andhra Pradesh – 534301
-                        </p>
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[#d8b66a]">
-                            <span>CIN: U10799AP2025OPC121160</span>
-                            <span>GSTIN: 37AAMCG3553B1ZP</span>
-                            <span>FSSAI: 10126019000124</span>
+                <div className="bg-[#0b150d] border border-[#d8b66a]/30 rounded-2xl p-6 md:p-8 space-y-4 shadow-xl">
+                    <div className="flex items-center gap-2.5 text-[#d8b66a]">
+                        <Building size={18} />
+                        <h2 className="text-sm md:text-base font-bold uppercase tracking-wider font-mono">
+                            Company Identification
+                        </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono text-[#d6cca9]/90 border-t border-[#d8b66a]/15 pt-4">
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">Company</span>
+                            <strong className="text-white text-sm">Go Amogh (OPC) Private Limited</strong>
                         </div>
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 text-[#efe3bf]/80">
-                            <span>
-                                Website:{' '}
-                                <a
-                                    href="http://www.goamogh.com"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-[#d8b66a] underline"
-                                >
-                                    www.goamogh.com
-                                </a>
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">Website</span>
+                            <span className="text-[#d8b66a]">www.goamogh.com</span>
+                        </div>
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">
+                                Corporate Identity Number (CIN)
                             </span>
-                            <span>
-                                Customer Support:{' '}
-                                <a href="mailto:hello@goamogh.com" className="text-[#d8b66a] underline">
-                                    hello@goamogh.com
-                                </a>{' '}
-                                / +91-9515951985
+                            <span className="text-white">U10799AP2025OPC121160</span>
+                        </div>
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">GSTIN</span>
+                            <span className="text-white">37AAMCG3553B1ZP</span>
+                        </div>
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">
+                                FSSAI Licence / Registration No.
                             </span>
-                            <span>
-                                Grievance Officer: Aaradhya (
-                                <a href="mailto:aaradhya@goamogh.com" className="text-[#d8b66a] underline">
-                                    aaradhya@goamogh.com
-                                </a>{' '}
-                                / +91-9903943909)
+                            <span className="text-white">10126019000124</span>
+                        </div>
+                        <div>
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">
+                                Customer Support
+                            </span>
+                            <span className="text-white">hello@goamogh.com • +91-9515951985</span>
+                        </div>
+                        <div className="md:col-span-2">
+                            <span className="text-white/60 block uppercase text-[10px] tracking-wider">
+                                Registered Office
+                            </span>
+                            <span className="text-white">
+                                Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramanagar, Patimedha,
+                                Nidadavole, East Godavari District, Andhra Pradesh – 534301
                             </span>
                         </div>
                     </div>
+                </div>
 
-                    {(activeSection === 'all' || activeSection === 'terms') && (
-                        <div className="space-y-6 border-b border-[#d8b66a]/15 pb-10">
-                            <div className="border-b border-[#d8b66a]/20 pb-3">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#0b150d] rounded-2xl border border-[#d8b66a]/20">
+                    <button
+                        onClick={() => setSelectedSection('all')}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                            selectedSection === 'all'
+                                ? 'bg-[#d8b66a] text-[#0b150d] font-bold shadow-md'
+                                : 'text-[#d6cca9]/70 hover:text-white hover:bg-[#1a2416]'
+                        }`}
+                    >
+                        View All
+                    </button>
+                    <button
+                        onClick={() => setSelectedSection('terms')}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                            selectedSection === 'terms'
+                                ? 'bg-[#d8b66a] text-[#0b150d] font-bold shadow-md'
+                                : 'text-[#d6cca9]/70 hover:text-white hover:bg-[#1a2416]'
+                        }`}
+                    >
+                        <FileText size={13} />
+                        <span>Part B: Terms</span>
+                    </button>
+                    <button
+                        onClick={() => setSelectedSection('refund')}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                            selectedSection === 'refund'
+                                ? 'bg-[#d8b66a] text-[#0b150d] font-bold shadow-md'
+                                : 'text-[#d6cca9]/70 hover:text-white hover:bg-[#1a2416]'
+                        }`}
+                    >
+                        <RefreshCw size={13} />
+                        <span>Part C: Cancellation & Refunds</span>
+                    </button>
+                    <button
+                        onClick={() => setSelectedSection('shipping')}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                            selectedSection === 'shipping'
+                                ? 'bg-[#d8b66a] text-[#0b150d] font-bold shadow-md'
+                                : 'text-[#d6cca9]/70 hover:text-white hover:bg-[#1a2416]'
+                        }`}
+                    >
+                        <Truck size={13} />
+                        <span>Part D: Shipping & Delivery</span>
+                    </button>
+                    <button
+                        onClick={() => setSelectedSection('cookie')}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                            selectedSection === 'cookie'
+                                ? 'bg-[#d8b66a] text-[#0b150d] font-bold shadow-md'
+                                : 'text-[#d6cca9]/70 hover:text-white hover:bg-[#1a2416]'
+                        }`}
+                    >
+                        <Cookie size={13} />
+                        <span>Part E: Cookies</span>
+                    </button>
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-[#0b150d] border border-[#d8b66a]/20 rounded-[32px] p-8 md:p-12 shadow-2xl space-y-12 font-sans text-sm md:text-base leading-relaxed text-[#d6cca9]/90"
+                >
+                    {(selectedSection === 'all' || selectedSection === 'terms') && (
+                        <div className="space-y-8 border-b border-[#d8b66a]/15 pb-12">
+                            <div className="border-b border-[#d8b66a]/20 pb-4">
                                 <span className="text-xs uppercase font-mono tracking-widest text-[#d8b66a]">
                                     Part B
                                 </span>
                                 <h2
-                                    className="text-2xl font-serif text-white"
+                                    className="text-2xl md:text-3xl font-serif text-white font-bold"
                                     style={{ fontFamily: "'Cinzel', serif" }}
                                 >
-                                    WEBSITE TERMS AND CONDITIONS
+                                    Website Terms and Conditions
                                 </h2>
                             </div>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">1. Acceptance</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    1. Acceptance
+                                </h3>
                                 <p>
                                     These Terms govern your access to and use of www.goamogh.com and purchases made
                                     through it. By using the website or placing an order you agree to these Terms,
@@ -136,42 +188,29 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     2. Company Information
                                 </h3>
-                                <div className="space-y-1 pl-1 text-xs font-mono">
-                                    <p>
-                                        <strong>Company:</strong> Go Amogh (OPC) Private Limited
-                                    </p>
-                                    <p>
-                                        <strong>Registered Office:</strong> Door No. 3-11-8, Lakshmi Gayatri Nivas,
-                                        Kandukuri Vari Street, Ramanagar, Patimedha, Nidadavole, East Godavari District,
-                                        Andhra Pradesh – 534301
-                                    </p>
-                                    <p>
-                                        <strong>CIN:</strong> U10799AP2025OPC121160
-                                    </p>
-                                    <p>
-                                        <strong>GSTIN:</strong> 37AAMCG3553B1ZP
-                                    </p>
-                                    <p>
-                                        <strong>FSSAI Licence/Registration No.:</strong> 10126019000124
-                                    </p>
-                                    <p>
-                                        <strong>Website:</strong> www.goamogh.com
-                                    </p>
-                                    <p>
-                                        <strong>Customer Support:</strong> hello@goamogh.com / +91-9515951985
-                                    </p>
-                                    <p>
-                                        <strong>Grievance Officer:</strong> Aaradhya, aaradhya@goamogh.com,
-                                        +91-9903943909
-                                    </p>
-                                </div>
+                                <p>
+                                    Go Amogh (OPC) Private Limited, having its Registered Office at Door No. 3-11-8,
+                                    Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramanagar, Patimedha, Nidadavole, East
+                                    Godavari District, Andhra Pradesh – 534301. CIN: U10799AP2025OPC121160, GSTIN:
+                                    37AAMCG3553B1ZP, FSSAI Licence No.: 10126019000124. Website: www.goamogh.com.
+                                    Customer Support: hello@goamogh.com / +91-9515951985. Grievance Officer: Aaradhya,
+                                    aaradhya@goamogh.com, +91-9903943909.
+                                </p>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">3. Products</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    3. Products
+                                </h3>
                                 <p>
                                     Go Amogh sells spices and powdered food products as described on the website. We
                                     keep product descriptions, photographs, ingredients, net quantity, nutritional and
@@ -185,7 +224,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     4. Product Availability
                                 </h3>
                                 <p>
@@ -197,7 +239,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">5. Prices and Taxes</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    5. Prices and Taxes
+                                </h3>
                                 <p>
                                     Prices displayed on the website include applicable taxes, or the website shows how
                                     taxes and charges are calculated. The final payable amount, including any delivery
@@ -206,7 +253,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">6. Ordering</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    6. Ordering
+                                </h3>
                                 <p>
                                     An order submitted through the website is an offer to purchase. We verify order and
                                     payment information before accepting an order, and we will not tell you that an
@@ -217,10 +269,15 @@ export default function TermsPage() {
                                 </p>
                             </section>
 
-                            <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">7. Payment</h3>
+                            <section className="space-y-3">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    7. Payment
+                                </h3>
                                 <p>We accept payment by:</p>
-                                <ul className="list-disc pl-5 space-y-1 text-[#efe3bf]/85">
+                                <ul className="list-disc pl-5 space-y-1 text-sm text-[#d6cca9]/85">
                                     <li>IMPS;</li>
                                     <li>NEFT; and</li>
                                     <li>QR/scanner payment directly to the Company’s designated current account.</li>
@@ -239,7 +296,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     8. Payment Verification
                                 </h3>
                                 <p>
@@ -250,7 +310,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">9. Delivery</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    9. Delivery
+                                </h3>
                                 <p>
                                     Delivery timelines on the website are estimates unless expressly stated otherwise.
                                     Delivery may be affected by incorrect customer information, non-availability of the
@@ -261,7 +326,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     10. Cancellation, Returns and Refunds
                                 </h3>
                                 <p>
@@ -271,7 +339,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     11. Damaged, Incorrect or Defective Products
                                 </h3>
                                 <p>
@@ -283,7 +354,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">12. Food Safety</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    12. Food Safety
+                                </h3>
                                 <p>
                                     Please follow the storage and usage instructions on the product packaging, and do
                                     not consume a product if its packaging appears materially damaged, tampered with or
@@ -298,7 +374,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">13. Website Content</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    13. Website Content
+                                </h3>
                                 <p>
                                     We try to keep website content accurate. Minor typographical, technical or display
                                     errors may occur. We will promptly correct any material error affecting price,
@@ -309,7 +390,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     14. Intellectual Property
                                 </h3>
                                 <p>
@@ -320,7 +404,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     15. Prohibited Activities
                                 </h3>
                                 <p>
@@ -332,7 +419,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     16. Limitation of Liability
                                 </h3>
                                 <p>
@@ -345,41 +435,56 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">17. Consumer Rights</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    17. Consumer Rights
+                                </h3>
                                 <p>
                                     Nothing in these Terms excludes, restricts or limits any right you have under Indian
                                     consumer-protection law that cannot lawfully be excluded.
                                 </p>
                             </section>
 
-                            <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                            <section className="space-y-3">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     18. Grievance Redressal
                                 </h3>
-                                <div className="p-4 bg-[#1a2416] border border-[#d8b66a]/15 rounded-xl space-y-1.5 text-xs font-mono">
-                                    <p className="font-bold text-white text-sm">Grievance Officer:</p>
-                                    <p>Aaradhya</p>
+                                <div className="p-5 bg-[#1a2416] border border-[#d8b66a]/20 rounded-xl space-y-1.5 text-xs font-mono text-[#d6cca9]">
+                                    <p className="font-bold text-white text-sm">Grievance Officer: Aaradhya</p>
                                     <p>
                                         Email:{' '}
                                         <a href="mailto:aaradhya@goamogh.com" className="text-[#d8b66a] underline">
                                             aaradhya@goamogh.com
                                         </a>
                                     </p>
-                                    <p>Phone: +91-9903943909</p>
+                                    <p>
+                                        Phone:{' '}
+                                        <a href="tel:+919903943909" className="text-white hover:text-[#d8b66a]">
+                                            +91-9903943909
+                                        </a>
+                                    </p>
                                     <p>
                                         Address: Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street,
                                         Ramanagar, Patimedha, Nidadavole, East Godavari District, Andhra Pradesh –
                                         534301 (registered office)
                                     </p>
-                                    <p className="text-[#efe3bf]/70 pt-1">
-                                        We will acknowledge your complaint within 48 hours of receipt and will endeavour
-                                        to resolve it within one month of receipt.
-                                    </p>
                                 </div>
+                                <p className="text-xs text-[#d6cca9]/70 italic">
+                                    We will acknowledge your complaint within 48 hours of receipt and will endeavour to
+                                    resolve it within one month of receipt.
+                                </p>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     19. Governing Law and Jurisdiction
                                 </h3>
                                 <p>
@@ -392,7 +497,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">20. Amendments</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    20. Amendments
+                                </h3>
                                 <p>
                                     We may update these Terms when reasonably required. The latest version will be
                                     published on the website with its effective date, and will apply to orders placed
@@ -402,22 +512,27 @@ export default function TermsPage() {
                         </div>
                     )}
 
-                    {(activeSection === 'all' || activeSection === 'refunds') && (
-                        <div className="space-y-6 border-b border-[#d8b66a]/15 pb-10">
-                            <div className="border-b border-[#d8b66a]/20 pb-3">
+                    {(selectedSection === 'all' || selectedSection === 'refund') && (
+                        <div className="space-y-8 border-b border-[#d8b66a]/15 pb-12">
+                            <div className="border-b border-[#d8b66a]/20 pb-4">
                                 <span className="text-xs uppercase font-mono tracking-widest text-[#d8b66a]">
                                     Part C
                                 </span>
                                 <h2
-                                    className="text-2xl font-serif text-white"
+                                    className="text-2xl md:text-3xl font-serif text-white font-bold"
                                     style={{ fontFamily: "'Cinzel', serif" }}
                                 >
-                                    CANCELLATION, RETURN AND REFUND POLICY
+                                    Cancellation, Return and Refund Policy
                                 </h2>
                             </div>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">1. General</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    1. General
+                                </h3>
                                 <p>
                                     Go Amogh aims to deliver safe, genuine and properly packaged food products. Because
                                     food products involve hygiene and food-safety considerations, returns are handled
@@ -427,15 +542,24 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">2. Cancellation</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    2. Cancellation
+                                </h3>
                                 <p>
                                     You may request cancellation by contacting{' '}
                                     <a href="mailto:hello@goamogh.com" className="text-[#d8b66a] underline">
                                         hello@goamogh.com
                                     </a>{' '}
-                                    / +91-9515951985 with your order number.
+                                    /{' '}
+                                    <a href="tel:+919515951985" className="text-white hover:text-[#d8b66a]">
+                                        +91-9515951985
+                                    </a>{' '}
+                                    with your order number.
                                 </p>
-                                <ul className="list-disc pl-5 space-y-1 text-[#efe3bf]/85">
+                                <ul className="list-disc pl-5 space-y-1 text-sm text-[#d6cca9]/85">
                                     <li>
                                         An order can be cancelled for a full refund before it is dispatched. Once an
                                         order has been dispatched, it cannot be cancelled, modified or replaced, except
@@ -451,26 +575,36 @@ export default function TermsPage() {
                                         If we cancel your order (for example because stock is unavailable), you will
                                         receive a full refund.
                                     </li>
-                                    <li>We do not charge any cancellation fee.</li>
+                                    <li>
+                                        <strong>We do not charge any cancellation fee.</strong>
+                                    </li>
                                 </ul>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     3. Eligible Complaints
                                 </h3>
                                 <p>
                                     Please contact us if you receive a wrong product, a materially damaged product, a
                                     materially tampered package, a missing item, a materially defective product, or if
                                     there is another genuine fulfilment or product-quality issue. Please report the
-                                    issue within 48 hours of delivery, with the evidence described below, so that we can
-                                    investigate while the facts are fresh. We will still consider a later report where
-                                    the law requires.
+                                    issue within <strong>48 hours of delivery</strong>, with the evidence described
+                                    below, so that we can investigate while the facts are fresh. We will still consider
+                                    a later report where the law requires.
                                 </p>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">4. Evidence</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    4. Evidence
+                                </h3>
                                 <p>
                                     Where reasonably necessary we may ask for photographs or videos of the product and
                                     outer packaging, the order number, batch/lot number, expiry/best-before date,
@@ -480,7 +614,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     5. Food Safety Complaints
                                 </h3>
                                 <p>
@@ -496,7 +633,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     6. Returns and Replacements
                                 </h3>
                                 <p>
@@ -505,7 +645,7 @@ export default function TermsPage() {
                                     batch details until your complaint is resolved.
                                 </p>
                                 <p>Subject to your statutory rights, ordinary returns are not accepted where:</p>
-                                <ul className="list-disc pl-5 space-y-1 text-[#efe3bf]/85">
+                                <ul className="list-disc pl-5 space-y-1 text-sm text-[#d6cca9]/85">
                                     <li>the product has been opened or used without any product-related defect;</li>
                                     <li>
                                         the product was damaged after delivery due to customer handling or improper
@@ -524,7 +664,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">7. Refunds</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    7. Refunds
+                                </h3>
                                 <p>
                                     Approved refunds are made to the account or payment source from which you paid.
                                     Where you paid by bank transfer or QR, we may ask you to confirm the bank account
@@ -532,27 +677,40 @@ export default function TermsPage() {
                                     password or CVV.
                                 </p>
                                 <p>
-                                    We will initiate an approved refund within 5–7 business days of approval. The time
-                                    taken for the amount to reach your account depends on your bank.
+                                    We will initiate an approved refund within <strong>5–7 business days</strong> of
+                                    approval. The time taken for the amount to reach your account depends on your bank.
+                                    Refunds require verification of your payment (transaction/reference number).
                                 </p>
-                                <p>Refunds require verification of your payment (transaction/reference number).</p>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">8. Non-Delivery</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    8. Non-Delivery
+                                </h3>
                                 <p>
                                     If your order is not delivered, contact{' '}
                                     <a href="mailto:hello@goamogh.com" className="text-[#d8b66a] underline">
                                         hello@goamogh.com
                                     </a>{' '}
-                                    / +91-9515951985. We will investigate with the logistics provider and give an
-                                    appropriate remedy, including a refund or re-dispatch, in accordance with applicable
-                                    law.
+                                    /{' '}
+                                    <a href="tel:+919515951985" className="text-white hover:text-[#d8b66a]">
+                                        +91-9515951985
+                                    </a>
+                                    . We will investigate with the logistics provider and give an appropriate remedy,
+                                    including a refund or re-dispatch, in accordance with applicable law.
                                 </p>
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">9. Grievances</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    9. Grievances
+                                </h3>
                                 <p>
                                     If you are unhappy with our response, contact our Grievance Officer: Aaradhya,{' '}
                                     <a href="mailto:aaradhya@goamogh.com" className="text-[#d8b66a] underline">
@@ -564,22 +722,27 @@ export default function TermsPage() {
                         </div>
                     )}
 
-                    {(activeSection === 'all' || activeSection === 'shipping') && (
-                        <div className="space-y-6 border-b border-[#d8b66a]/15 pb-10">
-                            <div className="border-b border-[#d8b66a]/20 pb-3">
+                    {(selectedSection === 'all' || selectedSection === 'shipping') && (
+                        <div className="space-y-8 border-b border-[#d8b66a]/15 pb-12">
+                            <div className="border-b border-[#d8b66a]/20 pb-4">
                                 <span className="text-xs uppercase font-mono tracking-widest text-[#d8b66a]">
                                     Part D
                                 </span>
                                 <h2
-                                    className="text-2xl font-serif text-white"
+                                    className="text-2xl md:text-3xl font-serif text-white font-bold"
                                     style={{ fontFamily: "'Cinzel', serif" }}
                                 >
-                                    SHIPPING AND DELIVERY POLICY
+                                    Shipping and Delivery Policy
                                 </h2>
                             </div>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">1. Delivery Area</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    1. Delivery Area
+                                </h3>
                                 <p>
                                     We deliver to the PIN codes served by our logistics partners. Serviceability is
                                     checked at checkout. We may decline delivery to locations where delivery is not
@@ -588,7 +751,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">2. Delivery Charges</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    2. Delivery Charges
+                                </h3>
                                 <p>
                                     Any delivery charges are displayed before you confirm your order and are included in
                                     the final payable amount.
@@ -596,7 +764,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">3. Delivery Timelines</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    3. Delivery Timelines
+                                </h3>
                                 <p>
                                     Expected delivery timelines are shown on the product page or at checkout. They are
                                     estimates and may vary with destination, courier capacity and other operational
@@ -606,7 +779,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     4. Incorrect Address and Failed Delivery
                                 </h3>
                                 <p>
@@ -618,7 +794,10 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     5. Delivery and Inspection
                                 </h3>
                                 <p>
@@ -629,43 +808,62 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">6. Contact</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    6. Contact
+                                </h3>
                                 <p>
                                     For delivery queries:{' '}
                                     <a href="mailto:hello@goamogh.com" className="text-[#d8b66a] underline">
                                         hello@goamogh.com
                                     </a>{' '}
-                                    / +91-9515951985.
+                                    /{' '}
+                                    <a href="tel:+919515951985" className="text-white hover:text-[#d8b66a]">
+                                        +91-9515951985
+                                    </a>
+                                    .
                                 </p>
                             </section>
                         </div>
                     )}
 
-                    {(activeSection === 'all' || activeSection === 'cookies') && (
-                        <div className="space-y-6">
-                            <div className="border-b border-[#d8b66a]/20 pb-3">
+                    {(selectedSection === 'all' || selectedSection === 'cookie') && (
+                        <div className="space-y-8">
+                            <div className="border-b border-[#d8b66a]/20 pb-4">
                                 <span className="text-xs uppercase font-mono tracking-widest text-[#d8b66a]">
                                     Part E
                                 </span>
                                 <h2
-                                    className="text-2xl font-serif text-white"
+                                    className="text-2xl md:text-3xl font-serif text-white font-bold"
                                     style={{ fontFamily: "'Cinzel', serif" }}
                                 >
-                                    COOKIE POLICY
+                                    Cookie Policy
                                 </h2>
                             </div>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">1. What Are Cookies</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    1. What Are Cookies
+                                </h3>
                                 <p>
                                     Cookies are small text files stored on your device when you visit a website. We and
                                     our service providers use cookies and similar technologies on www.goamogh.com.
                                 </p>
                             </section>
 
-                            <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">2. How We Use Them</h3>
-                                <ul className="list-disc pl-5 space-y-1.5 text-[#efe3bf]/85">
+                            <section className="space-y-3">
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    2. How We Use Them
+                                </h3>
+                                <ul className="list-disc pl-5 space-y-1.5 text-sm text-[#d6cca9]/85">
                                     <li>
                                         <strong>Strictly necessary cookies:</strong> needed for the website to work and
                                         stay secure (for example keeping your cart and preventing fraud). These do not
@@ -686,7 +884,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">3. Your Choices</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    3. Your Choices
+                                </h3>
                                 <p>
                                     When you first visit the website you can accept or reject non-essential cookies
                                     using the cookie banner, and you can change your choice at any time through the
@@ -696,7 +899,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">4. Details of Cookies</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    4. Details of Cookies
+                                </h3>
                                 <p>
                                     A current list of the cookies we use, with their provider, purpose and duration, is
                                     available in the cookie settings panel and on request at{' '}
@@ -708,7 +916,12 @@ export default function TermsPage() {
                             </section>
 
                             <section className="space-y-2">
-                                <h3 className="text-base font-serif text-[#d8b66a] font-bold">5. Contact</h3>
+                                <h3
+                                    className="text-lg font-serif text-[#d8b66a] font-bold"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
+                                    5. Contact
+                                </h3>
                                 <p>
                                     Questions about this Cookie Policy:{' '}
                                     <a href="mailto:aaradhya@goamogh.com" className="text-[#d8b66a] underline">
@@ -721,9 +934,19 @@ export default function TermsPage() {
                     )}
                 </motion.div>
 
-                <div className="flex items-center justify-center gap-2 text-xs text-[#d6cca9]/60 font-mono">
-                    <CheckCircle size={14} className="text-[#d8b66a]" />
-                    <span>Go Amogh (OPC) Private Limited • Official Legal Documentation</span>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#d6cca9]/60 font-mono border-t border-[#d8b66a]/15 pt-6">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className="text-[#d8b66a]" />
+                        <span>Go Amogh (OPC) Private Limited • Official Documentation</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <Link href="/privacy" className="hover:text-[#d8b66a] underline transition">
+                            Privacy Policy
+                        </Link>
+                        <Link href="/shop" className="hover:text-[#d8b66a] underline transition">
+                            Shop
+                        </Link>
+                    </div>
                 </div>
             </div>
         </main>

@@ -1,9 +1,9 @@
 import TermsPage from '../../src/screens/TermsPage';
 
 export const metadata = {
-    title: 'Terms & Conditions | Goamogh',
+    title: 'Terms & Policies | Go Amogh',
     description:
-        'Goamogh Terms & Conditions. Terms of service governing the purchase and delivery of Goamogh hand-pounded artisanal spices.',
+        'Official Terms & Conditions, Cancellation & Refund Policy, Shipping and Cookie Policies for Go Amogh (OPC) Private Limited.',
 };
 
 export default function TermsRoute() {
