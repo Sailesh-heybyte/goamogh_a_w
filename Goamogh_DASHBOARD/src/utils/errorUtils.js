@@ -123,25 +123,3 @@ function formatFriendlyFieldError(field, rawMsg) {
   return rawMsg
 }
 
-/**
- * Sanitizes form inputs before API submission:
- * - Trims string inputs
- * - Converts empty strings ("") to null for nullable fields to avoid database unique constraint collisions
- */
-export function sanitizePayload(formData, nullableFields = []) {
-  const clean = {}
-  Object.keys(formData).forEach((key) => {
-    const val = formData[key]
-    if (typeof val === "string") {
-      const trimmed = val.trim()
-      if (trimmed === "" && nullableFields.includes(key)) {
-        clean[key] = null
-      } else {
-        clean[key] = trimmed
-      }
-    } else {
-      clean[key] = val
-    }
-  })
-  return clean
-}

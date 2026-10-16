@@ -17,7 +17,3 @@ export const getInventoryDashboard = async (params = {}) => {
   const query = new URLSearchParams(params).toString()
   return customFetch(`/api/v1/inventory/dashboard?${query}`)
 }
-
-export const getItemBatchComposition = async (itemId) => {
-  return customFetch(`/api/v1/inventory/items/${itemId}/batch-composition`)
-}

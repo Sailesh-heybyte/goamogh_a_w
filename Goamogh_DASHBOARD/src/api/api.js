@@ -157,33 +157,6 @@ export const customFetch = async (endpoint, options = {}) => {
   return response
 }
 
-/**
- * Helper utility to parse API response errors standardizing HTTP 429 Rate Limit messages.
- * @param {Response} response
- * @returns {Promise<{ status: number, isRateLimit: boolean, message: string, detail?: string }>}
- */
-export const parseApiResponseError = async (response) => {
-  let json
-  try {
-    json = await response.json()
-  } catch {
-    json = {}
-  }
 
-  const isRateLimit = response.status === 429
-  const defaultMsg = isRateLimit
-    ? "Too many OTP requests. Please wait 1 minute before requesting another code."
-    : "An unexpected error occurred. Please try again."
-
-  const message = json.detail || json.message || json.error || defaultMsg
-
-  return {
-    status: response.status,
-    isRateLimit,
-    message,
-    detail: json.detail,
-    data: json,
-  }
-}
 
 

@@ -19,10 +19,6 @@ export const createCustomer = async (customerData) => {
   })
 }
 
-export const getCustomerById = async (userId) => {
-  return customFetch(`/api/v1/sales/users/${userId}`)
-}
-
 export const updateCustomer = async (userId, customerData) => {
   return customFetch(`/api/v1/sales/users/${userId}`, {
     method: "PUT",

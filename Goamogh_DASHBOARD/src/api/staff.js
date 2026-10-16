@@ -57,19 +57,3 @@ export const deactivateStaff = async (staffId) => {
   })
 }
 
-/**
- * Fetches details of a specific staff member by ID
- * @param {string} staffId - The UUID of the staff member
- * @returns {Promise<Response>} The API response container
- */
-export const getStaffById = async (staffId) => {
-  try {
-    const response = await customFetch(`/api/v1/auth/staff/${staffId}`, {
-      method: "GET",
-    })
-    return response
-  } catch (error) {
-    console.error(`Error fetching staff member ${staffId}:`, error)
-    throw error
-  }
-}
