@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, Pencil, ArrowLeft, Loader, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, Pencil, ArrowLeft, Loader, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
-import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart } from '../api/api';
+import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, verifyPayment } from '../api/api';
+import { loadRazorpayScript, openRazorpayCheckout } from '../utils/razorpay';
 
 
 
@@ -70,12 +71,16 @@ export default function CartPage() {
     const [orderNotes, setOrderNotes] = useState('');
     const [placingOrder, setPlacingOrder] = useState(false);
     const [checkoutResponse, setCheckoutResponse] = useState(null);
+    const [paying, setPaying] = useState(false);
+    const [paymentMessage, setPaymentMessage] = useState(null);
+    const [paidOrder, setPaidOrder] = useState(null);
     const [secondsLeft, setSecondsLeft] = useState(600);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [loadingAddresses, setLoadingAddresses] = useState(false);
 
     // Synchronous Ref Locks
     const isPlacingOrderRef = useRef(false);
+    const isPayingRef = useRef(false);
 
     // Browser Navigation & Page Unload Guard during active order creation
     useEffect(() => {
@@ -402,6 +407,10 @@ export default function CartPage() {
             setAddresses([]);
             setSelectedAddressId('');
             setCheckoutResponse(null);
+            setPaying(false);
+            setPaymentMessage(null);
+            setPaidOrder(null);
+            isPayingRef.current = false;
             setIsCheckingOut(false);
             setOrderNotes('');
             isPlacingOrderRef.current = false;
@@ -591,6 +600,121 @@ export default function CartPage() {
         );
     }
 
+    const handleVerifyPayment = async (rzpResponse) => {
+        setPaymentMessage({ type: 'info', text: 'Payment received. Confirming your order...' });
+        try {
+            const res = await verifyPayment(token, checkoutResponse.id, rzpResponse);
+            setPaidOrder(res.data);
+            setPaymentMessage(null);
+            setCheckoutResponse(null);
+        } catch (err) {
+            if (err.status === 400 || err.status === 404 || err.status === 409) {
+                setPaymentMessage({ type: 'error', text: err.message });
+            } else {
+                setPaymentMessage({ type: 'error', text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.' });
+            }
+        } finally {
+            setPaying(false);
+            isPayingRef.current = false;
+        }
+    };
+
+    const handlePayNow = async () => {
+        if (!checkoutResponse || !token || isPayingRef.current) return;
+        isPayingRef.current = true;
+        setPaying(true);
+        setPaymentMessage(null);
+
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+            setPaymentMessage({ type: 'error', text: 'Could not load the payment window. Check your internet connection and try again.' });
+            setPaying(false);
+            isPayingRef.current = false;
+            return;
+        }
+
+        let initRes;
+        try {
+            initRes = await initiatePayment(token, checkoutResponse.id);
+        } catch (err) {
+            setPaymentMessage({ type: 'error', text: err.message });
+            setPaying(false);
+            isPayingRef.current = false;
+            return;
+        }
+        const init = initRes.data;
+
+        openRazorpayCheckout({
+            keyId: init.razorpay_key_id,
+            orderId: init.razorpay_order_id,
+            amountPaise: init.amount_paise,
+            currency: init.currency,
+            description: `Order ${checkoutResponse.sale_number}`,
+            prefill: init.prefill,
+            onSuccess: (rzpResponse) => {
+                handleVerifyPayment(rzpResponse);
+            },
+            onFailed: (error) => {
+                setPaymentMessage({ type: 'error', text: error.description });
+            },
+            onDismiss: () => {
+                setPaying(false);
+                isPayingRef.current = false;
+            },
+        });
+    };
+
+    if (paidOrder) {
+        return (
+            <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+                <div className="max-w-3xl mx-auto relative z-10 text-center">
+                    <div className="bg-[#0b150d] border border-[#d8b66a]/15 rounded-[32px] md:rounded-[48px] p-8 md:p-16 shadow-2xl relative overflow-hidden">
+                        <div className="w-20 h-20 rounded-full bg-[#d8b66a]/10 border border-[#d8b66a]/20 flex items-center justify-center mx-auto mb-8 text-[#d8b66a]">
+                            <CheckCircle2 size={36} />
+                        </div>
+                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Payment Confirmed</h1>
+                        <p className="text-[#efe3bf] text-base md:text-lg mb-8 max-w-lg mx-auto">
+                            Thank you for your purchase. Your payment was successful and your order is confirmed.
+                        </p>
+
+                        <div className="bg-[#1a2416]/50 rounded-2xl p-6 mb-8 text-left border border-[#d8b66a]/10 max-w-xl mx-auto font-sans space-y-4">
+                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
+                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Number</span>
+                                <span className="text-[#efe3bf] font-mono text-sm font-bold">{paidOrder.sale_number}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
+                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount Paid</span>
+                                <span className="text-[#d8b66a] font-mono text-sm font-bold">{paidOrder.paid_amount != null ? `₹${Number(paidOrder.paid_amount).toFixed(2)}` : '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Status</span>
+                                <span className="bg-green-500/20 text-green-400 border border-green-500/30 font-mono text-[10px] uppercase px-2 py-0.5 rounded-full font-bold">{paidOrder.status}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                            <a
+                                href="/shop"
+                                className="w-full sm:w-auto inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
+                                Continue Shopping
+                            </a>
+                            <a
+                                href={`/profile?tab=orders&orderId=${paidOrder.id}`}
+                                className="w-full sm:w-auto inline-flex items-center justify-center border border-[#d8b66a]/20 hover:border-[#d8b66a]/60 text-[#d8b66a] hover:text-[#efe3bf] font-bold px-8 py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
+                                Track Order
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     if (checkoutResponse) {
         const isExpired = secondsLeft <= 0;
         return (
@@ -633,17 +757,39 @@ export default function CartPage() {
                         </div>
 
                         <div className="flex flex-col gap-4 justify-center items-center max-w-md mx-auto">
-                            <div className="w-full p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-center justify-center gap-3 font-mono">
-                                <span>Online payment is not available yet. This order will be released automatically when the timer ends.</span>
-                            </div>
+                            {paymentMessage && (
+                                <div className={`w-full p-4 rounded-xl text-sm flex items-center justify-center gap-3 font-mono ${paymentMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-200' : 'bg-[#d8b66a]/10 border border-[#d8b66a]/20 text-[#efe3bf]'}`}>
+                                    {paymentMessage.type === 'error' && <AlertTriangle size={16} className="text-red-400 shrink-0" />}
+                                    <span>{paymentMessage.text}</span>
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handlePayNow}
+                                disabled={isExpired || paying}
+                                className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer flex items-center justify-center gap-2"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
+                                {paying ? (
+                                    <>
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <span>Opening secure payment...</span>
+                                    </>
+                                ) : (
+                                    <span>Pay {checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : ''}</span>
+                                )}
+                            </button>
 
                             <button
                                 type="button"
                                 onClick={() => {
                                     setCheckoutResponse(null);
+                                    setPaymentMessage(null);
                                     setIsCheckingOut(false);
                                 }}
-                                className="text-xs uppercase tracking-widest text-[#efe3bf]/50 hover:text-white mt-2 font-mono font-bold transition duration-300 cursor-pointer"
+                                disabled={paying}
+                                className="text-xs uppercase tracking-widest text-[#efe3bf]/50 hover:text-white mt-2 font-mono font-bold transition duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Back to Cart
                             </button>
