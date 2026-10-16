@@ -153,7 +153,7 @@ function Invoices() {
                           <span className="tabular-nums text-brand-700 font-bold text-xs truncate" title={inv.invoice_number}>{inv.invoice_number}</span>
                           {sale.sale_number && (
                             <button
-                              onClick={() => navigate(`/dashboard/sales?search=${sale.sale_number}`)}
+                              onClick={() => navigate(`/sales?search=${sale.sale_number}`)}
                               className="hover:underline flex items-center gap-1 text-[11px] tabular-nums text-slate-500 hover:text-brand-700 truncate"
                               title={sale.sale_number}
                             >
@@ -237,7 +237,7 @@ function Invoices() {
                       {/* Column 6: Actions */}
                       <td className="pl-2 pr-5 py-3 text-right whitespace-nowrap">
                         <button
-                          onClick={() => navigate(`/dashboard/invoices/${inv.id}`)}
+                          onClick={() => navigate(`/invoices/${inv.id}`)}
                           className="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-semibold border border-brand-200/60 transition-all inline-flex items-center gap-1 active:scale-95 shadow-2xs"
                           aria-label="View invoice"
                         >

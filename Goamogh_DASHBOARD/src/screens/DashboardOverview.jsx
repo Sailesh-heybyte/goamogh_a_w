@@ -14,21 +14,21 @@ function DashboardOverview() {
 
   const checkPerm = (perm) => isSuperAdmin || isAdminLikeUser || hasPermission(perm)
 
-  if (checkPerm("catalog_manage")) return <Navigate to="/dashboard/categories" replace />
-  if (checkPerm("catalog_authorize")) return <Navigate to="/dashboard/products" replace />
-  if (checkPerm("certificate_manage")) return <Navigate to="/dashboard/certificates" replace />
-  if (checkPerm("price_view") || checkPerm("price_manage")) return <Navigate to="/dashboard/pricing" replace />
-  if (checkPerm("stock_manage")) return <Navigate to="/dashboard/inventory-dashboard" replace />
-  if (checkPerm("supplier_manage")) return <Navigate to="/dashboard/suppliers" replace />
-  if (checkPerm("work_order_manage")) return <Navigate to="/dashboard/work-orders" replace />
-  if (checkPerm("customer_manage")) return <Navigate to="/dashboard/customers" replace />
-  if (checkPerm("indent_manage")) return <Navigate to="/dashboard/indents" replace />
-  if (checkPerm("sales_manage")) return <Navigate to="/dashboard/sales" replace />
-  if (checkPerm("purchase_order_manage")) return <Navigate to="/dashboard/purchase/orders" replace />
-  if (checkPerm("goods_receipt_manage")) return <Navigate to="/dashboard/purchase/entries" replace />
-  if (checkPerm("all")) return <Navigate to="/dashboard/staff" replace />
+  if (checkPerm("catalog_manage")) return <Navigate to="/categories" replace />
+  if (checkPerm("catalog_authorize")) return <Navigate to="/products" replace />
+  if (checkPerm("certificate_manage")) return <Navigate to="/certificates" replace />
+  if (checkPerm("price_view") || checkPerm("price_manage")) return <Navigate to="/pricing" replace />
+  if (checkPerm("stock_manage")) return <Navigate to="/inventory-dashboard" replace />
+  if (checkPerm("supplier_manage")) return <Navigate to="/suppliers" replace />
+  if (checkPerm("work_order_manage")) return <Navigate to="/work-orders" replace />
+  if (checkPerm("customer_manage")) return <Navigate to="/customers" replace />
+  if (checkPerm("indent_manage")) return <Navigate to="/indents" replace />
+  if (checkPerm("sales_manage")) return <Navigate to="/sales" replace />
+  if (checkPerm("purchase_order_manage")) return <Navigate to="/purchase/orders" replace />
+  if (checkPerm("goods_receipt_manage")) return <Navigate to="/purchase/entries" replace />
+  if (checkPerm("all")) return <Navigate to="/staff" replace />
 
-  return <Navigate to="/dashboard/categories" replace />
+  return <Navigate to="/categories" replace />
 }
 
 export default DashboardOverview

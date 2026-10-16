@@ -81,7 +81,7 @@ function PurchaseEntries() {
   // Handle PO selection and redirect
   const handleSelectPO = (poId) => {
     setIsSelectPOOpen(false)
-    navigate(`/dashboard/purchase/entries/create?po_id=${poId}`)
+    navigate(`/purchase/entries/create?po_id=${poId}`)
   }
 
   // Helper to format comma-separated product/item names
@@ -262,7 +262,7 @@ function PurchaseEntries() {
                       <div className="flex justify-end items-center gap-1.5">
                         {entry.status === "draft" ? (
                           <button
-                            onClick={() => navigate(`/dashboard/purchase/entries/create?po_id=${entry.po_id}&pe_id=${entry.id}`)}
+                            onClick={() => navigate(`/purchase/entries/create?po_id=${entry.po_id}&pe_id=${entry.id}`)}
                             className="px-2.5 py-1.5 border border-brand-200 hover:border-brand-400 hover:bg-brand-50 rounded-xl text-[10px] font-bold text-brand-700 transition-all active:scale-95 flex items-center gap-1 shrink-0"
                             title="Complete Draft & Authorize"
                             aria-label="View/Authorize"
@@ -349,7 +349,7 @@ function PurchaseEntries() {
               <button
                 onClick={() => {
                   setIsSelectPOOpen(false)
-                  navigate("/dashboard/purchase/entries/create")
+                  navigate("/purchase/entries/create")
                 }}
                 className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm shadow-indigo-500/10 flex items-center justify-center gap-1.5"
               >

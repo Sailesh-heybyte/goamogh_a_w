@@ -12,13 +12,13 @@ function PermissionRoute({ permission, permissions, children }) {
   if (Array.isArray(permissions) && permissions.length > 0) {
     const hasAny = permissions.some((perm) => hasPermission(perm))
     if (!hasAny) {
-      return <Navigate to="/dashboard" replace />
+      return <Navigate to="/" replace />
     }
     return children
   }
 
   if (permission && !hasPermission(permission)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/" replace />
   }
 
   return children

@@ -17,7 +17,7 @@ function Login() {
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
-      navigate("/dashboard", { replace: true })
+      navigate("/", { replace: true })
     }
   }, [isAuthenticated, isAuthLoading, navigate])
 
@@ -58,7 +58,7 @@ function Login() {
       await login(email, password)
       setSuccessMessage("Authentication successful! Redirecting...")
       setTimeout(() => {
-        navigate("/dashboard", { replace: true })
+        navigate("/", { replace: true })
       }, 800)
     } catch (err) {
       setErrors({

@@ -87,50 +87,50 @@ function Sidebar({ isOpen, onClose }) {
     {
       title: "Sales",
       items: [
-        { name: "Sales", to: "/dashboard/sales", icon: ShoppingCart, show: hasPermission("sales_manage") || isAdminLikeUser },
-        { name: "Indents", to: "/dashboard/indents", icon: Layers3, show: hasPermission("indent_manage") || isAdminLikeUser },
-        { name: "Invoices", to: "/dashboard/invoices", icon: ReceiptText, show: hasPermission("sales_manage") || isAdminLikeUser },
+        { name: "Sales", to: "/sales", icon: ShoppingCart, show: hasPermission("sales_manage") || isAdminLikeUser },
+        { name: "Indents", to: "/indents", icon: Layers3, show: hasPermission("indent_manage") || isAdminLikeUser },
+        { name: "Invoices", to: "/invoices", icon: ReceiptText, show: hasPermission("sales_manage") || isAdminLikeUser },
       ],
     },
     {
       title: "Purchases",
       items: [
-        { name: "Purchase Orders", to: "/dashboard/purchase/orders", icon: ClipboardList, show: hasPermission("purchase_order_manage") || isAdminLikeUser },
-        { name: "Purchase Entries", to: "/dashboard/purchase/entries", icon: PackageCheck, show: hasPermission("goods_receipt_manage") || isAdminLikeUser },
-        { name: "Suppliers", to: "/dashboard/suppliers", icon: Truck, show: hasPermission("supplier_manage") || isAdminLikeUser },
+        { name: "Purchase Orders", to: "/purchase/orders", icon: ClipboardList, show: hasPermission("purchase_order_manage") || isAdminLikeUser },
+        { name: "Purchase Entries", to: "/purchase/entries", icon: PackageCheck, show: hasPermission("goods_receipt_manage") || isAdminLikeUser },
+        { name: "Suppliers", to: "/suppliers", icon: Truck, show: hasPermission("supplier_manage") || isAdminLikeUser },
       ],
     },
     {
       title: "Production & Stock",
       items: [
-        { name: "Work Orders", to: "/dashboard/work-orders", icon: Factory, show: hasPermission("work_order_manage") || isAdminLikeUser },
-        { name: "Inventory Dashboard", to: "/dashboard/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") || isAdminLikeUser },
-        { name: "Stock Ledger", to: "/dashboard/stock-ledger", icon: History, show: hasPermission("stock_manage") || isAdminLikeUser },
+        { name: "Work Orders", to: "/work-orders", icon: Factory, show: hasPermission("work_order_manage") || isAdminLikeUser },
+        { name: "Inventory Dashboard", to: "/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") || isAdminLikeUser },
+        { name: "Stock Ledger", to: "/stock-ledger", icon: History, show: hasPermission("stock_manage") || isAdminLikeUser },
       ],
     },
     {
       title: "Customers",
       items: [
-        { name: "Customers", to: "/dashboard/customers", icon: Users, show: hasPermission("customer_manage") || isAdminLikeUser },
-        { name: "Enquiries", to: "/dashboard/enquiries", icon: Inbox, show: hasPermission("customer_manage") || isAdminLikeUser },
-        { name: "Feedback", to: "/dashboard/feedback", icon: Star, show: hasPermission("sales_manage") || isAdminLikeUser },
+        { name: "Customers", to: "/customers", icon: Users, show: hasPermission("customer_manage") || isAdminLikeUser },
+        { name: "Enquiries", to: "/enquiries", icon: Inbox, show: hasPermission("customer_manage") || isAdminLikeUser },
+        { name: "Feedback", to: "/feedback", icon: Star, show: hasPermission("sales_manage") || isAdminLikeUser },
       ],
     },
     {
       title: "Catalog",
       items: [
-        { name: "Item Catalog", to: "/dashboard/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") || isAdminLikeUser },
-        { name: "Categories", to: "/dashboard/categories", icon: Layers, show: hasPermission("catalog_manage") || isAdminLikeUser },
-        { name: "Pricing", to: "/dashboard/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") || isAdminLikeUser },
-        { name: "Certificates", to: "/dashboard/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") || isAdminLikeUser },
+        { name: "Item Catalog", to: "/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") || isAdminLikeUser },
+        { name: "Categories", to: "/categories", icon: Layers, show: hasPermission("catalog_manage") || isAdminLikeUser },
+        { name: "Pricing", to: "/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") || isAdminLikeUser },
+        { name: "Certificates", to: "/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") || isAdminLikeUser },
       ],
     },
     {
       title: "Admin",
       items: [
-        { name: "Staff", to: "/dashboard/staff", icon: UserCog, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
-        { name: "Roles", to: "/dashboard/roles", icon: Shield, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
-        { name: "Settings", to: "/dashboard/settings", icon: Settings, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
+        { name: "Staff", to: "/staff", icon: UserCog, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
+        { name: "Roles", to: "/roles", icon: Shield, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
+        { name: "Settings", to: "/settings", icon: Settings, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
       ],
     },
   ]
@@ -167,7 +167,7 @@ function Sidebar({ isOpen, onClose }) {
                     key={item.name}
                     to={item.to}
                     onClick={onClose}
-                    end={item.to === "/dashboard"}
+                    end={item.to === "/"}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
                         ? "bg-brand-50 text-brand-700 font-bold"

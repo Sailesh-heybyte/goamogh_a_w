@@ -282,7 +282,7 @@ function PurchaseOrders() {
         </div>
 
         <button
-          onClick={() => navigate("/dashboard/purchase/orders/create")}
+          onClick={() => navigate("/purchase/orders/create")}
           className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center gap-2 whitespace-nowrap self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -624,7 +624,7 @@ function PurchaseOrders() {
                     <button
                       onClick={() => {
                         setViewingOrder(null)
-                        navigate(`/dashboard/purchase/orders/create?po_id=${viewingOrder.id}`)
+                        navigate(`/purchase/orders/create?po_id=${viewingOrder.id}`)
                       }}
                       className="px-3 py-1.5 sm:px-3.5 sm:py-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 bg-white rounded-xl text-xs font-bold text-slate-700 transition-all active:scale-95 flex items-center gap-1.5"
                     >
@@ -708,7 +708,7 @@ function PurchaseOrders() {
                     <button
                       onClick={() => {
                         setViewingOrder(null)
-                        navigate(`/dashboard/purchase/entries/create?po_id=${viewingOrder.id}`)
+                        navigate(`/purchase/entries/create?po_id=${viewingOrder.id}`)
                       }}
                       className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm shadow-brand-500/10"
                     >

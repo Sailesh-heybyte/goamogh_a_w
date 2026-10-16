@@ -301,7 +301,7 @@ function StockLedger() {
   const renderBreadcrumbs = () => {
     return (
       <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500 mb-2">
-        <span className="cursor-pointer hover:text-brand-600 transition-colors" onClick={() => navigate("/dashboard/inventory-dashboard")}>Inventory</span>
+        <span className="cursor-pointer hover:text-brand-600 transition-colors" onClick={() => navigate("/inventory-dashboard")}>Inventory</span>
         <span>/</span>
         {currentView === "stock-summary" ? (
           <span className="text-slate-800 font-bold">Stock Summary</span>

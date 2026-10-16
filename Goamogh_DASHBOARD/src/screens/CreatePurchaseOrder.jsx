@@ -312,7 +312,7 @@ function CreatePurchaseOrder() {
         throw new Error(errorJson.message || `Failed to ${poId ? "update" : "create"} Purchase Order.`)
       }
 
-      navigate("/dashboard/purchase/orders")
+      navigate("/purchase/orders")
     } catch (err) {
       setValidationError(err.message || "An error occurred while saving.")
     } finally {
@@ -359,7 +359,7 @@ function CreatePurchaseOrder() {
       {/* Header with Back button */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate("/dashboard/purchase/orders")}
+          onClick={() => navigate("/purchase/orders")}
           className="p-2 border border-slate-200 hover:border-slate-300 hover:bg-white rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
           title="Back to Purchase Orders"
         >
@@ -696,7 +696,7 @@ function CreatePurchaseOrder() {
         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-4">
           <button
             type="button"
-            onClick={() => navigate("/dashboard/purchase/orders")}
+            onClick={() => navigate("/purchase/orders")}
             disabled={isSaving}
             className="px-4 py-2.5 border border-slate-200 hover:border-slate-300 hover:bg-white rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95 disabled:opacity-50 w-full sm:w-auto"
           >

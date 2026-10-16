@@ -99,7 +99,7 @@ function SystemSettings() {
   // Redirect non-superadmins
   useEffect(() => {
     if (!isAuthLoading && !isSuperAdmin) {
-      navigate("/dashboard", { replace: true })
+      navigate("/", { replace: true })
     }
   }, [isSuperAdmin, isAuthLoading, navigate])
 

@@ -54,7 +54,7 @@ function RoleManagement() {
   // Security check: redirect non-super_admins
   useEffect(() => {
     if (!isAuthLoading && !isSuperAdmin) {
-      navigate("/dashboard", { replace: true })
+      navigate("/", { replace: true })
     }
   }, [isSuperAdmin, isAuthLoading, navigate])
 

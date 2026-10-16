@@ -203,7 +203,7 @@ function InventoryDashboard() {
                     </td>
                     <td className="px-2 md:px-4 py-3 text-center whitespace-nowrap">
                       <button
-                        onClick={() => navigate(`/dashboard/stock-ledger?item_id=${item.id}`)}
+                        onClick={() => navigate(`/stock-ledger?item_id=${item.id}`)}
                         className="p-1 hover:bg-slate-100 text-brand-600 hover:text-brand-800 rounded-lg transition-all"
                         title="Drill down lots"
                         aria-label="Drill down"

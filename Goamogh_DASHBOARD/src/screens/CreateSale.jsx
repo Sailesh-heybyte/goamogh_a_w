@@ -384,7 +384,7 @@ function CreateSale() {
       }
 
       alert("Draft direct sale recorded successfully! It will proceed through confirmation, dispatch, and delivery notifications as the order lifecycle advances.")
-      navigate("/dashboard/sales")
+      navigate("/sales")
     } catch (err) {
       setError(err.message)
     } finally {
@@ -398,7 +398,7 @@ function CreateSale() {
       {/* Top Header */}
       <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
         <button
-          onClick={() => navigate("/dashboard/sales")}
+          onClick={() => navigate("/sales")}
           className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
         >
           <ArrowLeft className="w-4 h-4 text-slate-500" />
@@ -719,7 +719,7 @@ function CreateSale() {
           <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-4">
             <button
               type="button"
-              onClick={() => navigate("/dashboard/sales")}
+              onClick={() => navigate("/sales")}
               className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-colors w-full sm:w-auto"
             >
               Cancel
@@ -842,7 +842,7 @@ function CreateSale() {
             <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-slate-100 pt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
               <button
                 type="button"
-                onClick={() => navigate("/dashboard/sales")}
+                onClick={() => navigate("/sales")}
                 className="px-5 py-2.5 border border-slate-200 hover:bg-white text-slate-600 rounded-xl font-bold transition-colors w-full sm:w-auto"
               >
                 Cancel

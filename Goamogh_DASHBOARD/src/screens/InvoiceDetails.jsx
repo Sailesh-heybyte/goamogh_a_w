@@ -66,7 +66,7 @@ function InvoiceDetails() {
       <div className="flex-1 flex flex-col space-y-4 animate-in fade-in">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/dashboard/invoices")}
+            onClick={() => navigate("/invoices")}
             className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
           >
             <ArrowLeft className="w-4 h-4 text-slate-500" />
@@ -92,7 +92,7 @@ function InvoiceDetails() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 no-print">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/dashboard/invoices")}
+            onClick={() => navigate("/invoices")}
             className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
           >
             <ArrowLeft className="w-4 h-4 text-slate-500" />
@@ -101,7 +101,7 @@ function InvoiceDetails() {
             <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
               <span>Sales & Accounts</span>
               <span>/</span>
-              <span className="cursor-pointer hover:text-brand-600" onClick={() => navigate("/dashboard/invoices")}>Invoices</span>
+              <span className="cursor-pointer hover:text-brand-600" onClick={() => navigate("/invoices")}>Invoices</span>
               <span>/</span>
               <span className="text-slate-800 font-bold">{invoice.invoice_number}</span>
             </div>
@@ -114,7 +114,7 @@ function InvoiceDetails() {
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
-            onClick={() => navigate(`/dashboard/sales?search=${sale.sale_number}`)}
+            onClick={() => navigate(`/sales?search=${sale.sale_number}`)}
             className="w-full sm:w-auto px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 whitespace-nowrap self-start sm:self-auto shrink-0"
           >
             <ExternalLink className="w-3.5 h-3.5" />

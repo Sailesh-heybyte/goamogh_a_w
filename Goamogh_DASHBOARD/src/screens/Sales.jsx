@@ -257,7 +257,7 @@ function Sales() {
         alert(json.message)
       }
       setIsDetailOpen(false)
-      navigate(`/dashboard/invoices/${invData.id}`)
+      navigate(`/invoices/${invData.id}`)
     } catch (err) {
       alert(err.message)
     } finally {
@@ -307,7 +307,7 @@ function Sales() {
 
         {hasSalesManagePermission && (
           <button
-            onClick={() => navigate("/dashboard/sales/create")}
+            onClick={() => navigate("/sales/create")}
             className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-brand-500/10 active:scale-95 whitespace-nowrap self-start sm:self-auto shrink-0"
           >
             <Plus className="w-4 h-4" />

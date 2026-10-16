@@ -563,7 +563,7 @@ function CreatePurchaseEntry() {
     setIsSavingDraft(true)
     try {
       await submitDraftToBackend()
-      navigate("/dashboard/purchase/orders")
+      navigate("/purchase/orders")
     } catch (err) {
       setValidationError(err.message || "Failed to save draft.")
     } finally {
@@ -599,7 +599,7 @@ function CreatePurchaseEntry() {
       setShowSuccessModal(true)
     } catch (err) {
       const errorMessage = err.message || "Authorization failed."
-      const redirectUrl = `/dashboard/purchase/entries/create?${poId ? `po_id=${poId}&` : ""}pe_id=${draftPeId}`
+      const redirectUrl = `/purchase/entries/create?${poId ? `po_id=${poId}&` : ""}pe_id=${draftPeId}`
       navigate(redirectUrl, {
         replace: true,
         state: { authError: errorMessage }
@@ -611,7 +611,7 @@ function CreatePurchaseEntry() {
 
   const handleSuccessConfirm = () => {
     setShowSuccessModal(false)
-    navigate("/dashboard/purchase/orders")
+    navigate("/purchase/orders")
   }
 
   const handleOverrideSubmit = async (e) => {
@@ -668,7 +668,7 @@ function CreatePurchaseEntry() {
         <h3 className="text-lg font-bold text-slate-900">Failed to Record Receipt</h3>
         <p className="text-sm font-semibold text-slate-500">{error}</p>
         <button
-          onClick={() => navigate("/dashboard/purchase/orders")}
+          onClick={() => navigate("/purchase/orders")}
           className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-md shadow-brand-500/10"
         >
           Return to Orders
@@ -683,7 +683,7 @@ function CreatePurchaseEntry() {
       {/* Page Header */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate(peId ? "/dashboard/purchase/entries" : "/dashboard/purchase/orders")}
+          onClick={() => navigate(peId ? "/purchase/entries" : "/purchase/orders")}
           className="p-2 border border-slate-200 hover:border-slate-300 hover:bg-white rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
           title="Go back"
         >
