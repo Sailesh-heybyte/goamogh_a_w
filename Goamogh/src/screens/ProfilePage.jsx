@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Phone, Calendar, Edit2, Check, AlertCircle, Loader, ShoppingBag, Eye, ChevronRight, Clock, ArrowLeft, Package, MapPin, Plus, Trash2, FileText, Download, Star } from 'lucide-react';
-import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress, downloadInvoicePdf } from '../api/api';
+import { User, Mail, Phone, Calendar, Edit2, Check, AlertCircle, Loader, ShoppingBag, Eye, ChevronRight, Clock, ArrowLeft, Package, MapPin, Plus, Trash2, Star } from 'lucide-react';
+import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress } from '../api/api';
 import OrderFeedbackModal from '../components/modals/OrderFeedbackModal';
 
 function getOrderStatusLabel(status, paymentStatus) {
@@ -23,12 +23,12 @@ function getOrderStatusLabel(status, paymentStatus) {
 
 function getStatusBadgeStyle(color) {
     switch (color) {
-        case 'orange': return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
-        case 'red': return 'bg-red-500/20 text-red-400 border border-red-500/30';
-        case 'blue': return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
-        case 'purple': return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
-        case 'green': return 'bg-green-500/20 text-green-400 border border-green-500/30';
-        default: return 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
+        case 'orange': return 'bg-amber-400/10 text-amber-300 ring-1 ring-inset ring-amber-400/25';
+        case 'blue': return 'bg-[#d8b66a]/10 text-[#d8b66a] ring-1 ring-inset ring-[#d8b66a]/30';
+        case 'purple': return 'bg-sky-400/10 text-sky-300 ring-1 ring-inset ring-sky-400/25';
+        case 'green': return 'bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/25';
+        case 'red': return 'bg-rose-400/10 text-rose-300 ring-1 ring-inset ring-rose-400/25';
+        default: return 'bg-white/5 text-[#efe3bf]/60 ring-1 ring-inset ring-white/10';
     }
 }
 
@@ -45,31 +45,9 @@ export default function ProfilePage() {
     const [selectedOrderId, setSelectedOrderId] = useState(null);
     const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
     const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
-    const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
-    const [invoiceDownloadError, setInvoiceDownloadError] = useState('');
 
     // Feedback Modal State
     const [feedbackOrder, setFeedbackOrder] = useState(null);
-
-    const handleDownloadInvoice = async (invoiceId) => {
-        if (!token || !invoiceId) return;
-        try {
-            setDownloadingInvoiceId(invoiceId);
-            setInvoiceDownloadError('');
-            const blob = await downloadInvoicePdf(token, invoiceId);
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `invoice-${invoiceId}.pdf`;
-            link.click();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Failed to download invoice PDF:', err);
-            setInvoiceDownloadError(err.message || 'Failed to download Tax Invoice PDF.');
-        } finally {
-            setDownloadingInvoiceId(null);
-        }
-    };
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -909,47 +887,6 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
 
-                                            {/* Tracking Stepper */}
-                                            <div className="border-t border-[#d8b66a]/10 pt-6 space-y-6">
-                                                <h4 className="text-white font-serif font-bold text-sm uppercase tracking-wider">Order Status Tracking</h4>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative md:before:content-[''] md:before:absolute md:before:top-[18px] md:before:left-10 md:before:right-10 md:before:h-[2px] md:before:bg-[#d8b66a]/10 z-0">
-                                                    {(() => {
-                                                        const steps = [
-                                                            { label: 'Order Placed', done: true, date: selectedOrderDetails.created_at },
-                                                            { label: 'Payment Received', done: selectedOrderDetails.payment_status === 'paid', date: selectedOrderDetails.payment_status === 'paid' ? (selectedOrderDetails.confirmed_at || selectedOrderDetails.created_at) : null },
-                                                            { label: 'Confirmed', done: ['confirmed', 'dispatched', 'delivered', 'invoiced'].includes(selectedOrderDetails.status), date: selectedOrderDetails.confirmed_at },
-                                                            { label: 'Dispatched', done: ['dispatched', 'delivered', 'invoiced'].includes(selectedOrderDetails.status), date: selectedOrderDetails.dispatched_at },
-                                                            { label: 'Delivered', done: ['delivered', 'invoiced'].includes(selectedOrderDetails.status), date: selectedOrderDetails.delivered_at },
-                                                        ];
-
-                                                        return steps.map((step, idx) => {
-                                                            const stepNumber = idx + 1;
-                                                            return (
-                                                                <div key={idx} className="flex md:flex-col items-center gap-3 md:gap-2 text-left md:text-center relative z-10">
-                                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold border transition-all duration-300 ${step.done
-                                                                            ? 'bg-[#d8b66a] border-[#d8b66a] text-[#0b150d] shadow-[0_0_15px_rgba(216,182,106,0.3)]'
-                                                                            : 'bg-[#0b150d] border-white/10 text-[#efe3bf]/40'
-                                                                        }`}>
-                                                                        {step.done ? '✓' : stepNumber}
-                                                                    </div>
-                                                                    <div className="flex-1 md:flex-none">
-                                                                        <div className={`text-xs font-serif font-bold ${step.done ? 'text-white' : 'text-[#efe3bf]/30'}`}>
-                                                                            {step.label}
-                                                                        </div>
-                                                                        {step.done && step.date && (
-                                                                            <div className="text-[10px] text-[#efe3bf]/40 font-mono mt-0.5">
-                                                                                {formatDate(step.date)}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        });
-                                                    })()}
-                                                </div>
-                                            </div>
-
                                             {/* Shipping summary box */}
                                             <div className="border-t border-[#d8b66a]/10 pt-6 space-y-4">
                                                 <h4 className="text-white font-serif font-bold text-sm uppercase tracking-wider">Delivery Summary</h4>
@@ -966,72 +903,6 @@ export default function ProfilePage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Tax Invoice Section */}
-                                            <div className="border-t border-[#d8b66a]/10 pt-6 space-y-4">
-                                                <div className="flex justify-between items-center">
-                                                    <h4 className="text-white font-serif font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                                                        <FileText size={16} className="text-[#d8b66a]" />
-                                                        <span>Tax Invoice</span>
-                                                    </h4>
-                                                    {selectedOrderDetails.is_invoiced || selectedOrderDetails.invoice_id ? (
-                                                        <span className="bg-green-500/10 text-green-400 border border-green-500/30 text-[9px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full font-mono">
-                                                            Invoice Generated
-                                                        </span>
-                                                    ) : (
-                                                        <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[9px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full font-mono">
-                                                            Invoice Pending Dispatch
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {invoiceDownloadError && (
-                                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-xs flex items-center gap-2 font-mono">
-                                                        <AlertCircle size={14} className="text-red-400 shrink-0" />
-                                                        <span>{invoiceDownloadError}</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="bg-[#1a2416]/20 p-5 rounded-2xl border border-[#d8b66a]/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                                    {selectedOrderDetails.is_invoiced || selectedOrderDetails.invoice_id ? (
-                                                        <>
-                                                            <div className="space-y-1">
-                                                                <p className="text-white text-xs font-semibold">Official Tax Invoice</p>
-                                                                <p className="text-[11px] text-[#efe3bf]/50 font-mono">Invoice ID: {selectedOrderDetails.invoice_id || selectedOrderDetails.id}</p>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDownloadInvoice(selectedOrderDetails.invoice_id || selectedOrderDetails.id)}
-                                                                disabled={Boolean(downloadingInvoiceId)}
-                                                                className="bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-4 py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center gap-2 active:scale-95 cursor-pointer font-serif disabled:opacity-50"
-                                                                style={{ fontFamily: "'Cinzel', serif" }}
-                                                            >
-                                                                {downloadingInvoiceId === (selectedOrderDetails.invoice_id || selectedOrderDetails.id) ? (
-                                                                    <>
-                                                                        <Loader size={14} className="animate-spin" />
-                                                                        <span>Downloading...</span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Download size={14} />
-                                                                        <span>Download Invoice PDF</span>
-                                                                    </>
-                                                                )}
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <div className="space-y-1 w-full">
-                                                            <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold">
-                                                                <Clock size={14} />
-                                                                <span>Invoice Pending Dispatch</span>
-                                                            </div>
-                                                            <p className="text-[11px] text-[#efe3bf]/60 font-sans leading-relaxed">
-                                                                Tax invoice will be generated and made available for download automatically once your order is dispatched.
-                                                            </p>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
 
@@ -1118,15 +989,6 @@ export default function ProfilePage() {
                                                                     </span>
                                                                 );
                                                             })()}
-                                                            {order.is_invoiced || order.invoice_id ? (
-                                                                <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold bg-[#d8b66a]/10 text-[#d8b66a] border border-[#d8b66a]/30">
-                                                                    Invoice Available
-                                                                </span>
-                                                            ) : (
-                                                                <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                                                                    Invoice Pending Dispatch
-                                                                </span>
-                                                            )}
                                                         </div>
                                                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#efe3bf]/50 font-mono pt-1">
                                                             <span className="flex items-center gap-1"><Clock size={11} /> {order.created_at ? formatDate(order.created_at) : 'Date N/A'}</span>

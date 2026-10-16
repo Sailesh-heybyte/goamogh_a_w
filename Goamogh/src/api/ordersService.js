@@ -25,27 +25,6 @@ export async function fetchOrderDetails(token, orderId) {
 }
 
 
-export async function downloadInvoicePdf(token, invoiceId) {
-    const response = await apiFetch(`${API_PREFIX}/sales/invoices/${invoiceId}/pdf`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-
-    if (!response.ok) {
-        let errMessage = 'Failed to download invoice PDF';
-        try {
-            const errData = await response.json();
-            errMessage = errData.detail || errData.message || errMessage;
-        } catch (_) {}
-        throw new Error(errMessage);
-    }
-
-    return response.blob();
-}
-
-
 export async function submitOrderFeedback(token, orderId, { rating, comments }) {
     const headers = {
         'Content-Type': 'application/json'
