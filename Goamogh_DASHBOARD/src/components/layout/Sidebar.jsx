@@ -55,19 +55,11 @@ function Sidebar({ isOpen, onClose }) {
     }
   }, [isMenuOpen])
 
-  const isAdminLikeUser = Boolean(
-    isSuperAdmin ||
-      user?.is_admin ||
-      user?.role?.name?.toLowerCase().includes("admin") ||
-      user?.role_name?.toLowerCase().includes("admin") ||
-      user?.role?.toString().toLowerCase().includes("admin")
-  )
-
   // Dynamic navigation links based on permissions
   const hasPermission = (permissionName) => {
     if (!user) return false
 
-    if (isSuperAdmin || isAdminLikeUser) return true
+    if (isSuperAdmin) return true
 
     const perms = user.permissions || user.role?.permissions
     if (!perms) return false
@@ -87,50 +79,50 @@ function Sidebar({ isOpen, onClose }) {
     {
       title: "Sales",
       items: [
-        { name: "Sales", to: "/sales", icon: ShoppingCart, show: hasPermission("sales_manage") || isAdminLikeUser },
-        { name: "Indents", to: "/indents", icon: Layers3, show: hasPermission("indent_manage") || isAdminLikeUser },
-        { name: "Invoices", to: "/invoices", icon: ReceiptText, show: hasPermission("sales_manage") || isAdminLikeUser },
+        { name: "Sales", to: "/sales", icon: ShoppingCart, show: hasPermission("sales_manage") },
+        { name: "Indents", to: "/indents", icon: Layers3, show: hasPermission("indent_manage") },
+        { name: "Invoices", to: "/invoices", icon: ReceiptText, show: hasPermission("sales_manage") },
       ],
     },
     {
       title: "Purchases",
       items: [
-        { name: "Purchase Orders", to: "/purchase/orders", icon: ClipboardList, show: hasPermission("purchase_order_manage") || isAdminLikeUser },
-        { name: "Purchase Entries", to: "/purchase/entries", icon: PackageCheck, show: hasPermission("goods_receipt_manage") || isAdminLikeUser },
-        { name: "Suppliers", to: "/suppliers", icon: Truck, show: hasPermission("supplier_manage") || isAdminLikeUser },
+        { name: "Purchase Orders", to: "/purchase/orders", icon: ClipboardList, show: hasPermission("purchase_order_manage") },
+        { name: "Purchase Entries", to: "/purchase/entries", icon: PackageCheck, show: hasPermission("goods_receipt_manage") },
+        { name: "Suppliers", to: "/suppliers", icon: Truck, show: hasPermission("supplier_manage") },
       ],
     },
     {
       title: "Production & Stock",
       items: [
-        { name: "Work Orders", to: "/work-orders", icon: Factory, show: hasPermission("work_order_manage") || isAdminLikeUser },
-        { name: "Inventory Dashboard", to: "/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") || isAdminLikeUser },
-        { name: "Stock Ledger", to: "/stock-ledger", icon: History, show: hasPermission("stock_manage") || isAdminLikeUser },
+        { name: "Work Orders", to: "/work-orders", icon: Factory, show: hasPermission("work_order_manage") },
+        { name: "Inventory Dashboard", to: "/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") },
+        { name: "Stock Ledger", to: "/stock-ledger", icon: History, show: hasPermission("stock_manage") },
       ],
     },
     {
       title: "Customers",
       items: [
-        { name: "Customers", to: "/customers", icon: Users, show: hasPermission("customer_manage") || isAdminLikeUser },
-        { name: "Enquiries", to: "/enquiries", icon: Inbox, show: hasPermission("customer_manage") || isAdminLikeUser },
-        { name: "Feedback", to: "/feedback", icon: Star, show: hasPermission("sales_manage") || isAdminLikeUser },
+        { name: "Customers", to: "/customers", icon: Users, show: hasPermission("customer_manage") },
+        { name: "Enquiries", to: "/enquiries", icon: Inbox, show: hasPermission("customer_manage") },
+        { name: "Feedback", to: "/feedback", icon: Star, show: hasPermission("sales_manage") },
       ],
     },
     {
       title: "Catalog",
       items: [
-        { name: "Item Catalog", to: "/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") || isAdminLikeUser },
-        { name: "Categories", to: "/categories", icon: Layers, show: hasPermission("catalog_manage") || isAdminLikeUser },
-        { name: "Pricing", to: "/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") || isAdminLikeUser },
-        { name: "Certificates", to: "/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") || isAdminLikeUser },
+        { name: "Item Catalog", to: "/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") },
+        { name: "Categories", to: "/categories", icon: Layers, show: hasPermission("catalog_manage") },
+        { name: "Pricing", to: "/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") },
+        { name: "Certificates", to: "/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") },
       ],
     },
     {
       title: "Admin",
       items: [
-        { name: "Staff", to: "/staff", icon: UserCog, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
-        { name: "Roles", to: "/roles", icon: Shield, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
-        { name: "Settings", to: "/settings", icon: Settings, show: isSuperAdmin || isAdminLikeUser || hasPermission("all") },
+        { name: "Staff", to: "/staff", icon: UserCog, show: isSuperAdmin || hasPermission("all") },
+        { name: "Roles", to: "/roles", icon: Shield, show: isSuperAdmin || hasPermission("all") },
+        { name: "Settings", to: "/settings", icon: Settings, show: isSuperAdmin || hasPermission("all") },
       ],
     },
   ]
@@ -197,7 +189,7 @@ function Sidebar({ isOpen, onClose }) {
                 {user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.email || "Admin User"}
               </p>
               <p className="text-xs font-bold text-slate-400 capitalize">
-                {(user?.role === "super_admin" || user?.role_name === "super_admin" || user?.role?.name === "super_admin") ? "Super Admin" : (user?.role?.name || user?.role_name || user?.role || "Staff")}
+                {user?.role_name === "super_admin" ? "Super Admin" : (user?.role_name ?? "—")}
               </p>
             </div>
             <button

@@ -5,12 +5,7 @@ import { getProfile, loginUser, logoutUser } from "@/api/auth"
 import { getRoles } from "@/api/roles"
 
 const isSuperAdminRole = (userData) => {
-  if (!userData) return false
-  const roleStr = (userData.role?.name || userData.role_name || userData.role || "")
-    .toString()
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-  return roleStr.includes("super")
+  return Boolean(userData) && userData.role_name === "super_admin"
 }
 
 const fetchUserPermissions = async (userData) => {
@@ -41,10 +36,7 @@ const fetchUserPermissions = async (userData) => {
 export const hasPermission = (user, permissionName) => {
   if (!user) return false
   // 1. Super Admin bypass
-  const roleName = user.role?.name || user.role || user.role_name
-  if (typeof roleName === 'string' && roleName.toLowerCase().replace(/\s+/g, '_').includes('super')) {
-    return true
-  }
+  if (user.role_name === "super_admin") return true
   // 2. Extract permissions from user or user.role
   const perms = user.permissions || user.role?.permissions
   if (!perms) return false

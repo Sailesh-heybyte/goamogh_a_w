@@ -14,17 +14,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout"
 import useAuth from "@/hooks/useAuth"
 
 function DashboardRedirect() {
-  const { hasPermission, isSuperAdmin, user } = useAuth()
+  const { hasPermission, isSuperAdmin } = useAuth()
 
-  const isAdminLikeUser = Boolean(
-    isSuperAdmin ||
-      user?.is_admin ||
-      user?.role?.name?.toLowerCase().includes("admin") ||
-      user?.role_name?.toLowerCase().includes("admin") ||
-      user?.role?.toString().toLowerCase().includes("admin")
-  )
-
-  const checkPerm = (perm) => isSuperAdmin || isAdminLikeUser || hasPermission(perm)
+  const checkPerm = (perm) => isSuperAdmin || hasPermission(perm)
 
   if (checkPerm("catalog_manage")) return <Navigate to="/categories" replace />
   if (checkPerm("catalog_authorize")) return <Navigate to="/products" replace />
@@ -40,7 +32,7 @@ function DashboardRedirect() {
   if (checkPerm("goods_receipt_manage")) return <Navigate to="/purchase/entries" replace />
   if (checkPerm("all")) return <Navigate to="/staff" replace />
 
-  return <Navigate to="/categories" replace />
+  return (<div className="p-10 text-center text-sm text-slate-500">Your role has no permissions yet. Ask an administrator to assign access.</div>)
 }
 const StaffManagement = lazy(() => import("@/screens/StaffManagement"))
 const RoleManagement = lazy(() => import("@/screens/RoleManagement"))

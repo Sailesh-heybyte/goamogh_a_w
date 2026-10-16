@@ -506,9 +506,9 @@ function StaffManagement() {
                         <div className="lg:hidden mt-0.5">
                           <span
                             className="inline-block max-w-full truncate text-[11px] xl:text-xs tabular-nums font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200"
-                            title={staff.role?.name || staff.role_name || staff.role || "—"}
+                            title={staff.role_name ?? "—"}
                           >
-                            {staff.role?.name || staff.role_name || staff.role || "—"}
+                            {staff.role_name ?? "—"}
                           </span>
                         </div>
                       </div>
@@ -528,9 +528,9 @@ function StaffManagement() {
                     <td className="px-2 py-3.5 whitespace-nowrap hidden lg:table-cell">
                       <span
                         className="inline-block max-w-full truncate text-[11px] xl:text-xs tabular-nums font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200"
-                        title={staff.role?.name || staff.role_name || staff.role || "—"}
+                        title={staff.role_name ?? "—"}
                       >
-                        {staff.role?.name || staff.role_name || staff.role || "—"}
+                        {staff.role_name ?? "—"}
                       </span>
                     </td>
                     <td className="px-2 py-3.5 whitespace-nowrap">
