@@ -28,45 +28,8 @@ import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
-
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi (NCT)",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry"
-]
+import { INDIAN_STATES } from "@/utils/indianStates"
+import { useToast } from "@/context/ToastContext"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -78,6 +41,7 @@ function parseErrorDetail(detail, defaultMsg) {
 }
 
 function Customers() {
+  const { showErrorToast } = useToast()
   const confirm = useConfirm()
   const [customers, setCustomers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -111,7 +75,7 @@ function Customers() {
     address_line_1: "",
     address_line_2: "",
     city: "",
-    state: "Andhra Pradesh",
+    state: "",
     postal_code: "",
     landmark: ""
   })
@@ -124,7 +88,7 @@ function Customers() {
     address_line_1: "",
     address_line_2: "",
     city: "",
-    state: "Andhra Pradesh",
+    state: "",
     postal_code: "",
     landmark: "",
     phone: "",
@@ -214,6 +178,9 @@ function Customers() {
     if (!/^\d{10}$/.test(cleanPhone)) {
       errors.phone = "Phone number must be exactly 10 digits (e.g. 9987654321)"
     }
+    if ((createForm.address_line_1 || "").trim() && !(createForm.state || "").trim()) {
+      errors.state = "Select a state for the address"
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors)
@@ -235,12 +202,7 @@ function Customers() {
         last_name: (createForm.last_name || "").trim(),
         email: (createForm.email || "").trim() || null,
         gstin: (createForm.gstin || "").trim() || null,
-        company_name: (createForm.company_name || "").trim() || null,
-        address_line_1: (createForm.address_line_1 || "").trim() || null,
-        address_line_2: (createForm.address_line_2 || "").trim() || null,
-        city: (createForm.city || "").trim() || null,
-        state: (createForm.state || "").trim() || null,
-        postal_code: (createForm.postal_code || "").trim() || null
+        company_name: (createForm.company_name || "").trim() || null
       }
       const res = await createCustomer(payload)
       const resJson = await res.json().catch(() => ({}))
@@ -252,16 +214,17 @@ function Customers() {
       const createdUser = resJson.data?.user || resJson.data || resJson
       const createdUserId = createdUser?.id || createdUser?.user_id
       if (createdUserId && (createForm.address_line_1 || "").trim() && (createForm.city || "").trim()) {
-        await addCustomerAddress(createdUserId, {
+        const addrRes = await addCustomerAddress(createdUserId, {
           address_line_1: (createForm.address_line_1 || "").trim(),
           address_line_2: (createForm.address_line_2 || "").trim() || null,
           city: (createForm.city || "").trim(),
-          state: createForm.state || "Andhra Pradesh",
+          state: createForm.state,
           postal_code: (createForm.postal_code || "").trim() || null,
           landmark: (createForm.landmark || "").trim() || null,
           phone: cleanPhone,
           is_default: true
-        }).catch(() => {})
+        })
+        if (!addrRes.ok) showErrorToast("Customer created, but the address was not saved. Add it from the customer's Addresses.")
       }
 
       setIsCreateOpen(false)
@@ -275,7 +238,7 @@ function Customers() {
         address_line_1: "",
         address_line_2: "",
         city: "",
-        state: "Andhra Pradesh",
+        state: "",
         postal_code: "",
         landmark: ""
       })
@@ -363,7 +326,7 @@ function Customers() {
       address_line_1: "",
       address_line_2: "",
       city: "",
-      state: "Andhra Pradesh",
+      state: "",
       postal_code: "",
       landmark: "",
       phone: customer.phone || "",
@@ -505,7 +468,7 @@ function Customers() {
         address_line_1: "",
         address_line_2: "",
         city: "",
-        state: "Andhra Pradesh",
+        state: "",
         postal_code: "",
         landmark: "",
         phone: selectedCustomer?.phone || "",
@@ -966,10 +929,12 @@ function Customers() {
                         onChange={(e) => setCreateForm({ ...createForm, state: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white font-semibold text-slate-700"
                       >
+                        <option value="">Select state</option>
                         {INDIAN_STATES.map((st) => (
                           <option key={st} value={st}>{st}</option>
                         ))}
                       </select>
+                      {formErrors.state && <p className="text-[10px] text-error-800 mt-1">{formErrors.state}</p>}
                     </div>
                   </div>
 
@@ -1170,7 +1135,7 @@ function Customers() {
                                     address_line_1: addr.address_line_1 || "",
                                     address_line_2: addr.address_line_2 || "",
                                     city: addr.city || "",
-                                    state: addr.state || "Andhra Pradesh",
+                                    state: addr.state,
                                     postal_code: addr.postal_code || "",
                                     landmark: addr.landmark || "",
                                     phone: addr.phone || selectedCustomer.phone || "",
@@ -1243,6 +1208,7 @@ function Customers() {
                       onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white font-semibold text-slate-700"
                     >
+                      <option value="">Select state</option>
                       {INDIAN_STATES.map((st) => (
                         <option key={st} value={st}>{st}</option>
                       ))}

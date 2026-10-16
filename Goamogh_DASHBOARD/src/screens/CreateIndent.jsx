@@ -15,6 +15,7 @@ import { searchCustomerByPhone } from "@/api/customers"
 import { getPricingPanel } from "@/api/products"
 import Spinner from "@/components/ui/Spinner"
 import useConfirm from "@/hooks/useConfirm"
+import { INDIAN_STATES } from "@/utils/indianStates"
 
 function parseErrorDetail(detail, defaultMsg) {
   if (!detail) return defaultMsg
@@ -34,7 +35,7 @@ function CreateIndent() {
   // Form State
   const [phone, setPhone] = useState("")
   const [customerName, setCustomerName] = useState("")
-  const [customerState, setCustomerState] = useState("Karnataka")
+  const [customerState, setCustomerState] = useState("")
   const [customerGstin, setCustomerGstin] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [isB2b, setIsB2b] = useState(false)
@@ -125,10 +126,10 @@ function CreateIndent() {
 
       if (defaultAddr) {
         setAddressId(defaultAddr.id)
-        setCustomerState(defaultAddr.state || "Andhra Pradesh")
+        setCustomerState(defaultAddr.state ?? "")
       } else {
         setAddressId("")
-        setCustomerState("Andhra Pradesh")
+        setCustomerState("")
       }
 
       setPhoneFoundMsg(`Customer: ${fullName || "Walk-in Customer"}`)
@@ -171,7 +172,7 @@ function CreateIndent() {
 
       setPhone(indent.customer_phone || "")
       setCustomerName(indent.customer_name || "")
-      setCustomerState(indent.customer_state || "Karnataka")
+      setCustomerState(indent.customer_state ?? "")
       setCustomerGstin(indent.customer_gstin || "")
       setCompanyName(indent.company_name || "")
       setIsB2b(indent.is_b2b || false)
@@ -517,7 +518,7 @@ function CreateIndent() {
                 onChange={(e) => {
                   setAddressId(e.target.value)
                   const matched = customerAddresses.find((a) => a.id === e.target.value)
-                  if (matched) setCustomerState(matched.state || "Karnataka")
+                  if (matched) setCustomerState(matched.state ?? "")
                 }}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white"
               >
@@ -553,12 +554,19 @@ function CreateIndent() {
 
             <div className="flex flex-col">
               <label className="text-xs font-bold text-slate-700 mb-1">Place of Supply (State)</label>
-              <input
-                type="text"
+              <select
                 value={customerState}
                 onChange={(e) => setCustomerState(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none"
-              />
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white"
+              >
+                <option value="">Auto (from customer address)</option>
+                {customerState && !INDIAN_STATES.includes(customerState) && (
+                  <option value={customerState}>{customerState}</option>
+                )}
+                {INDIAN_STATES.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
             </div>
           </div>
 
