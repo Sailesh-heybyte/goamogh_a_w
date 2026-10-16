@@ -6,22 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, Pencil, ArrowLeft, Loader, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { useRouter } from 'next/navigation';
 import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, verifyPayment, fetchPaymentStatus } from '../api/api';
 import { loadRazorpayScript, openRazorpayCheckout } from '../utils/razorpay';
 
 
 
-const INDIAN_STATES = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
-    "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
-    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-];
+import { INDIAN_STATES } from '../utils/indianStates';
 
 export default function CartPage() {
-    const router = useRouter();
-    const { cart, cartLoading, cartError, reloadCart, updateCartItemQty, removeCartItem, clearCart } = useCart();
+    const { cart, cartLoading, cartError, reloadCart, updateCartItemQty, removeCartItem } = useCart();
 
     const cartItems = useMemo(() => {
         if (!cart || !Array.isArray(cart.items)) return [];
@@ -68,7 +61,6 @@ export default function CartPage() {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [addresses, setAddresses] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState('');
-    const [orderNotes, setOrderNotes] = useState('');
     const [placingOrder, setPlacingOrder] = useState(false);
     const [checkoutResponse, setCheckoutResponse] = useState(null);
     const [paying, setPaying] = useState(false);
@@ -116,13 +108,11 @@ export default function CartPage() {
 
     // New Address Form State
     const [newAddress, setNewAddress] = useState({
-        name: user?.name || '',
         address_line_1: '',
         address_line_2: '',
         city: '',
-        state: 'Andhra Pradesh',
+        state: '',
         postal_code: '',
-        country: 'India',
         landmark: '',
         phone: user?.phone || '',
         is_default: false
@@ -137,15 +127,10 @@ export default function CartPage() {
                 setLoadingAddresses(true);
                 const response = await fetchAddresses(token);
                 if (response.success && Array.isArray(response.data)) {
-                    const normalized = response.data.map(addr => ({
-                        ...addr,
-                        name: addr.name || user?.name || user?.full_name || 'Customer',
-                        country: addr.country || 'India'
-                    }));
-                    setAddresses(normalized);
+                    setAddresses(response.data);
                     // Select default address or first address if none is currently selected or if the selected one doesn't exist anymore
-                    const defaultAddr = normalized.find(a => a.is_default) || normalized[0];
-                    if (defaultAddr && (!selectedAddressId || !normalized.some(a => a.id === selectedAddressId))) {
+                    const defaultAddr = response.data.find(a => a.is_default) || response.data[0];
+                    if (defaultAddr && (!selectedAddressId || !response.data.some(a => a.id === selectedAddressId))) {
                         setSelectedAddressId(defaultAddr.id);
                     }
                 } else {
@@ -206,11 +191,7 @@ export default function CartPage() {
         e.preventDefault();
         setAddressError(null);
 
-        // Strict 7-point Address Validation
-        if (!newAddress.name || newAddress.name.trim().length < 2) {
-            setAddressError('Full Name is required (at least 2 characters).');
-            return;
-        }
+        // Strict Address Validation
         if (!newAddress.phone.trim() || !/^\d{10}$/.test(newAddress.phone.trim())) {
             setAddressError('Phone number must be a valid 10-digit number.');
             return;
@@ -231,21 +212,15 @@ export default function CartPage() {
             setAddressError('PIN Code (Postal code) must be exactly 6 digits.');
             return;
         }
-        if (!newAddress.country || !newAddress.country.trim()) {
-            setAddressError('Country is required.');
-            return;
-        }
 
         try {
             setSavingAddress(true);
             const addressPayload = {
-                name: newAddress.name.trim(),
                 address_line_1: newAddress.address_line_1.trim(),
                 address_line_2: newAddress.address_line_2.trim() || null,
                 city: newAddress.city.trim(),
                 state: newAddress.state,
                 postal_code: newAddress.postal_code.trim(),
-                country: newAddress.country.trim() || 'India',
                 landmark: newAddress.landmark.trim() || null,
                 phone: newAddress.phone.trim(),
                 is_default: newAddress.is_default
@@ -261,13 +236,11 @@ export default function CartPage() {
                 setShowAddressForm(false);
                 setEditingAddressId(null);
                 setNewAddress({
-                    name: user?.name || '',
                     address_line_1: '',
                     address_line_2: '',
                     city: '',
-                    state: 'Andhra Pradesh',
+                    state: '',
                     postal_code: '',
-                    country: 'India',
                     landmark: '',
                     phone: user?.phone || '',
                     is_default: false
@@ -286,13 +259,11 @@ export default function CartPage() {
         e.stopPropagation();
         setEditingAddressId(addr.id);
         setNewAddress({
-            name: addr.name || user?.name || '',
             address_line_1: addr.address_line_1 || '',
             address_line_2: addr.address_line_2 || '',
             city: addr.city || '',
-            state: addr.state || 'Andhra Pradesh',
+            state: addr.state,
             postal_code: addr.postal_code || '',
-            country: addr.country || 'India',
             landmark: addr.landmark || '',
             phone: addr.phone || user?.phone || '',
             is_default: addr.is_default || false
@@ -305,13 +276,11 @@ export default function CartPage() {
         setShowAddressForm(false);
         setEditingAddressId(null);
         setNewAddress({
-            name: user?.name || '',
             address_line_1: '',
             address_line_2: '',
             city: '',
-            state: 'Andhra Pradesh',
+            state: '',
             postal_code: '',
-            country: 'India',
             landmark: '',
             phone: user?.phone || '',
             is_default: false
@@ -322,13 +291,11 @@ export default function CartPage() {
     const handleAddNewAddressClick = () => {
         setEditingAddressId(null);
         setNewAddress({
-            name: user?.name || '',
             address_line_1: '',
             address_line_2: '',
             city: '',
-            state: 'Andhra Pradesh',
+            state: '',
             postal_code: '',
-            country: 'India',
             landmark: '',
             phone: user?.phone || '',
             is_default: false
@@ -372,8 +339,7 @@ export default function CartPage() {
             isPlacingOrderRef.current = true;
             setPlacingOrder(true);
             const response = await checkoutCart(token, {
-                address_id: selectedAddressId,
-                notes: orderNotes.trim() || null
+                address_id: selectedAddressId
             });
 
             if (response.success && response.data) {
@@ -381,7 +347,6 @@ export default function CartPage() {
                 // Reset checkout info
                 setIsCheckingOut(false);
                 setSelectedAddressId('');
-                setOrderNotes('');
                 reloadCart();
             } else {
                 setCartError(response.message || 'Failed to place order.');
@@ -414,7 +379,6 @@ export default function CartPage() {
             setCheckingStatus(false);
             isPayingRef.current = false;
             setIsCheckingOut(false);
-            setOrderNotes('');
             isPlacingOrderRef.current = false;
         };
 
@@ -438,16 +402,12 @@ export default function CartPage() {
     const hasInactiveItems = cartItems.some(item => item.is_inactive);
     const hasStockError = cartItems.some(item => item.is_out_of_stock || item.insufficient_stock);
     const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-    const effectiveName = selectedAddress?.name || user?.name || user?.full_name || 'Customer';
-    const effectiveCountry = selectedAddress?.country || 'India';
     const isAddressInvalid = selectedAddressId && selectedAddress ? (
-        !effectiveName || effectiveName.trim().length < 2 ||
         !selectedAddress.phone || !/^\d{10}$/.test(selectedAddress.phone.trim()) ||
         !selectedAddress.address_line_1 || selectedAddress.address_line_1.trim().length < 3 ||
         !selectedAddress.city || selectedAddress.city.trim().length < 2 ||
         !selectedAddress.state ||
-        !selectedAddress.postal_code || !/^\d{6}$/.test(selectedAddress.postal_code.trim()) ||
-        !effectiveCountry || effectiveCountry.trim().length < 2
+        !selectedAddress.postal_code || !/^\d{6}$/.test(selectedAddress.postal_code.trim())
     ) : false;
     const isShippingUnavailable = selectedAddress && selectedAddress.shipping_serviceable === false;
     const isTransactionRunning = placingOrder || isPlacingOrderRef.current;
@@ -493,18 +453,6 @@ export default function CartPage() {
         }
     };
 
-    const handleClearCart = async () => {
-        if (!window.confirm('Are you sure you want to clear your shopping cart?')) return;
-        if (user && token) {
-            try {
-                await clearCart();
-            } catch (e) {
-                console.error('Failed to clear database cart:', e);
-                setCartError(e.message);
-                setTimeout(() => setCartError(null), 5000);
-            }
-        }
-    };
 
 
 
@@ -610,7 +558,9 @@ export default function CartPage() {
             setPaymentMessage(null);
             setCheckoutResponse(null);
         } catch (err) {
-            if (err.status === 400 || err.status === 404 || err.status === 409) {
+            if (err.status === 409) {
+                setPaymentMessage({ type: 'error', text: err.message, final: true });
+            } else if (err.status === 400 || err.status === 404) {
                 setPaymentMessage({ type: 'error', text: err.message });
             } else {
                 setPaymentMessage({ type: 'error', text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.', canCheckStatus: true });
@@ -637,7 +587,7 @@ export default function CartPage() {
                 setPaymentMessage(null);
                 setCheckoutResponse(null);
             } else if (status === 'refund_pending' || status === 'refunded') {
-                setPaymentMessage({ type: 'error', text: 'Your payment was received but the order could not be fulfilled. A full refund has been initiated.' });
+                setPaymentMessage({ type: 'error', text: 'Your payment was received but the order could not be fulfilled. A full refund has been initiated.', final: true });
             } else {
                 setPaymentMessage({ type: 'info', text: 'Your payment is not confirmed yet. Please check again in a minute.', canCheckStatus: true });
             }
@@ -672,6 +622,7 @@ export default function CartPage() {
             return;
         }
         const init = initRes.data;
+        setCheckoutResponse((prev) => ({ ...prev, reserved_until: init.expires_at }));
 
         openRazorpayCheckout({
             keyId: init.razorpay_key_id,
@@ -806,7 +757,7 @@ export default function CartPage() {
                             <button
                                 type="button"
                                 onClick={handlePayNow}
-                                disabled={isExpired || paying || Boolean(paymentMessage?.canCheckStatus)}
+                                disabled={isExpired || paying || Boolean(paymentMessage?.canCheckStatus) || Boolean(paymentMessage?.final)}
                                 className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer flex items-center justify-center gap-2"
                                 style={{ fontFamily: "'Cinzel', serif" }}
                             >
@@ -916,17 +867,6 @@ export default function CartPage() {
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Full Name *</label>
-                                                        <input
-                                                            type="text"
-                                                            required
-                                                            placeholder="Recipient's Full Name"
-                                                            value={newAddress.name}
-                                                            onChange={e => setNewAddress({ ...newAddress, name: e.target.value })}
-                                                            className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
                                                         <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Phone Number *</label>
                                                         <input
                                                             type="text"
@@ -976,6 +916,7 @@ export default function CartPage() {
                                                             onChange={e => setNewAddress({ ...newAddress, state: e.target.value })}
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white focus:border-[#d8b66a] outline-none transition"
                                                         >
+                                                            <option value="">Select state</option>
                                                             {INDIAN_STATES.map(s => (
                                                                 <option key={s} value={s}>{s}</option>
                                                             ))}
@@ -990,17 +931,6 @@ export default function CartPage() {
                                                             value={newAddress.postal_code}
                                                             onChange={e => setNewAddress({ ...newAddress, postal_code: e.target.value.replace(/\D/g, '') })}
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition font-mono"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Country *</label>
-                                                        <input
-                                                            type="text"
-                                                            required
-                                                            placeholder="Country"
-                                                            value={newAddress.country}
-                                                            onChange={e => setNewAddress({ ...newAddress, country: e.target.value })}
-                                                            className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
                                                         />
                                                     </div>
                                                     <div className="col-span-1 md:col-span-2 space-y-1">
@@ -1071,13 +1001,11 @@ export default function CartPage() {
                                                 {addresses.map(addr => {
                                                     const isSelected = selectedAddressId === addr.id;
                                                     const fullAddrString = [
-                                                        addr.name && `Recipient: ${addr.name}`,
                                                         addr.address_line_1,
                                                         addr.address_line_2,
                                                         addr.city,
                                                         addr.state,
                                                         addr.postal_code,
-                                                        addr.country || 'India',
                                                         addr.landmark && `Landmark: ${addr.landmark}`
                                                     ].filter(Boolean).join(", ");
 
@@ -1132,19 +1060,6 @@ export default function CartPage() {
                                                 })}
                                             </div>
                                         )}
-                                    </div>
-
-
-                                    {/* Order Notes Section */}
-                                    <div className="space-y-4 border-t border-[#d8b66a]/10 pt-6">
-                                        <h3 className="text-white font-serif text-lg">Delivery Notes (Optional)</h3>
-                                        <textarea
-                                            value={orderNotes}
-                                            onChange={e => setOrderNotes(e.target.value)}
-                                            placeholder="Write any delivery notes here (e.g. deliver after 3 PM please...)"
-                                            rows={3}
-                                            className="w-full bg-[#1a2416]/50 border border-[#d8b66a]/20 rounded-2xl p-4 text-white placeholder-[#d6cca9]/30 focus:border-[#d8b66a] outline-none text-sm font-sans transition resize-none"
-                                        />
                                     </div>
                                 </div>
                             ) : (

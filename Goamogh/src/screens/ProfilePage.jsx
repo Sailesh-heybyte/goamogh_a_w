@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { User, Mail, Phone, Calendar, Edit2, Check, AlertCircle, Loader, ShoppingBag, Eye, ChevronRight, Clock, ArrowLeft, Package, MapPin, Plus, Trash2, Star } from 'lucide-react';
 import { fetchOrderHistory, fetchOrderDetails, fetchAddresses, createAddress, updateAddress, deleteAddress } from '../api/api';
 import OrderFeedbackModal from '../components/modals/OrderFeedbackModal';
+import { INDIAN_STATES } from '../utils/indianStates';
 
 function getOrderStatusLabel(status, paymentStatus) {
     if (status === 'draft' && paymentStatus === 'paid') return { label: 'Order Received (Processing)', color: 'blue', step: 1 };
@@ -171,13 +172,11 @@ export default function ProfilePage() {
     const [addressError, setAddressError] = useState('');
     const [addressSuccess, setAddressSuccess] = useState('');
     const [addressFormData, setAddressFormData] = useState({
-        name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
         address_line_1: '',
         address_line_2: '',
         city: '',
-        state: 'Andhra Pradesh',
+        state: '',
         postal_code: '',
-        country: 'India',
         landmark: '',
         phone: user?.phone || '',
         is_default: false
@@ -189,12 +188,7 @@ export default function ProfilePage() {
             setLoadingAddresses(true);
             const res = await fetchAddresses(token);
             if (res.success && Array.isArray(res.data)) {
-                const normalized = res.data.map(addr => ({
-                    ...addr,
-                    name: addr.name || user?.name || user?.full_name || 'Customer',
-                    country: addr.country || 'India'
-                }));
-                const sorted = [...normalized].sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+                const sorted = [...res.data].sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
                 setAddresses(sorted);
             } else {
                 setAddresses([]);
@@ -225,10 +219,6 @@ export default function ProfilePage() {
         setAddressError('');
         setAddressSuccess('');
 
-        if (!addressFormData.name || addressFormData.name.trim().length < 2) {
-            setAddressError('Full Name is required (at least 2 characters).');
-            return;
-        }
         const phoneClean = addressFormData.phone.replace(/\D/g, '');
         if (!/^\d{10}$/.test(phoneClean)) {
             setAddressError('Phone number must be a valid 10-digit number.');
@@ -251,21 +241,15 @@ export default function ProfilePage() {
             setAddressError('PIN Code (Postal Code) must be exactly 6 numeric digits.');
             return;
         }
-        if (!addressFormData.country || !addressFormData.country.trim()) {
-            setAddressError('Country selection is required.');
-            return;
-        }
 
         setSaving(true);
         try {
             const payload = {
-                name: addressFormData.name.trim(),
                 address_line_1: addressFormData.address_line_1.trim(),
                 address_line_2: addressFormData.address_line_2 ? addressFormData.address_line_2.trim() : null,
                 city: addressFormData.city.trim(),
                 state: addressFormData.state.trim(),
                 postal_code: postalCodeClean,
-                country: addressFormData.country.trim() || 'India',
                 landmark: addressFormData.landmark ? addressFormData.landmark.trim() : null,
                 phone: phoneClean,
                 is_default: addressFormData.is_default
@@ -286,13 +270,11 @@ export default function ProfilePage() {
                 setAddressFormOpen(false);
                 setEditingAddressId(null);
                 setAddressFormData({
-                    name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
                     address_line_1: '',
                     address_line_2: '',
                     city: '',
-                    state: 'Andhra Pradesh',
+                    state: '',
                     postal_code: '',
-                    country: 'India',
                     landmark: '',
                     phone: user?.phone || '',
                     is_default: false
@@ -312,13 +294,11 @@ export default function ProfilePage() {
     const handleEditAddressClick = (addr) => {
         setEditingAddressId(addr.id);
         setAddressFormData({
-            name: addr.name || (user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''),
             address_line_1: addr.address_line_1,
             address_line_2: addr.address_line_2 || '',
             city: addr.city,
             state: addr.state,
             postal_code: addr.postal_code,
-            country: addr.country || 'India',
             landmark: addr.landmark || '',
             phone: addr.phone,
             is_default: addr.is_default
@@ -343,13 +323,11 @@ export default function ProfilePage() {
     const openAddAddressForm = () => {
         setEditingAddressId(null);
         setAddressFormData({
-            name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
             address_line_1: '',
             address_line_2: '',
             city: '',
-            state: 'Andhra Pradesh',
+            state: '',
             postal_code: '',
-            country: 'India',
             landmark: '',
             phone: user ? user.phone : '',
             is_default: addresses.length === 0
@@ -1070,18 +1048,6 @@ export default function ProfilePage() {
                                     <form onSubmit={handleAddressSubmit} className="space-y-4 text-sm">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1">
-                                                <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">Full Name *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    name="name"
-                                                    value={addressFormData.name}
-                                                    onChange={handleAddressInputChange}
-                                                    placeholder="Recipient's Full Name"
-                                                    className="w-full bg-[#11180f]/50 text-white border border-[#d8b66a]/20 rounded-xl px-4 py-3.5 focus:border-[#d8b66a] outline-none"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
                                                 <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">Phone Number *</label>
                                                 <input
                                                     type="tel"
@@ -1105,7 +1071,7 @@ export default function ProfilePage() {
                                                     className="w-full bg-[#11180f]/50 text-white border border-[#d8b66a]/20 rounded-xl px-4 py-3.5 focus:border-[#d8b66a] outline-none"
                                                 />
                                             </div>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1 md:col-span-2">
                                                 <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">Address Line 2 (Optional)</label>
                                                 <input
                                                     type="text"
@@ -1118,7 +1084,7 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-1 col-span-1">
                                                 <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">City *</label>
                                                 <input
@@ -1133,15 +1099,18 @@ export default function ProfilePage() {
                                             </div>
                                             <div className="space-y-1 col-span-1">
                                                 <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">State *</label>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     required
                                                     name="state"
                                                     value={addressFormData.state}
                                                     onChange={handleAddressInputChange}
-                                                    placeholder="State"
                                                     className="w-full bg-[#11180f]/50 text-white border border-[#d8b66a]/20 rounded-xl px-4 py-3.5 focus:border-[#d8b66a] outline-none"
-                                                />
+                                                >
+                                                    <option value="">Select state</option>
+                                                    {INDIAN_STATES.map(s => (
+                                                        <option key={s} value={s}>{s}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             <div className="space-y-1 col-span-1">
                                                 <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">PIN Code *</label>
@@ -1153,18 +1122,6 @@ export default function ProfilePage() {
                                                     onChange={e => handleAddressInputChange({ target: { name: 'postal_code', value: e.target.value.replace(/\D/g, '') } })}
                                                     placeholder="6-digit pincode"
                                                     className="w-full bg-[#11180f]/50 text-white border border-[#d8b66a]/20 rounded-xl px-4 py-3.5 focus:border-[#d8b66a] outline-none font-mono"
-                                                />
-                                            </div>
-                                            <div className="space-y-1 col-span-1">
-                                                <label className="text-[10px] uppercase tracking-wider text-[#d8b66a] font-mono">Country *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    name="country"
-                                                    value={addressFormData.country}
-                                                    onChange={handleAddressInputChange}
-                                                    placeholder="Country"
-                                                    className="w-full bg-[#11180f]/50 text-white border border-[#d8b66a]/20 rounded-xl px-4 py-3.5 focus:border-[#d8b66a] outline-none"
                                                 />
                                             </div>
                                         </div>
@@ -1258,12 +1215,6 @@ export default function ProfilePage() {
                                                 >
                                                     <div className="space-y-3 font-sans text-xs">
                                                         <div className="flex justify-between items-start">
-                                                            <span className="font-serif font-bold text-sm text-white" style={{ fontFamily: "'Cinzel', serif" }}>
-                                                                {addr.name || (user.first_name || user.last_name
-                                                                    ? `${user.first_name} ${user.last_name}`.trim()
-                                                                    : 'Customer'
-                                                                )}
-                                                            </span>
                                                             {addr.is_default && (
                                                                 <span className="bg-[#d8b66a]/10 border border-[#d8b66a]/30 text-[#d8b66a] font-mono text-[9px] tracking-wider uppercase px-2 py-0.5 rounded-full font-bold">
                                                                     Default
@@ -1274,7 +1225,7 @@ export default function ProfilePage() {
                                                             <p>{addr.address_line_1}</p>
                                                             {addr.address_line_2 && <p>{addr.address_line_2}</p>}
                                                             {addr.landmark && <p className="text-[#efe3bf]/50">Landmark: {addr.landmark}</p>}
-                                                            <p>{addr.city}, {addr.state} - {addr.postal_code}, {addr.country || 'India'}</p>
+                                                            <p>{addr.city}, {addr.state} - {addr.postal_code}</p>
                                                             <p className="pt-2 text-[#efe3bf]/60 font-mono text-[11px]">Phone: {addr.phone}</p>
                                                         </div>
                                                     </div>
