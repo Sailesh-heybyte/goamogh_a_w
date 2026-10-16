@@ -80,12 +80,12 @@ const heritageStory = [
   },
   {
     phase: 8,
-    title: 'What We Inherit, We Improve.',
-    subtitle: 'Tradition gives us knowledge. Modern quality systems give us consistency. Respecting generational preparation while applying testing and standards expected today.',
+    title: '',
+    subtitle: '',
     range: [77, 88],
     image: '/images/heritage/8.webp',
-    hudData: 'THE NEXT CHAPTER',
-    hudYear: 'Step 08 / 09',
+    hudData: '',
+    hudYear: '',
     audioTrigger: 'pressurized-thud',
   },
   {
@@ -174,52 +174,60 @@ export default function HeritagePage() {
       {/* Sticky Content Track */}
       <div className="heritage-scroll-track relative z-10 h-[500vh]">
         <div className="sticky top-0 h-screen flex flex-col justify-end pb-12 md:justify-center md:pb-0 px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-2xl mx-auto w-full"
-          >
-            {/* Phase Tag */}
-            <div className="flex items-center justify-center">
-              <p className="inline-flex items-center rounded-full border border-white/20 bg-black/40 px-4 py-1 text-xs tracking-[0.25em] uppercase text-white/90 shadow-lg backdrop-blur-sm">
-                Heritage • Step {currentPhase} / 9
-              </p>
-            </div>
+          {currentPhase !== 8 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="max-w-2xl mx-auto w-full"
+            >
+              {/* Phase Tag */}
+              <div className="flex items-center justify-center">
+                <p className="inline-flex items-center rounded-full border border-white/20 bg-black/40 px-4 py-1 text-xs tracking-[0.25em] uppercase text-white/90 shadow-lg backdrop-blur-sm">
+                  Heritage • Step {currentPhase} / 9
+                </p>
+              </div>
 
-            {/* Title */}
-            <h1 className="mt-4 md:mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#d6b56b] drop-shadow-lg">
-              {hudTitle}
-            </h1>
+              {/* Title */}
+              {hudTitle && (
+                <h1 className="mt-4 md:mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#d6b56b] drop-shadow-lg">
+                  {hudTitle}
+                </h1>
+              )}
 
-            {/* Subtitle */}
-            <p className="mt-2 md:mt-3 text-base md:text-lg text-white/90 drop-shadow">
-              {heritageStory[currentPhase - 1]?.subtitle}
-            </p>
+              {/* Subtitle */}
+              {heritageStory[currentPhase - 1]?.subtitle && (
+                <p className="mt-2 md:mt-3 text-base md:text-lg text-white/90 drop-shadow">
+                  {heritageStory[currentPhase - 1]?.subtitle}
+                </p>
+              )}
 
-            {/* Data HUD Stats */}
-            <div className="mt-4 md:mt-6 flex items-center justify-center gap-3 text-xs md:text-sm text-white/80 font-mono drop-shadow">
-              <span>{hudData}</span>
-              <span className="text-[#d6b56b]">•</span>
-              <span>{hudYear}</span>
-            </div>
+              {/* Data HUD Stats */}
+              {(hudData || hudYear) && (
+                <div className="mt-4 md:mt-6 flex items-center justify-center gap-3 text-xs md:text-sm text-white/80 font-mono drop-shadow">
+                  {hudData && <span>{hudData}</span>}
+                  {hudData && hudYear && <span className="text-[#d6b56b]">•</span>}
+                  {hudYear && <span>{hudYear}</span>}
+                </div>
+              )}
 
-            {/* Step Progress Indicators */}
-            <div className="flex justify-center items-center gap-1.5 md:gap-2 mt-6 md:mt-8">
-              {heritageStory.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 md:h-1 rounded-full transition-all duration-500 ${
-                    i + 1 === currentPhase
-                      ? 'w-6 md:w-12 bg-[#d6b56b]'
-                      : i < currentPhase
-                      ? 'w-2 md:w-12 bg-[#d6b56b]/60'
-                      : 'w-2 md:w-12 bg-white/30'
-                  }`}
-                />
-              ))}
-            </div>
-          </motion.div>
+              {/* Step Progress Indicators */}
+              <div className="flex justify-center items-center gap-1.5 md:gap-2 mt-6 md:mt-8">
+                {heritageStory.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 md:h-1 rounded-full transition-all duration-500 ${
+                      i + 1 === currentPhase
+                        ? 'w-6 md:w-12 bg-[#d6b56b]'
+                        : i < currentPhase
+                        ? 'w-2 md:w-12 bg-[#d6b56b]/60'
+                        : 'w-2 md:w-12 bg-white/30'
+                    }`}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
