@@ -233,14 +233,14 @@ export default function CustomerFeedback() {
                       <button
                         onClick={() => setSelectedFeedback(fb)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 font-bold transition-colors cursor-pointer min-w-0 max-w-full"
-                        title={`Click to view order feedback detail for #${fb.order_number || "SO-26-1002"}`}
+                        title={`Click to view order feedback detail for #${fb.order_number ?? "—"}`}
                       >
                         <ShoppingBag className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span
                           className="truncate text-[11px] xl:text-xs tabular-nums"
-                          title={`#${fb.order_number || "SO-26-1002"}`}
+                          title={`#${fb.order_number ?? "—"}`}
                         >
-                          #{fb.order_number || "SO-26-1002"}
+                          #{fb.order_number ?? "—"}
                         </span>
                       </button>
                     </td>
@@ -264,7 +264,7 @@ export default function CustomerFeedback() {
                           onClick={() => setSelectedFeedback(fb)}
                           className="md:hidden text-[10px] text-brand-600 font-bold truncate mt-1 block hover:underline"
                         >
-                          #{fb.order_number || "SO-26-1002"}
+                          #{fb.order_number ?? "—"}
                         </button>
                         <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
                           {formatDate(fb.created_at)}
@@ -308,7 +308,7 @@ export default function CustomerFeedback() {
                 </span>
                 <h3 className="text-base font-extrabold text-slate-900 mt-0.5 flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-slate-600" />
-                  <span>Order #{selectedFeedback.order_number || "SO-26-1002"}</span>
+                  <span>Order #{selectedFeedback.order_number ?? "—"}</span>
                 </h3>
               </div>
 

@@ -357,6 +357,7 @@ function Sales() {
             <option value="confirmed">Confirmed</option>
             <option value="dispatched">Dispatched</option>
             <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
             <option value="failed_delivery">Failed</option>
           </select>
         </div>

@@ -401,7 +401,7 @@ function PurchaseEntries() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Supplier</span>
                   <span className="text-sm font-bold text-slate-800 uppercase mt-0.5 block">
-                    {viewingEntry.supplier_name || viewingEntry.po?.supplier_name || viewingEntry.supplier?.name || viewingEntry.supplier?.contact_name || viewingEntry.po?.supplier?.name || viewingEntry.po?.supplier?.contact_name || "—"}
+                    {viewingEntry.supplier_name ?? "—"}
                   </span>
                 </div>
                 <div>

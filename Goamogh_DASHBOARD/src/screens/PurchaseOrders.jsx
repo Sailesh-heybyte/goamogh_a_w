@@ -380,8 +380,8 @@ function PurchaseOrders() {
                   <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                     {/* Supplier Name */}
                     <td className="pl-4 pr-2 py-4 text-slate-800 font-bold uppercase tracking-wide text-xs min-w-0">
-                      <div className="truncate" title={order.supplier_name || order.supplier?.name || order.supplier?.contact_name}>
-                        {order.supplier_name || order.supplier?.name || order.supplier?.contact_name || "—"}
+                      <div className="truncate" title={order.supplier_name ?? "—"}>
+                        {order.supplier_name ?? "—"}
                       </div>
                       <div className="text-[10px] text-slate-400 font-normal lowercase tracking-normal truncate md:hidden mt-0.5">
                         {formatDate(order.created_at)}
@@ -496,7 +496,7 @@ function PurchaseOrders() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Supplier</span>
                   <span className="text-sm font-bold text-slate-800 uppercase mt-0.5 block">
-                    {viewingOrder.supplier_name || viewingOrder.supplier?.name || viewingOrder.supplier?.contact_name || "—"}
+                    {viewingOrder.supplier_name ?? "—"}
                   </span>
                 </div>
                 <div>

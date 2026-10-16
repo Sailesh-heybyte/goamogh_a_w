@@ -813,9 +813,9 @@ function WorkOrders() {
                       </div>
                     </td>
                     <td className="px-3 py-3 font-semibold text-slate-900 min-w-0 truncate hidden md:table-cell" title={wo.product_name}>{wo.product_name || "—"}</td>
-                    <td className="px-3 py-3 font-medium text-slate-600 min-w-0 truncate hidden xl:table-cell" title={wo.raw_materials && wo.raw_materials.length > 0 ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ") : wo.raw_material_name}>
+                    <td className="px-3 py-3 font-medium text-slate-600 min-w-0 truncate hidden xl:table-cell" title={wo.raw_materials && wo.raw_materials.length > 0 ? wo.raw_materials.map(rm => rm.raw_material_name ?? "—").join(", ") : wo.raw_material_name}>
                       {wo.raw_materials && wo.raw_materials.length > 0
-                        ? wo.raw_materials.map(rm => rm.raw_material_name || rm.raw_material?.name || `Material ${rm.raw_material_id}`).join(", ")
+                        ? wo.raw_materials.map(rm => rm.raw_material_name ?? "—").join(", ")
                         : wo.raw_material_name || "—"}
                     </td>
                     <td className="px-3 py-3 text-right font-extrabold text-slate-900 min-w-0 whitespace-nowrap tabular-nums hidden lg:table-cell">{wo.total_input_qty != null ? `${parseFloat(wo.total_input_qty).toFixed(2)}${inputUnitOf(wo) ? ` ${inputUnitOf(wo)}` : ""}` : "—"}</td>
