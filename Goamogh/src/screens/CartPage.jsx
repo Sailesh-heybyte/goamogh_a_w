@@ -7,7 +7,7 @@ import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, P
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
-import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, verifyPayment } from '../api/api';
+import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, verifyPayment, fetchPaymentStatus } from '../api/api';
 import { loadRazorpayScript, openRazorpayCheckout } from '../utils/razorpay';
 
 
@@ -74,6 +74,7 @@ export default function CartPage() {
     const [paying, setPaying] = useState(false);
     const [paymentMessage, setPaymentMessage] = useState(null);
     const [paidOrder, setPaidOrder] = useState(null);
+    const [checkingStatus, setCheckingStatus] = useState(false);
     const [secondsLeft, setSecondsLeft] = useState(600);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [loadingAddresses, setLoadingAddresses] = useState(false);
@@ -410,6 +411,7 @@ export default function CartPage() {
             setPaying(false);
             setPaymentMessage(null);
             setPaidOrder(null);
+            setCheckingStatus(false);
             isPayingRef.current = false;
             setIsCheckingOut(false);
             setOrderNotes('');
@@ -611,11 +613,38 @@ export default function CartPage() {
             if (err.status === 400 || err.status === 404 || err.status === 409) {
                 setPaymentMessage({ type: 'error', text: err.message });
             } else {
-                setPaymentMessage({ type: 'error', text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.' });
+                setPaymentMessage({ type: 'error', text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.', canCheckStatus: true });
             }
         } finally {
             setPaying(false);
             isPayingRef.current = false;
+        }
+    };
+
+    const handleCheckPaymentStatus = async () => {
+        if (!checkoutResponse || !token || checkingStatus) return;
+        setCheckingStatus(true);
+        try {
+            const res = await fetchPaymentStatus(token, checkoutResponse.id);
+            const status = res.data.payment_status;
+            if (status === 'paid') {
+                setPaidOrder({
+                    id: checkoutResponse.id,
+                    sale_number: checkoutResponse.sale_number,
+                    paid_amount: checkoutResponse.total_amount,
+                    status: res.data.order_status,
+                });
+                setPaymentMessage(null);
+                setCheckoutResponse(null);
+            } else if (status === 'refund_pending' || status === 'refunded') {
+                setPaymentMessage({ type: 'error', text: 'Your payment was received but the order could not be fulfilled. A full refund has been initiated.' });
+            } else {
+                setPaymentMessage({ type: 'info', text: 'Your payment is not confirmed yet. Please check again in a minute.', canCheckStatus: true });
+            }
+        } catch (err) {
+            setPaymentMessage({ type: 'error', text: err.message, canCheckStatus: true });
+        } finally {
+            setCheckingStatus(false);
         }
     };
 
@@ -758,16 +787,26 @@ export default function CartPage() {
 
                         <div className="flex flex-col gap-4 justify-center items-center max-w-md mx-auto">
                             {paymentMessage && (
-                                <div className={`w-full p-4 rounded-xl text-sm flex items-center justify-center gap-3 font-mono ${paymentMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-200' : 'bg-[#d8b66a]/10 border border-[#d8b66a]/20 text-[#efe3bf]'}`}>
+                                <div className={`w-full p-4 rounded-xl text-sm flex flex-col sm:flex-row items-center justify-center gap-3 font-mono ${paymentMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-200' : 'bg-[#d8b66a]/10 border border-[#d8b66a]/20 text-[#efe3bf]'}`}>
                                     {paymentMessage.type === 'error' && <AlertTriangle size={16} className="text-red-400 shrink-0" />}
                                     <span>{paymentMessage.text}</span>
+                                    {paymentMessage.canCheckStatus && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCheckPaymentStatus}
+                                            disabled={checkingStatus}
+                                            className="shrink-0 bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold px-4 py-2 rounded-full transition duration-300 text-[10px] uppercase tracking-wider cursor-pointer"
+                                        >
+                                            {checkingStatus ? 'Checking...' : 'Check payment status'}
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
                             <button
                                 type="button"
                                 onClick={handlePayNow}
-                                disabled={isExpired || paying}
+                                disabled={isExpired || paying || Boolean(paymentMessage?.canCheckStatus)}
                                 className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer flex items-center justify-center gap-2"
                                 style={{ fontFamily: "'Cinzel', serif" }}
                             >
