@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, Edit3 } from "lucide-react"
-import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem, getSizeUnits } from "@/api/items"
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react"
+import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, Edit3, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react"
+import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem, getSizeUnits, uploadCatalogImage } from "@/api/items"
 import { getCategoriesCached } from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
@@ -17,6 +17,134 @@ function parseErrorDetail(detail, defaultMsg) {
   return typeof detail === "string" ? detail : defaultMsg
 }
 
+function CatalogImageUploader({ images = [], onChange, kind = "product", disabled = false, onUploadingChange, helperText = "" }) {
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+  const fileInputRef = useRef(null)
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ""
+    setUploadError("")
+    setIsUploading(true)
+    onUploadingChange?.(true)
+    try {
+      const res = await uploadCatalogImage(file, kind)
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        const msg = errJson.message || parseErrorDetail(errJson.detail, "Failed to upload image")
+        setUploadError(msg)
+        return
+      }
+      const json = await res.json().catch(() => ({}))
+      const url = json?.data?.url
+      if (url) {
+        onChange([...(images || []), url])
+      }
+    } catch (err) {
+      setUploadError(err.message || "Failed to upload image")
+    } finally {
+      setIsUploading(false)
+      onUploadingChange?.(false)
+    }
+  }
+
+  const handleRemove = (indexToRemove) => {
+    const next = (images || []).filter((_, i) => i !== indexToRemove)
+    onChange(next)
+  }
+
+  const handleMakeCover = (indexToCover) => {
+    const current = images || []
+    const selected = current[indexToCover]
+    if (!selected) return
+    const next = [selected, ...current.filter((_, i) => i !== indexToCover)]
+    onChange(next)
+  }
+
+  const imageList = Array.isArray(images) ? images : []
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <button
+          type="button"
+          disabled={disabled || isUploading}
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-slate-300 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+        >
+          {isUploading ? (
+            <>
+              <Spinner size="sm" />
+              <span>Uploading...</span>
+            </>
+          ) : (
+            <>
+              <Upload className="w-3.5 h-3.5 text-slate-500" />
+              <span>Upload Image</span>
+            </>
+          )}
+        </button>
+        {helperText && (
+          <span className="text-[11px] text-slate-400 font-medium">{helperText}</span>
+        )}
+      </div>
+
+      {uploadError && (
+        <p className="text-xs text-error-800 font-semibold">{uploadError}</p>
+      )}
+
+      {imageList.length > 0 && (
+        <div className="flex flex-wrap gap-2.5 pt-1">
+          {imageList.map((url, idx) => (
+            <div
+              key={`${url}-${idx}`}
+              className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 shadow-2xs"
+            >
+              <img
+                src={url}
+                alt={`Image ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
+              {idx === 0 ? (
+                <span className="absolute top-1 left-1 bg-brand-600 text-white text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm select-none">
+                  Cover
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleMakeCover(idx)}
+                  disabled={disabled}
+                  className="absolute bottom-1 inset-x-1 bg-slate-900/80 hover:bg-slate-900 text-white text-[9px] font-bold py-0.5 rounded text-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:opacity-0"
+                >
+                  Make cover
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleRemove(idx)}
+                disabled={disabled}
+                className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer disabled:opacity-0"
+                title="Remove image"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProductCatalog() {
   const confirm = useConfirm()
 
@@ -30,6 +158,7 @@ function ProductCatalog() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const latestRequestRef = useRef(0)
+  const editingProductIdRef = useRef(null)
 
   // Product Details Popup state
   const [selectedProductDetails, setSelectedProductDetails] = useState(null)
@@ -62,9 +191,12 @@ function ProductCatalog() {
     is_sellable: true,
     is_active: true,
     sourcing_location: "",
+    images: null,
   })
   const [editErrors, setEditErrors] = useState({})
   const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [isEditUploading, setIsEditUploading] = useState(false)
+  const [editImagesError, setEditImagesError] = useState("")
 
   // Add Product Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -77,6 +209,7 @@ function ProductCatalog() {
     unit_code: "KG",
     gst_percent: "5.00",
     cess_percent: "",
+    images: [],
     is_featured: false,
     is_sellable: true,
     sourcing_location: "",
@@ -88,6 +221,12 @@ function ProductCatalog() {
   const [sizeUnitsLoading, setSizeUnitsLoading] = useState(false)
   const [createErrors, setCreateErrors] = useState({})
   const [isCreating, setIsCreating] = useState(false)
+  const [isCreateUploading, setIsCreateUploading] = useState(false)
+
+  // Variant Images state
+  const [expandedVariantIds, setExpandedVariantIds] = useState({})
+  const [savingVariantImageIds, setSavingVariantImageIds] = useState({})
+  const [variantImageErrors, setVariantImageErrors] = useState({})
 
   const isMountedRef = useRef(true)
   useEffect(() => {
@@ -126,10 +265,10 @@ function ProductCatalog() {
   }, [])
 
   useEffect(() => {
-    if (isCreateOpen && sizeUnitsMap === null && !sizeUnitsLoading && !sizeUnitsError) {
+    if ((isCreateOpen || isEditingProduct) && sizeUnitsMap === null && !sizeUnitsLoading && !sizeUnitsError) {
       loadSizeUnits()
     }
-  }, [isCreateOpen, sizeUnitsMap, sizeUnitsLoading, sizeUnitsError, loadSizeUnits])
+  }, [isCreateOpen, isEditingProduct, sizeUnitsMap, sizeUnitsLoading, sizeUnitsError, loadSizeUnits])
 
   // Map category IDs to names for table display
   const categoryMap = categories.reduce((acc, cat) => {
@@ -305,6 +444,27 @@ function ProductCatalog() {
     }
   }
 
+  const handleUpdateVariantImages = async (variantId, newImages) => {
+    setSavingVariantImageIds((prev) => ({ ...prev, [variantId]: true }))
+    setVariantImageErrors((prev) => ({ ...prev, [variantId]: "" }))
+    try {
+      const res = await updateItemVariant(variantId, { images: newImages })
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.message || parseErrorDetail(errJson.detail, "Failed to update variant images"))
+      }
+      const detailRes = await getItemDetails(activeProductId)
+      if (detailRes.ok) {
+        const detailJson = await detailRes.json()
+        setActiveProduct(detailJson.data)
+      }
+    } catch (err) {
+      setVariantImageErrors((prev) => ({ ...prev, [variantId]: err.message || "Failed to update variant images" }))
+    } finally {
+      setSavingVariantImageIds((prev) => ({ ...prev, [variantId]: false }))
+    }
+  }
+
   const handleAddVariant = async (e) => {
     e.preventDefault()
     setVariantError("")
@@ -369,6 +529,28 @@ function ProductCatalog() {
     }
   }
 
+  const loadEditImages = async (productId) => {
+    if (!productId) return
+    setEditImagesError("")
+    try {
+      const res = await getItemDetails(productId)
+      if (editingProductIdRef.current !== productId) return
+      if (!res.ok) {
+        setEditImagesError("Couldn't load images.")
+        return
+      }
+      const json = await res.json()
+      if (editingProductIdRef.current !== productId) return
+      setEditForm((prev) => ({
+        ...prev,
+        images: json.data.images,
+      }))
+    } catch {
+      if (editingProductIdRef.current !== productId) return
+      setEditImagesError("Couldn't load images.")
+    }
+  }
+
   const handleStartEditing = () => {
     if (!selectedProductDetails) return
 
@@ -379,19 +561,24 @@ function ProductCatalog() {
       description: selectedProductDetails.description || "",
       hsn_code: selectedProductDetails.hsn_code || "",
       unit_code: selectedProductDetails.unit_code,
-      gst_percent: selectedProductDetails.gst_percent || "5.00",
-      cess_percent: selectedProductDetails.cess_percent || "0.00",
+      gst_percent: selectedProductDetails.gst_percent,
+      cess_percent: selectedProductDetails.cess_percent,
       is_featured: selectedProductDetails.is_featured || false,
       is_sellable: selectedProductDetails.is_sellable !== undefined ? selectedProductDetails.is_sellable : true,
       is_active: selectedProductDetails.is_active || false,
       sourcing_location: selectedProductDetails.sourcing_location || "",
+      images: null,
     })
 
     setEditErrors({})
+    setEditImagesError("")
     setIsEditingProduct(true)
+    editingProductIdRef.current = selectedProductDetails.id
+    loadEditImages(selectedProductDetails.id)
   }
 
   const handleCancelEditing = () => {
+    editingProductIdRef.current = null
     setIsEditingProduct(false)
     setEditErrors({})
   }
@@ -473,7 +660,7 @@ function ProductCatalog() {
         unit_code: editForm.unit_code,
         gst_percent: parseFloat(editForm.gst_percent).toFixed(2),
         cess_percent: parseFloat(editForm.cess_percent === "" ? 0 : editForm.cess_percent).toFixed(2),
-        images: [],
+        ...(Array.isArray(editForm.images) ? { images: editForm.images } : {}),
         is_featured: editForm.is_featured,
         is_sellable: editForm.is_sellable,
         is_active: editForm.is_active,
@@ -498,6 +685,7 @@ function ProductCatalog() {
 
       setSelectedProductDetails(json.data)
       await fetchData()
+      editingProductIdRef.current = null
       setIsEditingProduct(false)
     } catch (err) {
       setEditErrors({ global: err.message })
@@ -629,7 +817,7 @@ function ProductCatalog() {
         unit_code: createForm.unit_code,
         gst_percent: parseFloat(createForm.gst_percent).toFixed(2),
         cess_percent: parseFloat(createForm.cess_percent === "" ? 0 : createForm.cess_percent).toFixed(2),
-        images: [],
+        images: createForm.images,
         is_featured: createForm.is_featured,
         is_sellable: createForm.is_sellable,
         sourcing_location: createForm.sourcing_location.trim() || null,
@@ -747,6 +935,7 @@ function ProductCatalog() {
               is_featured: false,
               is_sellable: true,
               sourcing_location: "",
+              images: [],
               variants: [],
             })
             setCreateErrors({})
@@ -1020,6 +1209,20 @@ function ProductCatalog() {
                 />
               </div>
 
+              {/* Product Images */}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Product Images
+                </label>
+                <CatalogImageUploader
+                  images={createForm.images}
+                  onChange={(newImages) => setCreateForm((prev) => ({ ...prev, images: newImages }))}
+                  kind="product"
+                  disabled={isCreating}
+                  onUploadingChange={setIsCreateUploading}
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="flex flex-col col-span-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -1045,13 +1248,8 @@ function ProductCatalog() {
                     onChange={(e) => handleCreateChange("unit_code", e.target.value)}
                     className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-800 font-semibold transition-all"
                   >
-                    <option value="KG">KG</option>
-                    <option value="GM">GM</option>
-                    <option value="TON">TON</option>
-                    <option value="LTR">LTR</option>
-                    <option value="ML">ML</option>
-                    <option value="PCS">PCS</option>
-                    <option value="PACK">PACK</option>
+                    {sizeUnitsLoading && <option value="">Loading…</option>}
+                    {Object.keys(sizeUnitsMap ?? {}).map((u) => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
 
@@ -1267,7 +1465,7 @@ function ProductCatalog() {
               </button>
               <button
                 type="submit"
-                disabled={isCreating}
+                disabled={isCreating || isCreateUploading}
                 className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isCreating ? <Spinner size="sm" /> : null}
@@ -1281,6 +1479,7 @@ function ProductCatalog() {
       {selectedProductDetails && (
         <Modal onClose={() => {
           setSelectedProductDetails(null)
+          editingProductIdRef.current = null
           setIsEditingProduct(false)
         }}>
           <div className={`bg-white border border-slate-100 shadow-2xl rounded-2xl w-full ${isEditingProduct ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] flex flex-col overflow-hidden`}>
@@ -1292,6 +1491,7 @@ function ProductCatalog() {
                 type="button"
                 onClick={() => {
                   setSelectedProductDetails(null)
+                  editingProductIdRef.current = null
                   setIsEditingProduct(false)
                 }}
                 className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
@@ -1541,6 +1741,40 @@ function ProductCatalog() {
                     />
                   </div>
 
+                  {/* Product Images */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Product Images
+                    </label>
+                    {editForm.images === null ? (
+                      editImagesError ? (
+                        <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-xl">
+                          <span className="text-xs text-red-700 font-semibold">{editImagesError}</span>
+                          <button
+                            type="button"
+                            onClick={() => loadEditImages(selectedProductDetails?.id)}
+                            className="text-xs font-bold text-brand-600 hover:text-brand-700 underline cursor-pointer"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500 text-xs font-medium">
+                          <Spinner size="sm" />
+                          <span>Loading images...</span>
+                        </div>
+                      )
+                    ) : (
+                      <CatalogImageUploader
+                        images={editForm.images}
+                        onChange={(imgs) => setEditForm((prev) => ({ ...prev, images: imgs }))}
+                        kind="product"
+                        disabled={isSavingEdit}
+                        onUploadingChange={setIsEditUploading}
+                      />
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex flex-col col-span-1">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -1566,13 +1800,8 @@ function ProductCatalog() {
                         onChange={(e) => handleEditChange("unit_code", e.target.value)}
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-800 font-semibold transition-all"
                       >
-                        <option value="KG">KG</option>
-                        <option value="GM">GM</option>
-                        <option value="TON">TON</option>
-                        <option value="LTR">LTR</option>
-                        <option value="ML">ML</option>
-                        <option value="PCS">PCS</option>
-                        <option value="PACK">PACK</option>
+                        {sizeUnitsLoading && <option value="">Loading…</option>}
+                        {Object.keys(sizeUnitsMap ?? {}).map((u) => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>
 
@@ -1678,7 +1907,7 @@ function ProductCatalog() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSavingEdit}
+                    disabled={isSavingEdit || isEditUploading || editForm.images === null}
                     className="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isSavingEdit ? <Spinner size="sm" /> : null}
@@ -1796,41 +2025,76 @@ function ProductCatalog() {
                         <tbody className="bg-white divide-y divide-slate-50 text-sm font-semibold text-slate-800">
                           {activeProduct.variants.map((variant) => {
                             const isUpdating = !!updatingVariantIds[variant.id]
-                            return (
-                              <tr key={variant.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-4 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
-                                      {variant.size_unit}
-                                    </span>
-                                    <div>
-                                      <span className="font-bold text-slate-800">
-                                        {variant.size_label}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </td>
+                            const isSavingImages = !!savingVariantImageIds[variant.id]
+                            const isExpanded = !!expandedVariantIds[variant.id]
+                            const imgCount = Array.isArray(variant.images) ? variant.images.length : 0
 
-                                <td className="px-6 py-4 text-center">
-                                  <div className="flex items-center justify-center">
-                                    {isUpdating ? (
-                                      <Spinner size="sm" />
-                                    ) : (
-                                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                                        <input
-                                          type="checkbox"
-                                          checked={variant.is_active}
-                                          onChange={() => handleToggleVariantStatus(variant)}
-                                          className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
-                                        />
-                                        <span className={`text-xs font-bold ${variant.is_active ? "text-success-700" : "text-slate-400"}`}>
-                                          {variant.is_active ? "Active" : "Inactive"}
+                            return (
+                              <Fragment key={variant.id}>
+                                <tr className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-4 py-4 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
+                                          {variant.size_unit}
                                         </span>
-                                      </label>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
+                                        <div>
+                                          <span className="font-bold text-slate-800">
+                                            {variant.size_label}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedVariantIds((prev) => ({ ...prev, [variant.id]: !prev[variant.id] }))}
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                                      >
+                                        <ImageIcon className="w-3.5 h-3.5" />
+                                        <span>Images ({imgCount})</span>
+                                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                      </button>
+                                    </div>
+                                  </td>
+
+                                  <td className="px-6 py-4 text-center">
+                                    <div className="flex items-center justify-center">
+                                      {isUpdating ? (
+                                        <Spinner size="sm" />
+                                      ) : (
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                          <input
+                                            type="checkbox"
+                                            checked={variant.is_active}
+                                            onChange={() => handleToggleVariantStatus(variant)}
+                                            className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
+                                          />
+                                          <span className={`text-xs font-bold ${variant.is_active ? "text-success-700" : "text-slate-400"}`}>
+                                            {variant.is_active ? "Active" : "Inactive"}
+                                          </span>
+                                        </label>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr className="bg-slate-50/80">
+                                    <td colSpan={2} className="px-4 py-3">
+                                      <div className="space-y-2">
+                                        {variantImageErrors[variant.id] && (
+                                          <p className="text-xs text-error-800 font-semibold">{variantImageErrors[variant.id]}</p>
+                                        )}
+                                        <CatalogImageUploader
+                                          images={variant.images || []}
+                                          onChange={(newImages) => handleUpdateVariantImages(variant.id, newImages)}
+                                          kind="variant"
+                                          disabled={isSavingImages}
+                                          helperText="Shown instead of product images for this size."
+                                        />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
                             )
                           })}
                         </tbody>

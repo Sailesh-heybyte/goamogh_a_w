@@ -50,8 +50,11 @@ export const updateItemPrices = async (itemId, pricingData) => {
   })
 }
 
-export const getItemWorkOrderCosts = async (itemId) => {
-  return customFetch(`/api/v1/inventory/items/${itemId}/work-order-costs`)
-}
-
 export const getSizeUnits = async () => customFetch("/api/v1/inventory/size-units")
+
+export const uploadCatalogImage = async (file, kind) => {
+  const formData = new FormData()
+  formData.append("file", file)
+  if (kind) formData.append("kind", kind)
+  return customFetch("/api/v1/inventory/upload-image", { method: "POST", body: formData })
+}
