@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import heritageJar from "../../assets/images/home/goamogh_jar_final.webp";
 import pouches from "../../assets/images/home/pouches.webp";
-import bentoPowder from "../../assets/images/home/bento_powder.webp";
 
 export default function BentoGrid() {
   return (

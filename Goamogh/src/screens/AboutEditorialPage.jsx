@@ -41,16 +41,7 @@ function AbstractCardArt({ tone = 'red', image }) {
   );
 }
 
-function ValueCard({ title, text, tone = 'gold' }) {
-  const gradient =
-    tone === 'blue'
-      ? 'from-[#d7f0ff]/20 via-[#8fc5ff]/10 to-transparent'
-      : tone === 'peach'
-        ? 'from-[#ffd8a9]/20 via-[#f8b35c]/10 to-transparent'
-        : tone === 'sand'
-          ? 'from-[#f0dec1]/20 via-[#d8b07c]/10 to-transparent'
-          : 'from-[#f3e4be]/20 via-[#dbb56c]/10 to-transparent';
-
+function ValueCard({ title, text }) {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
