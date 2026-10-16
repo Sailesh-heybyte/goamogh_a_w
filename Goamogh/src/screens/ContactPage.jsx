@@ -18,6 +18,7 @@ import {
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { submitContactEnquiry } from '../api/contactService';
+import { SOCIAL_LINKS } from '../components/social/socialLinks';
 
 export default function ContactPage() {
     const { openLegalModal } = useAuth();
@@ -461,10 +462,44 @@ export default function ContactPage() {
                     </div>
                 </motion.section>
 
+                {/* FOLLOW US SECTION */}
+                <section className="max-w-4xl mx-auto text-center space-y-6">
+                    <div className="space-y-2">
+                        <p className="font-sans font-bold text-[10px] tracking-[0.3em] text-[#d8b66a] uppercase">
+                            Stay Connected
+                        </p>
+                        <h2 className="font-sans font-bold text-2xl md:text-3xl text-white">
+                            Follow Our Journey
+                        </h2>
+                        <p className="text-xs md:text-sm text-[#d6cca9]/70">
+                            Recipes, harvest stories and new arrivals from the Goamogh kitchen.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+                        {SOCIAL_LINKS.map((social) => (
+                            <a
+                                key={social.name}
+                                href={social.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Goamogh on ${social.name}`}
+                                className="group inline-flex items-center gap-3 px-6 py-3 rounded-full border border-[#d8b66a]/25 bg-[#0b150d]/60 text-[#efe3bf] hover:bg-[#d8b66a] hover:border-[#d8b66a] hover:text-[#0b150d] transition-colors duration-300"
+                            >
+                                <span className="text-[#d8b66a] group-hover:text-[#0b150d] transition-colors duration-300">
+                                    {social.icon}
+                                </span>
+                                <span className="font-sans text-xs font-bold uppercase tracking-wider">
+                                    {social.name}
+                                </span>
+                            </a>
+                        ))}
+                    </div>
+                </section>
+
                 {/* FAQ ACCORDION SECTION */}
                 <section className="space-y-8 max-w-4xl mx-auto pt-8">
                     <div className="text-center space-y-2">
-                        <h2 className="font-serif text-2xl md:text-3xl text-white" style={{ fontFamily: "'Cinzel', serif" }}>
+                        <h2 className="font-sans font-bold text-2xl md:text-3xl text-white">
                             Frequently Asked Questions
                         </h2>
                         <p className="text-xs md:text-sm text-[#d6cca9]/70">
@@ -480,8 +515,7 @@ export default function ContactPage() {
                             >
                                 <button
                                     onClick={() => toggleFaq(idx)}
-                                    className="w-full px-6 py-5 flex justify-between items-center text-left text-white font-serif text-sm md:text-base hover:text-[#d8b66a] transition cursor-pointer"
-                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                    className="w-full px-6 py-5 flex justify-between items-center text-left text-white font-sans font-medium text-sm md:text-base hover:text-[#d8b66a] transition cursor-pointer"
                                 >
                                     <span>{faq.question}</span>
                                     <ChevronDown

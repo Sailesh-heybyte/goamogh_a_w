@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, ShieldCheck, ChevronRight } from 'lucide-react';
+import { SOCIAL_LINKS } from '../social/socialLinks';
 
 export default function Footer() {
     const { openLegalModal } = useAuth();
@@ -97,6 +98,26 @@ export default function Footer() {
                         alt="Goamogh"
                         className="mx-auto h-auto w-[min(80vw,700px)] opacity-95 select-none pointer-events-none"
                     />
+                </div>
+
+                {/* FOLLOW US */}
+                <div className="flex flex-col items-center gap-4 mt-10">
+                    <h4 className="font-sans font-bold text-[10px] tracking-[0.2em] text-[#d8b66a] uppercase">FOLLOW US</h4>
+                    <div className="flex items-center gap-4">
+                        {SOCIAL_LINKS.map((social) => (
+                            <a
+                                key={social.name}
+                                href={social.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Goamogh on ${social.name}`}
+                                title={social.name}
+                                className="w-10 h-10 rounded-full border border-[#d8b66a]/30 text-[#d8b66a] flex items-center justify-center hover:bg-[#d8b66a] hover:text-black hover:border-[#d8b66a] transition-colors duration-300"
+                            >
+                                {social.icon}
+                            </a>
+                        ))}
+                    </div>
                 </div>
 
                 {/* BOTTOM UTILS */}
