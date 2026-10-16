@@ -1,6 +1,5 @@
 import { API_PREFIX, handleResponse, apiFetch } from './apiClient';
 
-
 export async function submitContactEnquiry(payload) {
     const response = await apiFetch(`${API_PREFIX}/contact/enquiry`, {
         method: 'POST',
@@ -13,10 +12,8 @@ export async function submitContactEnquiry(payload) {
             phone: payload.phone,
             inquiry_topic: payload.inquiry_topic,
             message: payload.message,
-            terms_accepted: payload.terms_accepted
+            terms_accepted: payload.terms_accepted,
         }),
     });
     return handleResponse(response);
 }
-
-

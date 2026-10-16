@@ -1,12 +1,11 @@
 import { API_PREFIX, handleResponse, API_BASE, apiFetch } from './apiClient';
 
-
 export async function fetchCategories(activeOnly = true) {
     const response = await apiFetch(`${API_PREFIX}/inventory/categories${activeOnly ? '' : '?active_only=false'}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
     });
     return handleResponse(response);
 }
@@ -21,8 +20,6 @@ export const getCategoriesOnce = () => {
     }
     return categoriesPromise;
 };
-
-
 
 export async function fetchProducts(params = {}) {
     const queryParams = new URLSearchParams();
@@ -46,32 +43,28 @@ export async function fetchProducts(params = {}) {
     const response = await apiFetch(url, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
     });
     return handleResponse(response);
 }
-
 
 export async function fetchProductDetails(productId) {
     const response = await apiFetch(`${API_PREFIX}/inventory/items/${productId}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
     });
     return handleResponse(response);
 }
-
 
 export async function fetchProductVariants(productId) {
     const response = await apiFetch(`${API_PREFIX}/inventory/items/${productId}/variants`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
     });
     return handleResponse(response);
 }
-
-

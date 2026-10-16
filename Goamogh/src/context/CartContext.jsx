@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { fetchDbCart, addToDbCart, updateDbCartQty, removeFromDbCart, clearDbCart } from '../api/api';
@@ -42,35 +42,44 @@ export function CartProvider({ children }) {
         reloadCart();
     }, [reloadCart]);
 
-    const addCartItem = useCallback(async (variantOrItem, quantity) => {
-        const id = ++requestIdRef.current;
-        const response = await addToDbCart(token, variantOrItem, quantity);
-        if (id === requestIdRef.current) {
-            setCart(response.data || null);
-            setCartError(null);
-        }
-        return response;
-    }, [token]);
+    const addCartItem = useCallback(
+        async (variantOrItem, quantity) => {
+            const id = ++requestIdRef.current;
+            const response = await addToDbCart(token, variantOrItem, quantity);
+            if (id === requestIdRef.current) {
+                setCart(response.data || null);
+                setCartError(null);
+            }
+            return response;
+        },
+        [token]
+    );
 
-    const updateCartItemQty = useCallback(async (itemId, quantity) => {
-        const id = ++requestIdRef.current;
-        const response = await updateDbCartQty(token, itemId, quantity);
-        if (id === requestIdRef.current) {
-            setCart(response.data || null);
-            setCartError(null);
-        }
-        return response;
-    }, [token]);
+    const updateCartItemQty = useCallback(
+        async (itemId, quantity) => {
+            const id = ++requestIdRef.current;
+            const response = await updateDbCartQty(token, itemId, quantity);
+            if (id === requestIdRef.current) {
+                setCart(response.data || null);
+                setCartError(null);
+            }
+            return response;
+        },
+        [token]
+    );
 
-    const removeCartItem = useCallback(async (itemId) => {
-        const id = ++requestIdRef.current;
-        const response = await removeFromDbCart(token, itemId);
-        if (id === requestIdRef.current) {
-            setCart(response.data || null);
-            setCartError(null);
-        }
-        return response;
-    }, [token]);
+    const removeCartItem = useCallback(
+        async (itemId) => {
+            const id = ++requestIdRef.current;
+            const response = await removeFromDbCart(token, itemId);
+            if (id === requestIdRef.current) {
+                setCart(response.data || null);
+                setCartError(null);
+            }
+            return response;
+        },
+        [token]
+    );
 
     const clearCart = useCallback(async () => {
         const id = ++requestIdRef.current;
@@ -88,35 +97,34 @@ export function CartProvider({ children }) {
 
     const cartCount = cart?.total_quantity ?? 0;
 
-    const value = useMemo(() => ({
-        cart,
-        cartLoading,
-        cartError,
-        reloadCart,
-        addCartItem,
-        updateCartItemQty,
-        removeCartItem,
-        clearCart,
-        cartItems,
-        cartCount
-    }), [
-        cart,
-        cartLoading,
-        cartError,
-        reloadCart,
-        addCartItem,
-        updateCartItemQty,
-        removeCartItem,
-        clearCart,
-        cartItems,
-        cartCount
-    ]);
-
-    return (
-        <CartContext.Provider value={value}>
-            {children}
-        </CartContext.Provider>
+    const value = useMemo(
+        () => ({
+            cart,
+            cartLoading,
+            cartError,
+            reloadCart,
+            addCartItem,
+            updateCartItemQty,
+            removeCartItem,
+            clearCart,
+            cartItems,
+            cartCount,
+        }),
+        [
+            cart,
+            cartLoading,
+            cartError,
+            reloadCart,
+            addCartItem,
+            updateCartItemQty,
+            removeCartItem,
+            clearCart,
+            cartItems,
+            cartCount,
+        ]
     );
+
+    return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {

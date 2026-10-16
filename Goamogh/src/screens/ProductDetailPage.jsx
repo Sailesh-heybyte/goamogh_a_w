@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -24,17 +24,13 @@ export default function ProductDetailPage({ id }) {
     const [showCartNotif, setShowCartNotif] = useState(false);
     const [cartError, setCartError] = useState(null);
 
-    // Fetch product details on mount
     useEffect(() => {
         const loadProductDetails = async () => {
             try {
                 setLoading(true);
                 setError(null);
                 setNotAvailable(false);
-                const [itemRes, variantsRes] = await Promise.all([
-                    fetchProductDetails(id),
-                    fetchProductVariants(id)
-                ]);
+                const [itemRes, variantsRes] = await Promise.all([fetchProductDetails(id), fetchProductVariants(id)]);
                 if (itemRes.success && itemRes.data) {
                     setProduct(itemRes.data);
                     const variantsList = Array.isArray(variantsRes.data) ? variantsRes.data : [];
@@ -66,7 +62,9 @@ export default function ProductDetailPage({ id }) {
             <main className="min-h-screen bg-[#1a2416] flex items-center justify-center pt-20">
                 <div className="text-center">
                     <Loader className="w-12 h-12 text-[#d8b66a] animate-spin mx-auto mb-4" />
-                    <p className="text-[#efe3bf]/70 font-mono text-sm tracking-widest uppercase">Loading Product Details...</p>
+                    <p className="text-[#efe3bf]/70 font-mono text-sm tracking-widest uppercase">
+                        Loading Product Details...
+                    </p>
                 </div>
             </main>
         );
@@ -82,9 +80,7 @@ export default function ProductDetailPage({ id }) {
                     <h1 className="font-serif text-2xl text-[#efe3bf] mb-4" style={{ fontFamily: "'Cinzel', serif" }}>
                         Product Not Available
                     </h1>
-                    <p className="text-[#efe3bf]/60 text-sm mb-8 leading-relaxed">
-                        Product not available
-                    </p>
+                    <p className="text-[#efe3bf]/60 text-sm mb-8 leading-relaxed">Product not available</p>
                     <Link
                         href="/shop"
                         className="inline-flex bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-3.5 rounded-full uppercase tracking-widest text-xs shadow-lg font-serif cursor-pointer active:scale-95 transition-all duration-300"
@@ -122,18 +118,17 @@ export default function ProductDetailPage({ id }) {
         );
     }
 
-    // Prepare variants list
-    const activeVariants = variants.map(v => ({
+    const activeVariants = variants.map((v) => ({
         id: v.id,
         label: v.size_label,
         price: v.b2c_price !== undefined && v.b2c_price !== null ? v.b2c_price : null,
         mrp: v.mrp !== undefined && v.mrp !== null ? v.mrp : null,
         discountPercent: v.discount_percent,
-        inStock: v.in_stock
+        inStock: v.in_stock,
     }));
 
     const isAvailable = product.is_active === true && product.is_sellable === true && activeVariants.length > 0;
-    const activeVariant = activeVariants.find(v => v.id === activeVariantId) || activeVariants[0];
+    const activeVariant = activeVariants.find((v) => v.id === activeVariantId) || activeVariants[0];
     const selectedPrice = activeVariant?.price ?? null;
     const selectedMrp = activeVariant?.mrp ?? null;
     const isOutOfStock = activeVariant ? !activeVariant.inStock : true;
@@ -145,7 +140,6 @@ export default function ProductDetailPage({ id }) {
         const itemData = { id: activeVariant.id, quantity };
 
         if (!user || !token) {
-            // Save pending item to global state so it can be added post-login
             setLoginPendingItem(itemData);
             router.push('/login');
             return;
@@ -160,7 +154,12 @@ export default function ProductDetailPage({ id }) {
         } catch (err) {
             const msg = err.message || 'Failed to add item to cart.';
             setCartError(msg);
-            if (err.status === 409 || msg.toLowerCase().includes('available') || msg.toLowerCase().includes('unit') || msg.toLowerCase().includes('stock')) {
+            if (
+                err.status === 409 ||
+                msg.toLowerCase().includes('available') ||
+                msg.toLowerCase().includes('unit') ||
+                msg.toLowerCase().includes('stock')
+            ) {
                 reloadCart();
             }
         } finally {
@@ -169,18 +168,14 @@ export default function ProductDetailPage({ id }) {
     };
 
     const handleQuantityChange = (delta) => {
-        setQuantity(prev => Math.max(1, prev + delta));
+        setQuantity((prev) => Math.max(1, prev + delta));
     };
 
-    // Images for gallery
-    const images = Array.isArray(product.images) && product.images.length > 0
-        ? product.images
-        : [];
+    const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [];
 
     return (
         <main className="min-h-screen bg-[#1a2416] pt-32 pb-20 px-4 md:px-8">
             <div className="max-w-5xl mx-auto">
-                {/* Back Button */}
                 <Link
                     href="/shop"
                     className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#d8b66a] hover:text-[#efe3bf] transition duration-200 cursor-pointer mb-8"
@@ -198,7 +193,6 @@ export default function ProductDetailPage({ id }) {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-60 pointer-events-none" />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
-                        {/* Image Gallery Column */}
                         <div className="space-y-4">
                             <div className="rounded-[22px] bg-[#d8b66a] p-3 relative aspect-square overflow-hidden shadow-xl">
                                 {images[0] ? (
@@ -236,14 +230,16 @@ export default function ProductDetailPage({ id }) {
                             </div>
                         </div>
 
-                        {/* Details Column */}
                         <div className="flex flex-col justify-between space-y-6">
                             <div className="space-y-4">
                                 <div>
                                     <span className="text-[10px] uppercase tracking-[0.25em] text-[#d8b66a] font-bold font-mono">
                                         Pure Hand-Pounded Blend
                                     </span>
-                                    <h1 className="font-serif text-3xl md:text-4xl text-[#f3e7c6] tracking-tight mt-1" style={{ fontFamily: "'Cinzel', serif" }}>
+                                    <h1
+                                        className="font-serif text-3xl md:text-4xl text-[#f3e7c6] tracking-tight mt-1"
+                                        style={{ fontFamily: "'Cinzel', serif" }}
+                                    >
                                         {product.name}
                                     </h1>
                                     {product.sourcing_location && (
@@ -257,7 +253,9 @@ export default function ProductDetailPage({ id }) {
                                     <>
                                         <div className="h-px bg-[#d8b66a]/10" />
                                         <div className="space-y-2">
-                                            <p className="text-xs font-mono uppercase tracking-widest text-[#efe3bf]/40">Description</p>
+                                            <p className="text-xs font-mono uppercase tracking-widest text-[#efe3bf]/40">
+                                                Description
+                                            </p>
                                             <p className="text-sm text-[#efe3bf]/85 leading-relaxed font-light">
                                                 {product.description}
                                             </p>
@@ -267,10 +265,12 @@ export default function ProductDetailPage({ id }) {
 
                                 <div className="h-px bg-[#d8b66a]/10" />
 
-                                {/* Size / Variant Selector */}
                                 {activeVariants.length > 0 && (
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Select Size
                                         </label>
                                         <div className="flex flex-wrap gap-2.5">
@@ -283,15 +283,18 @@ export default function ProductDetailPage({ id }) {
                                                         type="button"
                                                         onClick={() => {
                                                             setActiveVariantId(v.id);
-                                                            setQuantity(1); // reset quantity to 1 on variant change
+                                                            setQuantity(1);
                                                         }}
-                                                        className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200 border flex flex-col items-center gap-0.5 min-w-[70px] cursor-pointer ${isActive
-                                                            ? 'bg-[#d8b66a] text-[#0b150d] border-[#d8b66a] shadow-lg shadow-[#d8b66a]/5'
-                                                            : 'bg-[#1a2416] text-[#d8b66a] border-[#d8b66a]/15 hover:bg-[#234130] hover:border-[#d8b66a]/30'
-                                                            } ${vOos ? 'opacity-40' : ''}`}
+                                                        className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200 border flex flex-col items-center gap-0.5 min-w-[70px] cursor-pointer ${
+                                                            isActive
+                                                                ? 'bg-[#d8b66a] text-[#0b150d] border-[#d8b66a] shadow-lg shadow-[#d8b66a]/5'
+                                                                : 'bg-[#1a2416] text-[#d8b66a] border-[#d8b66a]/15 hover:bg-[#234130] hover:border-[#d8b66a]/30'
+                                                        } ${vOos ? 'opacity-40' : ''}`}
                                                     >
                                                         <span className="font-bold">{v.label}</span>
-                                                        <span className="text-[10px] opacity-80">{v.price ? `₹${v.price}` : 'N/A'}</span>
+                                                        <span className="text-[10px] opacity-80">
+                                                            {v.price ? `₹${v.price}` : 'N/A'}
+                                                        </span>
                                                     </button>
                                                 );
                                             })}
@@ -300,18 +303,23 @@ export default function ProductDetailPage({ id }) {
                                 )}
                             </div>
 
-                            {/* Pricing and Add To Cart Action area */}
                             <div className="space-y-5 bg-[#1a2416]/20 p-6 rounded-2xl border border-[#d8b66a]/5">
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
-                                        <p className="text-[10px] font-mono uppercase tracking-widest text-[#efe3bf]/40">Price</p>
+                                        <p className="text-[10px] font-mono uppercase tracking-widest text-[#efe3bf]/40">
+                                            Price
+                                        </p>
                                         <div className="flex items-baseline gap-2.5 mt-1.5">
                                             {selectedPrice !== null ? (
                                                 <>
-                                                    <span className="text-3xl font-bold text-[#d8b66a] font-mono">₹{selectedPrice}</span>
+                                                    <span className="text-3xl font-bold text-[#d8b66a] font-mono">
+                                                        ₹{selectedPrice}
+                                                    </span>
                                                     {discountPercent > 0 && (
                                                         <>
-                                                            <span className="text-sm text-[#d6cca9]/50 line-through font-mono">₹{selectedMrp}</span>
+                                                            <span className="text-sm text-[#d6cca9]/50 line-through font-mono">
+                                                                ₹{selectedMrp}
+                                                            </span>
                                                             <span className="text-[10px] bg-[#d8b66a]/15 text-[#d8b66a] px-2 py-0.5 rounded font-mono font-bold">
                                                                 {discountPercent}% OFF
                                                             </span>
@@ -319,34 +327,40 @@ export default function ProductDetailPage({ id }) {
                                                     )}
                                                 </>
                                             ) : (
-                                                <span className="text-sm font-mono text-[#d6cca9]/50">Price not available</span>
+                                                <span className="text-sm font-mono text-[#d6cca9]/50">
+                                                    Price not available
+                                                </span>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Stock indicator badge */}
                                     <div className="text-right">
-                                        <span className={`px-3 py-1.5 rounded-full text-[10px] tracking-wider uppercase font-mono font-bold ${!isAvailable
-                                            ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                                            : isOutOfStock
-                                                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                                                : 'bg-green-500/10 border border-green-500/20 text-green-400'
-                                            }`}>
-                                            {!isAvailable ? '● Not Available' : isOutOfStock ? '● Out of Stock' : '● In Stock'}
+                                        <span
+                                            className={`px-3 py-1.5 rounded-full text-[10px] tracking-wider uppercase font-mono font-bold ${
+                                                !isAvailable
+                                                    ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                                                    : isOutOfStock
+                                                      ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                                                      : 'bg-green-500/10 border border-green-500/20 text-green-400'
+                                            }`}
+                                        >
+                                            {!isAvailable
+                                                ? '● Not Available'
+                                                : isOutOfStock
+                                                  ? '● Out of Stock'
+                                                  : '● In Stock'}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div className="h-px bg-[#d8b66a]/10" />
 
-                                {/* Qty & Add to Cart Action Row */}
                                 {!isAvailable ? (
                                     <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-center text-xs uppercase tracking-wider font-mono font-bold">
                                         Not Available
                                     </div>
                                 ) : (
                                     <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-                                        {/* Qty Selector */}
                                         <div className="flex items-center justify-between border border-[#d8b66a]/20 rounded-xl px-4 py-3 bg-[#0b150d] sm:w-[130px] shrink-0">
                                             <button
                                                 type="button"
@@ -369,30 +383,30 @@ export default function ProductDetailPage({ id }) {
                                             </button>
                                         </div>
 
-                                        {/* Add to Cart button */}
                                         <button
                                             type="button"
                                             disabled={isOutOfStock || selectedPrice === null}
                                             onClick={handleAddToCart}
-                                            className={`flex-1 font-bold py-4 px-6 rounded-xl uppercase tracking-widest text-[11px] shadow-lg font-serif cursor-pointer active:scale-95 disabled:active:scale-100 flex items-center justify-center gap-2 transition-all duration-300 ${isOutOfStock || selectedPrice === null
-                                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
-                                                : 'bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10'
-                                                }`}
+                                            className={`flex-1 font-bold py-4 px-6 rounded-xl uppercase tracking-widest text-[11px] shadow-lg font-serif cursor-pointer active:scale-95 disabled:active:scale-100 flex items-center justify-center gap-2 transition-all duration-300 ${
+                                                isOutOfStock || selectedPrice === null
+                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                                                    : 'bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10'
+                                            }`}
                                             style={{ fontFamily: "'Cinzel', serif" }}
                                         >
                                             <ShoppingBag size={14} />
                                             <span>
                                                 {selectedPrice === null
                                                     ? 'Price Unavailable'
-                                                    : (isOutOfStock ? 'Out of Stock' : 'Add to Cart')
-                                                }
+                                                    : isOutOfStock
+                                                      ? 'Out of Stock'
+                                                      : 'Add to Cart'}
                                             </span>
                                         </button>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Sourcing / Meta details footer card */}
                             {(product.hsn_code || product.unit_code) && (
                                 <div className="flex flex-wrap items-center justify-between text-[10px] text-[#efe3bf]/40 uppercase font-mono tracking-wider pt-2 border-t border-[#d8b66a]/5">
                                     {product.hsn_code && <span>HSN: {product.hsn_code}</span>}
@@ -404,7 +418,6 @@ export default function ProductDetailPage({ id }) {
                 </motion.div>
             </div>
 
-            {/* Notifications */}
             <AnimatePresence>
                 {showCartNotif && (
                     <motion.div
@@ -413,7 +426,8 @@ export default function ProductDetailPage({ id }) {
                         exit={{ opacity: 0, y: 20 }}
                         className="fixed bottom-8 left-8 z-50 bg-[#0b150d]/95 border border-[#d8b66a]/30 text-[#d8b66a] px-6 py-3.5 rounded-2xl font-mono text-sm shadow-xl flex items-center gap-2.5 backdrop-blur-md"
                     >
-                        <span className="text-green-500 font-bold">✓</span> Added {quantity} × {product.name} ({activeVariant?.label}) to cart!
+                        <span className="text-green-500 font-bold">✓</span> Added {quantity} × {product.name} (
+                        {activeVariant?.label}) to cart!
                     </motion.div>
                 )}
             </AnimatePresence>

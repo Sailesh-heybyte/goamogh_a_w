@@ -4,8 +4,8 @@ export async function fetchCertificates() {
     const response = await apiFetch(`${API_PREFIX}/certificates`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
     });
     return handleResponse(response);
 }

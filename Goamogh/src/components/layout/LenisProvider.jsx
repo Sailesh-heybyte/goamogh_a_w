@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import { ReactLenis, useLenis } from '@studio-freight/react-lenis';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import gsap from 'gsap';

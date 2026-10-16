@@ -2,7 +2,6 @@ const RAZORPAY_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
 let scriptPromise = null;
 
-// Loads Razorpay Checkout once. Resolves true when ready, false if it failed to load.
 export function loadRazorpayScript() {
     if (typeof window === 'undefined') return Promise.resolve(false);
     if (window.Razorpay) return Promise.resolve(true);
@@ -23,11 +22,17 @@ export function loadRazorpayScript() {
     return scriptPromise;
 }
 
-// Opens the Razorpay popup. All values come from our backend's /pay/initiate response.
-// onSuccess(response): response has razorpay_payment_id, razorpay_order_id, razorpay_signature
-// onFailed(error): Razorpay's error object (code, description, reason, metadata)
-// onDismiss(): customer closed the popup
-export function openRazorpayCheckout({ keyId, orderId, amountPaise, currency, description, prefill, onSuccess, onFailed, onDismiss }) {
+export function openRazorpayCheckout({
+    keyId,
+    orderId,
+    amountPaise,
+    currency,
+    description,
+    prefill,
+    onSuccess,
+    onFailed,
+    onDismiss,
+}) {
     const rzp = new window.Razorpay({
         key: keyId,
         order_id: orderId,

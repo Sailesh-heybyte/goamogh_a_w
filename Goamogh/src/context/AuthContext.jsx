@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { verifyOtp, sendOtp, logoutUser, refreshAuthToken, updateUserProfile, fetchUserProfile } from '../api/api';
 
@@ -10,12 +10,11 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [loginModalOpen, setLoginModalOpen] = useState(false);
     const [loginPendingItem, setLoginPendingItem] = useState(null);
-    const [legalModal, setLegalModal] = useState(null); // null | 'terms' | 'privacy'
+    const [legalModal, setLegalModal] = useState(null);
     const [previousUrl, setPreviousUrl] = useState(null);
 
     const openLegalModal = (type = 'terms') => {
         if (typeof window !== 'undefined') {
-            // Save original page path if not already saved
             if (!previousUrl) {
                 setPreviousUrl(window.location.pathname + window.location.search);
             }
@@ -33,7 +32,6 @@ export function AuthProvider({ children }) {
         }
     };
 
-    // Handle browser back/forward buttons
     useEffect(() => {
         const handlePopState = () => {
             if (legalModal) {
@@ -45,7 +43,6 @@ export function AuthProvider({ children }) {
         return () => window.removeEventListener('popstate', handlePopState);
     }, [legalModal]);
 
-    // Initial session load
     useEffect(() => {
         const initializeAuth = async () => {
             try {
@@ -107,7 +104,6 @@ export function AuthProvider({ children }) {
         initializeAuth();
     }, []);
 
-    // Listen for custom token/auth events from apiClient.js
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -224,7 +220,7 @@ export function AuthProvider({ children }) {
                 submitOtpVerify,
                 updateProfile,
                 logout,
-                setLoginPendingItem
+                setLoginPendingItem,
             }}
         >
             {children}

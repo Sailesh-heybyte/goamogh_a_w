@@ -1,15 +1,36 @@
-"use client";
+'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus, X, ArrowRight, ChevronDown, ShoppingBag, MapPin, Trash2, Pencil, ArrowLeft, Loader, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+    Plus,
+    Minus,
+    X,
+    ArrowRight,
+    ChevronDown,
+    ShoppingBag,
+    MapPin,
+    Trash2,
+    Pencil,
+    ArrowLeft,
+    Loader,
+    AlertTriangle,
+    CheckCircle2,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { fetchAddresses, createAddress, updateAddress, deleteAddress, checkoutCart, initiatePayment, verifyPayment, fetchPaymentStatus } from '../api/api';
+import {
+    fetchAddresses,
+    createAddress,
+    updateAddress,
+    deleteAddress,
+    checkoutCart,
+    initiatePayment,
+    verifyPayment,
+    fetchPaymentStatus,
+} from '../api/api';
 import { loadRazorpayScript, openRazorpayCheckout } from '../utils/razorpay';
-
-
 
 import { INDIAN_STATES } from '../utils/indianStates';
 
@@ -18,9 +39,9 @@ export default function CartPage() {
 
     const cartItems = useMemo(() => {
         if (!cart || !Array.isArray(cart.items)) return [];
-        return cart.items.map(item => ({
+        return cart.items.map((item) => ({
             ...item,
-            cartId: item.id, // map database record id to cartId
+            cartId: item.id,
             name: item.product_name,
             weight: item.size_label,
             price: Number(item.price),
@@ -41,7 +62,7 @@ export default function CartPage() {
             total_discount_amount: cart.total_discount_amount,
             total_gst_amount: cart.total_gst_amount,
             total_cess_amount: cart.total_cess_amount,
-            total_amount: cart.total_amount
+            total_amount: cart.total_amount,
         };
     }, [cart]);
 
@@ -52,12 +73,10 @@ export default function CartPage() {
 
     const { user, token, triggerLoginModal, openLegalModal } = useAuth();
 
-    // Guest preview mode enabled for frontend offline testing
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    // Checkout States
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [addresses, setAddresses] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState('');
@@ -71,11 +90,9 @@ export default function CartPage() {
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [loadingAddresses, setLoadingAddresses] = useState(false);
 
-    // Synchronous Ref Locks
     const isPlacingOrderRef = useRef(false);
     const isPayingRef = useRef(false);
 
-    // Browser Navigation & Page Unload Guard during active order creation
     useEffect(() => {
         const isTransactionActive = placingOrder;
 
@@ -105,8 +122,6 @@ export default function CartPage() {
         };
     }, [placingOrder]);
 
-
-    // New Address Form State
     const [newAddress, setNewAddress] = useState({
         address_line_1: '',
         address_line_2: '',
@@ -115,7 +130,7 @@ export default function CartPage() {
         postal_code: '',
         landmark: '',
         phone: user?.phone || '',
-        is_default: false
+        is_default: false,
     });
     const [savingAddress, setSavingAddress] = useState(false);
     const [addressError, setAddressError] = useState(null);
@@ -128,9 +143,8 @@ export default function CartPage() {
                 const response = await fetchAddresses(token);
                 if (response.success && Array.isArray(response.data)) {
                     setAddresses(response.data);
-                    // Select default address or first address if none is currently selected or if the selected one doesn't exist anymore
-                    const defaultAddr = response.data.find(a => a.is_default) || response.data[0];
-                    if (defaultAddr && (!selectedAddressId || !response.data.some(a => a.id === selectedAddressId))) {
+                    const defaultAddr = response.data.find((a) => a.is_default) || response.data[0];
+                    if (defaultAddr && (!selectedAddressId || !response.data.some((a) => a.id === selectedAddressId))) {
                         setSelectedAddressId(defaultAddr.id);
                     }
                 } else {
@@ -151,9 +165,6 @@ export default function CartPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isCheckingOut, user, token]);
 
-
-
-    // Timer countdown logic based on reserved_until
     useEffect(() => {
         if (!checkoutResponse) return;
 
@@ -179,19 +190,17 @@ export default function CartPage() {
     }, [checkoutResponse]);
 
     const formatTime = (secs) => {
-        const m = Math.floor(secs / 60).toString().padStart(2, '0');
+        const m = Math.floor(secs / 60)
+            .toString()
+            .padStart(2, '0');
         const s = (secs % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
     };
-
-
-
 
     const handleAddAddress = async (e) => {
         e.preventDefault();
         setAddressError(null);
 
-        // Strict Address Validation
         if (!newAddress.phone.trim() || !/^\d{10}$/.test(newAddress.phone.trim())) {
             setAddressError('Phone number must be a valid 10-digit number.');
             return;
@@ -223,7 +232,7 @@ export default function CartPage() {
                 postal_code: newAddress.postal_code.trim(),
                 landmark: newAddress.landmark.trim() || null,
                 phone: newAddress.phone.trim(),
-                is_default: newAddress.is_default
+                is_default: newAddress.is_default,
             };
 
             const response = editingAddressId
@@ -243,7 +252,7 @@ export default function CartPage() {
                     postal_code: '',
                     landmark: '',
                     phone: user?.phone || '',
-                    is_default: false
+                    is_default: false,
                 });
             } else {
                 setAddressError(response.message || 'Failed to save address.');
@@ -266,7 +275,7 @@ export default function CartPage() {
             postal_code: addr.postal_code || '',
             landmark: addr.landmark || '',
             phone: addr.phone || user?.phone || '',
-            is_default: addr.is_default || false
+            is_default: addr.is_default || false,
         });
         setAddressError(null);
         setShowAddressForm(true);
@@ -283,7 +292,7 @@ export default function CartPage() {
             postal_code: '',
             landmark: '',
             phone: user?.phone || '',
-            is_default: false
+            is_default: false,
         });
         setAddressError(null);
     };
@@ -298,14 +307,14 @@ export default function CartPage() {
             postal_code: '',
             landmark: '',
             phone: user?.phone || '',
-            is_default: false
+            is_default: false,
         });
         setAddressError(null);
         setShowAddressForm(true);
     };
 
     const handleDeleteAddress = async (e, addressId) => {
-        e.stopPropagation(); // Prevent selecting the deleted card
+        e.stopPropagation();
         try {
             const response = await deleteAddress(token, addressId);
             if (response.success) {
@@ -325,12 +334,12 @@ export default function CartPage() {
             else if (hasStockError) setCartError('Please fix stock issues before placing order.');
             else if (isAddressInvalid) setCartError('Please update delivery address details to proceed.');
             else if (isShippingUnavailable) setCartError('Shipping is unavailable for the selected delivery address.');
-            else if (!selectedAddressId) setCartError('Please select or add a shipping address before placing your order.');
+            else if (!selectedAddressId)
+                setCartError('Please select or add a shipping address before placing your order.');
             setTimeout(() => setCartError(null), 5000);
             return;
         }
 
-        // Double-click & duplicate order creation prevention guard
         if (isPlacingOrderRef.current || placingOrder || checkoutResponse) {
             return;
         }
@@ -339,12 +348,11 @@ export default function CartPage() {
             isPlacingOrderRef.current = true;
             setPlacingOrder(true);
             const response = await checkoutCart(token, {
-                address_id: selectedAddressId
+                address_id: selectedAddressId,
             });
 
             if (response.success && response.data) {
                 setCheckoutResponse(response.data);
-                // Reset checkout info
                 setIsCheckingOut(false);
                 setSelectedAddressId('');
                 reloadCart();
@@ -355,7 +363,12 @@ export default function CartPage() {
         } catch (err) {
             const stockMsg = err.message || 'An error occurred while placing your order.';
             setCartError(stockMsg);
-            if (err.status === 409 || stockMsg.toLowerCase().includes('available') || stockMsg.toLowerCase().includes('unit') || stockMsg.toLowerCase().includes('stock')) {
+            if (
+                err.status === 409 ||
+                stockMsg.toLowerCase().includes('available') ||
+                stockMsg.toLowerCase().includes('unit') ||
+                stockMsg.toLowerCase().includes('stock')
+            ) {
                 reloadCart();
             }
             setTimeout(() => setCartError(null), 8000);
@@ -364,7 +377,6 @@ export default function CartPage() {
             isPlacingOrderRef.current = false;
         }
     };
-
 
     useEffect(() => {
         setIsMounted(true);
@@ -392,32 +404,38 @@ export default function CartPage() {
         };
     }, [user, token]);
 
-
-
     const subtotal = cartTotals?.total_taxable_amount;
     const tax = cartTotals?.total_gst_amount;
     const cess = cartTotals?.total_cess_amount;
     const total = cartTotals?.total_amount;
 
-    const hasInactiveItems = cartItems.some(item => item.is_inactive);
-    const hasStockError = cartItems.some(item => item.is_out_of_stock || item.insufficient_stock);
-    const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-    const isAddressInvalid = selectedAddressId && selectedAddress ? (
-        !selectedAddress.phone || !/^\d{10}$/.test(selectedAddress.phone.trim()) ||
-        !selectedAddress.address_line_1 || selectedAddress.address_line_1.trim().length < 3 ||
-        !selectedAddress.city || selectedAddress.city.trim().length < 2 ||
-        !selectedAddress.state ||
-        !selectedAddress.postal_code || !/^\d{6}$/.test(selectedAddress.postal_code.trim())
-    ) : false;
+    const hasInactiveItems = cartItems.some((item) => item.is_inactive);
+    const hasStockError = cartItems.some((item) => item.is_out_of_stock || item.insufficient_stock);
+    const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
+    const isAddressInvalid =
+        selectedAddressId && selectedAddress
+            ? !selectedAddress.phone ||
+              !/^\d{10}$/.test(selectedAddress.phone.trim()) ||
+              !selectedAddress.address_line_1 ||
+              selectedAddress.address_line_1.trim().length < 3 ||
+              !selectedAddress.city ||
+              selectedAddress.city.trim().length < 2 ||
+              !selectedAddress.state ||
+              !selectedAddress.postal_code ||
+              !/^\d{6}$/.test(selectedAddress.postal_code.trim())
+            : false;
     const isShippingUnavailable = selectedAddress && selectedAddress.shipping_serviceable === false;
     const isTransactionRunning = placingOrder || isPlacingOrderRef.current;
-    const isCartInvalidOrStale = cartItems.length === 0 || hasInactiveItems || hasStockError || isAddressInvalid || isShippingUnavailable || isTransactionRunning;
-
-
-
+    const isCartInvalidOrStale =
+        cartItems.length === 0 ||
+        hasInactiveItems ||
+        hasStockError ||
+        isAddressInvalid ||
+        isShippingUnavailable ||
+        isTransactionRunning;
 
     const updateQuantity = async (cartId, delta) => {
-        const targetItem = cartItems.find(item => item.cartId === cartId);
+        const targetItem = cartItems.find((item) => item.cartId === cartId);
         if (!targetItem) return;
         const nextQty = (targetItem.quantity || 1) + delta;
 
@@ -433,7 +451,12 @@ export default function CartPage() {
                 console.error('Failed to update DB cart quantity:', e);
                 const stockMsg = e.message || 'Failed to update cart quantity.';
                 setCartError(stockMsg);
-                if (e.status === 409 || stockMsg.toLowerCase().includes('available') || stockMsg.toLowerCase().includes('unit') || stockMsg.toLowerCase().includes('stock')) {
+                if (
+                    e.status === 409 ||
+                    stockMsg.toLowerCase().includes('available') ||
+                    stockMsg.toLowerCase().includes('unit') ||
+                    stockMsg.toLowerCase().includes('stock')
+                ) {
                     reloadCart();
                 }
                 setTimeout(() => setCartError(null), 8000);
@@ -453,19 +476,18 @@ export default function CartPage() {
         }
     };
 
-
-
-
-
-
     if (!isMounted) {
         return (
             <section className="min-h-screen w-full bg-[#1a2416] pt-28 pb-20 px-4 md:px-8 lg:px-12 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
-                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] leading-tight">Shopping Cart</h1>
-                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] leading-tight">
+                            Shopping Cart
+                        </h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 font-mono tracking-[0.25em] uppercase">
+                            Artisan spices built for the modern kitchen
+                        </p>
                     </div>
                     <div className="flex justify-center items-center py-24">
                         <div className="w-10 h-10 border-4 border-[#d8b66a] border-t-transparent rounded-full animate-spin" />
@@ -482,8 +504,12 @@ export default function CartPage() {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-40" />
-                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">Shopping Cart</h1>
-                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">
+                            Shopping Cart
+                        </h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">
+                            Artisan spices built for the modern kitchen
+                        </p>
                     </div>
 
                     <div className="bg-[#0b150d] border border-[#d8b66a]/10 rounded-[28px] p-12 md:p-16 text-center max-w-xl mx-auto shadow-2xl relative overflow-hidden">
@@ -491,7 +517,10 @@ export default function CartPage() {
                             <ShoppingBag size={24} />
                         </div>
                         <p className="text-[#efe3bf] text-xl font-medium mb-2">Please log in to view your cart</p>
-                        <p className="text-[#d6cca9]/60 text-sm mb-8">Access your saved items, checkout faster, and track orders by logging in with your phone number.</p>
+                        <p className="text-[#d6cca9]/60 text-sm mb-8">
+                            Access your saved items, checkout faster, and track orders by logging in with your phone
+                            number.
+                        </p>
                         <button
                             onClick={() => triggerLoginModal()}
                             className="inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-3.5 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10 cursor-pointer"
@@ -510,8 +539,12 @@ export default function CartPage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
-                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] leading-tight">Shopping Cart</h1>
-                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] leading-tight">
+                            Shopping Cart
+                        </h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 font-mono tracking-[0.25em] uppercase">
+                            Artisan spices built for the modern kitchen
+                        </p>
                     </div>
                     <div className="flex justify-center items-center py-24">
                         <div className="w-10 h-10 border-4 border-[#d8b66a] border-t-transparent rounded-full animate-spin" />
@@ -528,8 +561,12 @@ export default function CartPage() {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-40" />
-                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">Shopping Cart</h1>
-                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                        <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">
+                            Shopping Cart
+                        </h1>
+                        <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">
+                            Artisan spices built for the modern kitchen
+                        </p>
                     </div>
 
                     <div className="bg-[#0b150d] border border-red-500/20 rounded-[28px] p-12 md:p-16 text-center max-w-xl mx-auto shadow-2xl relative overflow-hidden">
@@ -563,7 +600,11 @@ export default function CartPage() {
             } else if (err.status === 400 || err.status === 404) {
                 setPaymentMessage({ type: 'error', text: err.message });
             } else {
-                setPaymentMessage({ type: 'error', text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.', canCheckStatus: true });
+                setPaymentMessage({
+                    type: 'error',
+                    text: 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.',
+                    canCheckStatus: true,
+                });
             }
         } finally {
             setPaying(false);
@@ -587,9 +628,17 @@ export default function CartPage() {
                 setPaymentMessage(null);
                 setCheckoutResponse(null);
             } else if (status === 'refund_pending' || status === 'refunded') {
-                setPaymentMessage({ type: 'error', text: 'Your payment was received but the order could not be fulfilled. A full refund has been initiated.', final: true });
+                setPaymentMessage({
+                    type: 'error',
+                    text: 'Your payment was received but the order could not be fulfilled. A full refund has been initiated.',
+                    final: true,
+                });
             } else {
-                setPaymentMessage({ type: 'info', text: 'Your payment is not confirmed yet. Please check again in a minute.', canCheckStatus: true });
+                setPaymentMessage({
+                    type: 'info',
+                    text: 'Your payment is not confirmed yet. Please check again in a minute.',
+                    canCheckStatus: true,
+                });
             }
         } catch (err) {
             setPaymentMessage({ type: 'error', text: err.message, canCheckStatus: true });
@@ -606,7 +655,10 @@ export default function CartPage() {
 
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) {
-            setPaymentMessage({ type: 'error', text: 'Could not load the payment window. Check your internet connection and try again.' });
+            setPaymentMessage({
+                type: 'error',
+                text: 'Could not load the payment window. Check your internet connection and try again.',
+            });
             setPaying(false);
             isPayingRef.current = false;
             return;
@@ -653,7 +705,9 @@ export default function CartPage() {
                         <div className="w-20 h-20 rounded-full bg-[#d8b66a]/10 border border-[#d8b66a]/20 flex items-center justify-center mx-auto mb-8 text-[#d8b66a]">
                             <CheckCircle2 size={36} />
                         </div>
-                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Payment Confirmed</h1>
+                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">
+                            Payment Confirmed
+                        </h1>
                         <p className="text-[#efe3bf] text-base md:text-lg mb-8 max-w-lg mx-auto">
                             Thank you for your purchase. Your payment was successful and your order is confirmed.
                         </p>
@@ -661,15 +715,23 @@ export default function CartPage() {
                         <div className="bg-[#1a2416]/50 rounded-2xl p-6 mb-8 text-left border border-[#d8b66a]/10 max-w-xl mx-auto font-sans space-y-4">
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Number</span>
-                                <span className="text-[#efe3bf] font-mono text-sm font-bold">{paidOrder.sale_number}</span>
+                                <span className="text-[#efe3bf] font-mono text-sm font-bold">
+                                    {paidOrder.sale_number}
+                                </span>
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Amount Paid</span>
-                                <span className="text-[#d8b66a] font-mono text-sm font-bold">{paidOrder.paid_amount != null ? `₹${Number(paidOrder.paid_amount).toFixed(2)}` : '—'}</span>
+                                <span className="text-[#d8b66a] font-mono text-sm font-bold">
+                                    {paidOrder.paid_amount != null
+                                        ? `₹${Number(paidOrder.paid_amount).toFixed(2)}`
+                                        : '—'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Status</span>
-                                <span className="bg-green-500/20 text-green-400 border border-green-500/30 font-mono text-[10px] uppercase px-2 py-0.5 rounded-full font-bold">{paidOrder.status}</span>
+                                <span className="bg-green-500/20 text-green-400 border border-green-500/30 font-mono text-[10px] uppercase px-2 py-0.5 rounded-full font-bold">
+                                    {paidOrder.status}
+                                </span>
                             </div>
                         </div>
 
@@ -704,7 +766,9 @@ export default function CartPage() {
                     <div className="bg-[#0b150d] border border-[#d8b66a]/15 rounded-[32px] md:rounded-[48px] p-8 md:p-16 shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-30 pointer-events-none" />
 
-                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">Order Reserved</h1>
+                        <h1 className="font-serif text-3xl md:text-5xl text-[#d8b66a] leading-tight mb-4">
+                            Order Reserved
+                        </h1>
 
                         {isExpired ? (
                             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center justify-center gap-3 font-mono mb-6">
@@ -713,33 +777,48 @@ export default function CartPage() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2 mb-6">
-                                <div className="text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif">Time Remaining</div>
+                                <div className="text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif">
+                                    Time Remaining
+                                </div>
                                 <div className="font-mono text-3xl font-bold text-white bg-[#1a2416] border border-[#d8b66a]/20 px-6 py-2.5 rounded-2xl shadow-inner">
                                     {formatTime(secondsLeft)}
                                 </div>
                             </div>
                         )}
 
-                        {/* Order info details box */}
                         <div className="bg-[#1a2416]/50 rounded-2xl p-6 mb-8 text-left border border-[#d8b66a]/10 max-w-xl mx-auto font-sans space-y-4">
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Number</span>
-                                <span className="text-[#efe3bf] font-mono text-sm font-bold">{checkoutResponse.sale_number}</span>
+                                <span className="text-[#efe3bf] font-mono text-sm font-bold">
+                                    {checkoutResponse.sale_number}
+                                </span>
                             </div>
                             <div className="flex justify-between border-b border-[#d8b66a]/10 pb-2.5">
                                 <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Order Total</span>
-                                <span className="text-[#d8b66a] font-mono text-base font-bold">{checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : "—"}</span>
+                                <span className="text-[#d8b66a] font-mono text-base font-bold">
+                                    {checkoutResponse.total_amount != null
+                                        ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}`
+                                        : '—'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">Delivery Address</span>
-                                <span className="text-[#efe3bf] text-xs text-right font-medium max-w-[280px] leading-relaxed">{checkoutResponse.delivery_address}</span>
+                                <span className="text-[#efe3bf]/60 text-xs uppercase tracking-wider">
+                                    Delivery Address
+                                </span>
+                                <span className="text-[#efe3bf] text-xs text-right font-medium max-w-[280px] leading-relaxed">
+                                    {checkoutResponse.delivery_address}
+                                </span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-4 justify-center items-center max-w-md mx-auto">
                             {paymentMessage && (
-                                <div className={`w-full p-4 rounded-xl text-sm flex flex-col sm:flex-row items-center justify-center gap-3 font-mono ${paymentMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-200' : 'bg-[#d8b66a]/10 border border-[#d8b66a]/20 text-[#efe3bf]'}`}>
-                                    {paymentMessage.type === 'error' && <AlertTriangle size={16} className="text-red-400 shrink-0" />}
+                                <div
+                                    className={`w-full p-4 rounded-xl text-sm flex flex-col sm:flex-row items-center justify-center gap-3 font-mono ${paymentMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-200' : 'bg-[#d8b66a]/10 border border-[#d8b66a]/20 text-[#efe3bf]'}`}
+                                >
+                                    {paymentMessage.type === 'error' && (
+                                        <AlertTriangle size={16} className="text-red-400 shrink-0" />
+                                    )}
                                     <span>{paymentMessage.text}</span>
                                     {paymentMessage.canCheckStatus && (
                                         <button
@@ -757,7 +836,12 @@ export default function CartPage() {
                             <button
                                 type="button"
                                 onClick={handlePayNow}
-                                disabled={isExpired || paying || Boolean(paymentMessage?.canCheckStatus) || Boolean(paymentMessage?.final)}
+                                disabled={
+                                    isExpired ||
+                                    paying ||
+                                    Boolean(paymentMessage?.canCheckStatus) ||
+                                    Boolean(paymentMessage?.final)
+                                }
                                 className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-[#0b150d] font-bold py-4 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 cursor-pointer flex items-center justify-center gap-2"
                                 style={{ fontFamily: "'Cinzel', serif" }}
                             >
@@ -767,7 +851,12 @@ export default function CartPage() {
                                         <span>Opening secure payment...</span>
                                     </>
                                 ) : (
-                                    <span>Pay {checkoutResponse.total_amount != null ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}` : ''}</span>
+                                    <span>
+                                        Pay{' '}
+                                        {checkoutResponse.total_amount != null
+                                            ? `₹${Number(checkoutResponse.total_amount).toFixed(2)}`
+                                            : ''}
+                                    </span>
                                 )}
                             </button>
 
@@ -795,11 +884,14 @@ export default function CartPage() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-50 pointer-events-none" />
 
             <div className="max-w-7xl mx-auto relative z-10">
-                {/* Title Banner */}
                 <div className="bg-[#0b150d] rounded-[24px] md:rounded-[40px] p-8 md:p-14 text-center mb-10 md:mb-14 border border-[#d8b66a]/10 shadow-xl relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-40" />
-                    <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">Shopping Cart</h1>
-                    <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">Artisan spices built for the modern kitchen</p>
+                    <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#d8b66a] relative z-10 leading-tight">
+                        Shopping Cart
+                    </h1>
+                    <p className="text-[#d6cca9]/75 text-[10px] md:text-xs mt-2.5 relative z-10 font-mono tracking-[0.25em] uppercase">
+                        Artisan spices built for the modern kitchen
+                    </p>
                 </div>
 
                 {cartItems.length === 0 ? (
@@ -812,7 +904,9 @@ export default function CartPage() {
                             <ShoppingBag size={24} />
                         </div>
                         <p className="text-[#efe3bf] text-xl font-medium mb-2">Your cart is currently empty</p>
-                        <p className="text-[#d6cca9]/60 text-sm mb-8">Add premium single-origin spices and handcrafted blends to get started.</p>
+                        <p className="text-[#d6cca9]/60 text-sm mb-8">
+                            Add premium single-origin spices and handcrafted blends to get started.
+                        </p>
                         <a
                             href="/shop"
                             className="inline-flex items-center justify-center bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-8 py-3.5 rounded-full transition duration-300 text-xs uppercase tracking-widest active:scale-95 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10"
@@ -822,11 +916,9 @@ export default function CartPage() {
                     </motion.div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 items-start">
-                        {/* Cart Items List OR Checkout Form */}
                         <div className="lg:col-span-8 space-y-6">
                             {isCheckingOut ? (
                                 <div className="border border-[#d8b66a]/10 rounded-[24px] bg-[#0b150d] p-5 md:p-8 shadow-xl space-y-8">
-                                    {/* Back Button */}
                                     <button
                                         onClick={() => setIsCheckingOut(false)}
                                         className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#d8b66a] hover:text-[#efe3bf] transition duration-200 cursor-pointer"
@@ -835,9 +927,10 @@ export default function CartPage() {
                                         <span>Back to Shopping Cart</span>
                                     </button>
 
-                                    <h2 className="font-serif text-2xl md:text-3xl text-[#d8b66a] border-b border-[#d8b66a]/15 pb-4">Checkout Details</h2>
+                                    <h2 className="font-serif text-2xl md:text-3xl text-[#d8b66a] border-b border-[#d8b66a]/15 pb-4">
+                                        Checkout Details
+                                    </h2>
 
-                                    {/* Shipping Address Section */}
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center flex-wrap gap-2">
                                             <h3 className="text-white font-serif text-lg flex items-center gap-2">
@@ -855,91 +948,143 @@ export default function CartPage() {
                                         </div>
 
                                         {showAddressForm ? (
-                                            /* Address Form */
-                                            <form onSubmit={handleAddAddress} className="bg-[#1a2416]/50 border border-[#d8b66a]/10 rounded-2xl p-6 space-y-4 font-sans text-sm">
-                                                <h4 className="text-white font-serif font-bold text-sm">{editingAddressId ? 'Edit Delivery Address' : 'New Delivery Address'}</h4>
+                                            <form
+                                                onSubmit={handleAddAddress}
+                                                className="bg-[#1a2416]/50 border border-[#d8b66a]/10 rounded-2xl p-6 space-y-4 font-sans text-sm"
+                                            >
+                                                <h4 className="text-white font-serif font-bold text-sm">
+                                                    {editingAddressId
+                                                        ? 'Edit Delivery Address'
+                                                        : 'New Delivery Address'}
+                                                </h4>
 
                                                 {addressError && (
                                                     <div className="p-3 bg-red-950/80 border border-red-500/20 text-red-200 text-xs rounded-xl flex items-center gap-2.5 font-mono">
-                                                        <span className="text-red-500 font-bold">⚠</span> {addressError}
+                                                        <span className="text-red-500 font-bold">⚠</span>{' '}
+                                                        {addressError}
                                                     </div>
                                                 )}
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Phone Number *</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            Phone Number *
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             required
                                                             placeholder="10-digit phone number"
                                                             value={newAddress.phone}
-                                                            onChange={e => setNewAddress({ ...newAddress, phone: e.target.value.replace(/\D/g, '') })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({
+                                                                    ...newAddress,
+                                                                    phone: e.target.value.replace(/\D/g, ''),
+                                                                })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition font-mono"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Address Line 1 *</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            Address Line 1 *
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             required
                                                             placeholder="Flat, House no., Building"
                                                             value={newAddress.address_line_1}
-                                                            onChange={e => setNewAddress({ ...newAddress, address_line_1: e.target.value })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({
+                                                                    ...newAddress,
+                                                                    address_line_1: e.target.value,
+                                                                })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Address Line 2 (Optional)</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            Address Line 2 (Optional)
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             placeholder="Street, Sector, Area"
                                                             value={newAddress.address_line_2}
-                                                            onChange={e => setNewAddress({ ...newAddress, address_line_2: e.target.value })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({
+                                                                    ...newAddress,
+                                                                    address_line_2: e.target.value,
+                                                                })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">City *</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            City *
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             required
                                                             placeholder="City/Town"
                                                             value={newAddress.city}
-                                                            onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({ ...newAddress, city: e.target.value })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">State *</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            State *
+                                                        </label>
                                                         <select
                                                             value={newAddress.state}
-                                                            onChange={e => setNewAddress({ ...newAddress, state: e.target.value })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({ ...newAddress, state: e.target.value })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white focus:border-[#d8b66a] outline-none transition"
                                                         >
                                                             <option value="">Select state</option>
-                                                            {INDIAN_STATES.map(s => (
-                                                                <option key={s} value={s}>{s}</option>
+                                                            {INDIAN_STATES.map((s) => (
+                                                                <option key={s} value={s}>
+                                                                    {s}
+                                                                </option>
                                                             ))}
                                                         </select>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">PIN Code *</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            PIN Code *
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             required
                                                             placeholder="6-digit pincode"
                                                             value={newAddress.postal_code}
-                                                            onChange={e => setNewAddress({ ...newAddress, postal_code: e.target.value.replace(/\D/g, '') })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({
+                                                                    ...newAddress,
+                                                                    postal_code: e.target.value.replace(/\D/g, ''),
+                                                                })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition font-mono"
                                                         />
                                                     </div>
                                                     <div className="col-span-1 md:col-span-2 space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">Landmark (Optional)</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-[#d6cca9]/70 font-semibold block">
+                                                            Landmark (Optional)
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             placeholder="Near temple, mall etc."
                                                             value={newAddress.landmark}
-                                                            onChange={e => setNewAddress({ ...newAddress, landmark: e.target.value })}
+                                                            onChange={(e) =>
+                                                                setNewAddress({
+                                                                    ...newAddress,
+                                                                    landmark: e.target.value,
+                                                                })
+                                                            }
                                                             className="w-full bg-[#0b150d] border border-[#d8b66a]/20 rounded-xl px-4 py-3 text-white placeholder-[#efe3bf]/20 focus:border-[#d8b66a] outline-none transition"
                                                         />
                                                     </div>
@@ -950,10 +1095,20 @@ export default function CartPage() {
                                                         type="checkbox"
                                                         id="is_default"
                                                         checked={newAddress.is_default}
-                                                        onChange={e => setNewAddress({ ...newAddress, is_default: e.target.checked })}
+                                                        onChange={(e) =>
+                                                            setNewAddress({
+                                                                ...newAddress,
+                                                                is_default: e.target.checked,
+                                                            })
+                                                        }
                                                         className="rounded border-[#d8b66a]/30 text-[#d8b66a] focus:ring-[#d8b66a]"
                                                     />
-                                                    <label htmlFor="is_default" className="text-xs text-[#d6cca9] cursor-pointer">Set as default delivery address</label>
+                                                    <label
+                                                        htmlFor="is_default"
+                                                        className="text-xs text-[#d6cca9] cursor-pointer"
+                                                    >
+                                                        Set as default delivery address
+                                                    </label>
                                                 </div>
 
                                                 <div className="flex gap-3 pt-4 justify-end">
@@ -972,11 +1127,20 @@ export default function CartPage() {
                                                     >
                                                         {savingAddress ? (
                                                             <>
-                                                                <Loader size={12} className="animate-spin text-[#0b150d]" />
-                                                                <span>{editingAddressId ? 'Updating...' : 'Saving Address...'}</span>
+                                                                <Loader
+                                                                    size={12}
+                                                                    className="animate-spin text-[#0b150d]"
+                                                                />
+                                                                <span>
+                                                                    {editingAddressId
+                                                                        ? 'Updating...'
+                                                                        : 'Saving Address...'}
+                                                                </span>
                                                             </>
                                                         ) : (
-                                                            <span>{editingAddressId ? 'Update Address' : 'Save Address'}</span>
+                                                            <span>
+                                                                {editingAddressId ? 'Update Address' : 'Save Address'}
+                                                            </span>
                                                         )}
                                                     </button>
                                                 </div>
@@ -987,7 +1151,9 @@ export default function CartPage() {
                                             </div>
                                         ) : addresses.length === 0 ? (
                                             <div className="bg-[#1a2416]/30 border border-dashed border-[#d8b66a]/20 rounded-2xl p-8 text-center space-y-4">
-                                                <p className="text-[#efe3bf]/60 text-sm">No saved shipping addresses found.</p>
+                                                <p className="text-[#efe3bf]/60 text-sm">
+                                                    No saved shipping addresses found.
+                                                </p>
                                                 <button
                                                     onClick={handleAddNewAddressClick}
                                                     className="bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold px-6 py-3 rounded-full transition duration-300 text-[10px] uppercase tracking-widest active:scale-95 shadow-md cursor-pointer"
@@ -996,9 +1162,8 @@ export default function CartPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            /* Address Selection Grid */
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {addresses.map(addr => {
+                                                {addresses.map((addr) => {
                                                     const isSelected = selectedAddressId === addr.id;
                                                     const fullAddrString = [
                                                         addr.address_line_1,
@@ -1006,35 +1171,47 @@ export default function CartPage() {
                                                         addr.city,
                                                         addr.state,
                                                         addr.postal_code,
-                                                        addr.landmark && `Landmark: ${addr.landmark}`
-                                                    ].filter(Boolean).join(", ");
+                                                        addr.landmark && `Landmark: ${addr.landmark}`,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(', ');
 
                                                     return (
                                                         <div
                                                             key={addr.id}
                                                             onClick={() => setSelectedAddressId(addr.id)}
-                                                            className={`border rounded-2xl p-5 cursor-pointer relative transition duration-300 flex flex-col justify-between group ${isSelected
-                                                                ? 'border-[#d8b66a] bg-[#d8b66a]/5 shadow-lg shadow-[#d8b66a]/5'
-                                                                : 'border-white/5 bg-[#1a2416]/20 hover:border-white/10 hover:bg-[#1a2416]/40'
-                                                                }`}
+                                                            className={`border rounded-2xl p-5 cursor-pointer relative transition duration-300 flex flex-col justify-between group ${
+                                                                isSelected
+                                                                    ? 'border-[#d8b66a] bg-[#d8b66a]/5 shadow-lg shadow-[#d8b66a]/5'
+                                                                    : 'border-white/5 bg-[#1a2416]/20 hover:border-white/10 hover:bg-[#1a2416]/40'
+                                                            }`}
                                                         >
                                                             <div className="space-y-2.5">
                                                                 <div className="flex justify-between items-start">
                                                                     <div className="flex items-center gap-2">
-                                                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isSelected
-                                                                            ? 'border-[#d8b66a] bg-[#d8b66a]'
-                                                                            : 'border-[#efe3bf]/30'
-                                                                            }`}>
-                                                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0b150d]" />}
+                                                                        <div
+                                                                            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                                                                                isSelected
+                                                                                    ? 'border-[#d8b66a] bg-[#d8b66a]'
+                                                                                    : 'border-[#efe3bf]/30'
+                                                                            }`}
+                                                                        >
+                                                                            {isSelected && (
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-[#0b150d]" />
+                                                                            )}
                                                                         </div>
                                                                         {addr.is_default && (
-                                                                            <span className="bg-[#d8b66a]/15 text-[#d8b66a] text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full uppercase">Default</span>
+                                                                            <span className="bg-[#d8b66a]/15 text-[#d8b66a] text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full uppercase">
+                                                                                Default
+                                                                            </span>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
                                                                         <button
                                                                             type="button"
-                                                                            onClick={(e) => handleEditAddressClick(e, addr)}
+                                                                            onClick={(e) =>
+                                                                                handleEditAddressClick(e, addr)
+                                                                            }
                                                                             className="text-[#d8b66a]/60 hover:text-[#d8b66a] hover:bg-[#d8b66a]/10 p-1.5 rounded-full transition cursor-pointer"
                                                                             title="Edit Address"
                                                                         >
@@ -1042,7 +1219,9 @@ export default function CartPage() {
                                                                         </button>
                                                                         <button
                                                                             type="button"
-                                                                            onClick={(e) => handleDeleteAddress(e, addr.id)}
+                                                                            onClick={(e) =>
+                                                                                handleDeleteAddress(e, addr.id)
+                                                                            }
                                                                             className="text-red-400/60 hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded-full transition cursor-pointer"
                                                                             title="Delete Address"
                                                                         >
@@ -1050,7 +1229,9 @@ export default function CartPage() {
                                                                         </button>
                                                                     </div>
                                                                 </div>
-                                                                <p className="text-white text-xs leading-relaxed font-sans">{fullAddrString}</p>
+                                                                <p className="text-white text-xs leading-relaxed font-sans">
+                                                                    {fullAddrString}
+                                                                </p>
                                                             </div>
                                                             <div className="pt-3 border-t border-[#d8b66a]/10 mt-3 font-mono text-[10px] text-[#d6cca9]/70">
                                                                 Phone: {addr.phone}
@@ -1064,7 +1245,6 @@ export default function CartPage() {
                                 </div>
                             ) : (
                                 <div className="border border-[#d8b66a]/10 rounded-[24px] bg-[#0b150d] p-5 md:p-8 shadow-xl">
-                                    {/* Table Headers for Desktop */}
                                     <div className="hidden md:flex items-center pb-4 border-b border-[#d8b66a]/15 text-[#d8b66a]/60 font-serif text-[11px] uppercase tracking-[0.2em] font-bold">
                                         <div className="w-[45%]">Product</div>
                                         <div className="w-[15%] text-center">Price</div>
@@ -1073,11 +1253,12 @@ export default function CartPage() {
                                         <div className="w-[5%]"></div>
                                     </div>
 
-                                    {/* Items Container */}
                                     <div className="divide-y divide-[#d8b66a]/10">
                                         {cartItems.map((item) => (
-                                            <div key={item.cartId} className="flex flex-col md:flex-row md:items-center py-6 gap-4">
-                                                {/* Product column */}
+                                            <div
+                                                key={item.cartId}
+                                                className="flex flex-col md:flex-row md:items-center py-6 gap-4"
+                                            >
                                                 <div className="flex items-center gap-4 w-full md:w-[45%]">
                                                     {item.image ? (
                                                         <img
@@ -1099,11 +1280,17 @@ export default function CartPage() {
                                                         </div>
                                                     )}
                                                     <div className="min-w-0">
-                                                        <h3 className="font-serif text-base md:text-lg text-white font-medium leading-snug truncate">{item.name}</h3>
-                                                        <p className="text-xs text-[#d6cca9]/60 mt-1 font-mono">{item.weight || '250g'} • {item.origin || 'India'}</p>
+                                                        <h3 className="font-serif text-base md:text-lg text-white font-medium leading-snug truncate">
+                                                            {item.name}
+                                                        </h3>
+                                                        <p className="text-xs text-[#d6cca9]/60 mt-1 font-mono">
+                                                            {item.weight || '250g'} • {item.origin || 'India'}
+                                                        </p>
                                                         {item.is_inactive && (
                                                             <p className="text-xs text-amber-400 font-mono font-semibold mt-1 flex items-center gap-1">
-                                                                <span>⚠ Item No Longer Available (Remove to Proceed)</span>
+                                                                <span>
+                                                                    ⚠ Item No Longer Available (Remove to Proceed)
+                                                                </span>
                                                             </p>
                                                         )}
                                                         {item.is_out_of_stock && (
@@ -1113,26 +1300,37 @@ export default function CartPage() {
                                                         )}
                                                         {item.insufficient_stock && (
                                                             <p className="text-xs text-red-400 font-mono font-semibold mt-1 flex items-center gap-1">
-                                                                <span>⚠ Insufficient Stock (Only {item.available_quantity} available)</span>
+                                                                <span>
+                                                                    ⚠ Insufficient Stock (Only{' '}
+                                                                    {item.available_quantity} available)
+                                                                </span>
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                {/* Price column */}
                                                 <div className="flex md:block justify-between items-center w-full md:w-[15%] md:text-center">
-                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">Price</span>
+                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">
+                                                        Price
+                                                    </span>
                                                     <div className="flex flex-col md:items-center">
-                                                        <span className="font-mono text-sm text-[#efe3bf]">{item.price != null ? `₹${Number(item.price).toFixed(2)}` : "—"}</span>
+                                                        <span className="font-mono text-sm text-[#efe3bf]">
+                                                            {item.price != null
+                                                                ? `₹${Number(item.price).toFixed(2)}`
+                                                                : '—'}
+                                                        </span>
                                                         {item.mrp != null && item.mrp > item.price && (
-                                                            <span className="text-[11px] text-[#d6cca9]/50 line-through font-mono">₹{Number(item.mrp).toFixed(2)}</span>
+                                                            <span className="text-[11px] text-[#d6cca9]/50 line-through font-mono">
+                                                                ₹{Number(item.mrp).toFixed(2)}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                {/* Quantity column */}
                                                 <div className="flex md:block justify-between items-center w-full md:w-[20%]">
-                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">Quantity</span>
+                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">
+                                                        Quantity
+                                                    </span>
                                                     <div className="flex items-center justify-center gap-2 border border-[#d8b66a]/20 rounded-full px-2.5 py-1 w-fit bg-[#1a2416]/50">
                                                         <button
                                                             onClick={() => updateQuantity(item.cartId, -1)}
@@ -1154,12 +1352,15 @@ export default function CartPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Total column */}
                                                 <div className="flex md:block justify-between items-center w-full md:w-[15%] md:text-right">
-                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">Total</span>
+                                                    <span className="md:hidden text-xs text-[#d6cca9]/50 font-serif">
+                                                        Total
+                                                    </span>
                                                     <div className="flex flex-col md:items-end font-mono">
                                                         <span className="text-sm text-[#efe3bf]">
-                                                            {item.taxable_amount != null ? `₹${Number(item.taxable_amount).toFixed(2)}` : "—"}
+                                                            {item.taxable_amount != null
+                                                                ? `₹${Number(item.taxable_amount).toFixed(2)}`
+                                                                : '—'}
                                                         </span>
                                                         {Number(item.gst_amount) > 0 && (
                                                             <span className="text-[10px] text-[#efe3bf]/40">
@@ -1174,7 +1375,6 @@ export default function CartPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Remove column */}
                                                 <div className="flex md:block justify-end w-full md:w-[5%]">
                                                     <button
                                                         onClick={() => removeItem(item.cartId)}
@@ -1191,38 +1391,41 @@ export default function CartPage() {
                             )}
                         </div>
 
-                        {/* Summary & Coupon Panel */}
                         <div className="lg:col-span-4 space-y-6">
-                            {/* Summary Totals Box */}
                             <div className="border border-[#d8b66a]/10 rounded-[24px] bg-[#0b150d] p-6 md:p-8 shadow-xl space-y-6">
-                                {/* Calculation Details */}
                                 <div className="border-t border-[#d8b66a]/15 pt-5 space-y-3 text-sm">
                                     <div className="flex justify-between text-[#d6cca9]/70 font-mono">
                                         <span>Subtotal</span>
-                                        <span>{subtotal != null ? `₹${Number(subtotal).toFixed(2)}` : "—"}</span>
+                                        <span>{subtotal != null ? `₹${Number(subtotal).toFixed(2)}` : '—'}</span>
                                     </div>
-                                    {cartTotals?.total_discount_amount != null && Number(cartTotals.total_discount_amount) > 0 && (
-                                        <div className="flex justify-between text-green-400 font-mono">
-                                            <span>You save</span>
-                                            <span>{cartTotals.total_discount_amount != null ? `₹${Number(cartTotals.total_discount_amount).toFixed(2)}` : "—"}</span>
-                                        </div>
-                                    )}
+                                    {cartTotals?.total_discount_amount != null &&
+                                        Number(cartTotals.total_discount_amount) > 0 && (
+                                            <div className="flex justify-between text-green-400 font-mono">
+                                                <span>You save</span>
+                                                <span>
+                                                    {cartTotals.total_discount_amount != null
+                                                        ? `₹${Number(cartTotals.total_discount_amount).toFixed(2)}`
+                                                        : '—'}
+                                                </span>
+                                            </div>
+                                        )}
                                     <div className="flex justify-between text-[#d6cca9]/70 font-mono">
                                         <span>GST</span>
-                                        <span>{tax != null ? `₹${Number(tax).toFixed(2)}` : "—"}</span>
+                                        <span>{tax != null ? `₹${Number(tax).toFixed(2)}` : '—'}</span>
                                     </div>
                                     {cess != null && Number(cess) > 0 && (
                                         <div className="flex justify-between text-[#d6cca9]/70 font-mono">
                                             <span>Cess</span>
-                                            <span>{cess != null ? `₹${Number(cess).toFixed(2)}` : "—"}</span>
+                                            <span>{cess != null ? `₹${Number(cess).toFixed(2)}` : '—'}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-white font-serif text-lg font-bold border-t border-[#d8b66a]/15 pt-4">
                                         <span>Total</span>
-                                        <span className="text-[#d8b66a] font-mono">{total != null ? `₹${Number(total).toFixed(2)}` : "—"}</span>
+                                        <span className="text-[#d8b66a] font-mono">
+                                            {total != null ? `₹${Number(total).toFixed(2)}` : '—'}
+                                        </span>
                                     </div>
 
-                                    {/* Terms & Conditions Checkbox */}
                                     <div className="flex items-start gap-2.5 pt-2 pb-1 text-xs bg-[#1a2416]/40 p-3 rounded-xl border border-[#d8b66a]/15">
                                         <input
                                             type="checkbox"
@@ -1231,12 +1434,29 @@ export default function CartPage() {
                                             onChange={(e) => setTermsAccepted(e.target.checked)}
                                             className="mt-0.5 rounded border-[#d8b66a]/30 text-[#d8b66a] focus:ring-[#d8b66a] accent-[#d8b66a] cursor-pointer"
                                         />
-                                        <label htmlFor="cart_terms_accept" className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed">
-                                            Please accept <button type="button" onClick={() => openLegalModal('terms')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Terms & Conditions</button> and <button type="button" onClick={() => openLegalModal('privacy')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Privacy Policy</button>
+                                        <label
+                                            htmlFor="cart_terms_accept"
+                                            className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed"
+                                        >
+                                            Please accept{' '}
+                                            <button
+                                                type="button"
+                                                onClick={() => openLegalModal('terms')}
+                                                className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                            >
+                                                Terms & Conditions
+                                            </button>{' '}
+                                            and{' '}
+                                            <button
+                                                type="button"
+                                                onClick={() => openLegalModal('privacy')}
+                                                className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                            >
+                                                Privacy Policy
+                                            </button>
                                         </label>
                                     </div>
 
-                                    {/* Checkout Button */}
                                     {!termsAccepted ? (
                                         <button
                                             disabled
@@ -1299,35 +1519,36 @@ export default function CartPage() {
                                                         <span>Placing Order...</span>
                                                     </>
                                                 ) : (
-                                                    <span>Place Order ({total != null ? `₹${Number(total).toFixed(2)}` : "—"})</span>
+                                                    <span>
+                                                        Place Order (
+                                                        {total != null ? `₹${Number(total).toFixed(2)}` : '—'})
+                                                    </span>
                                                 )}
                                             </button>
                                         )
+                                    ) : hasInactiveItems ? (
+                                        <button
+                                            disabled
+                                            className="w-full bg-red-950/40 text-amber-400 font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-not-allowed border border-amber-900/20 opacity-70"
+                                        >
+                                            <span>Remove Inactive Items</span>
+                                        </button>
+                                    ) : hasStockError ? (
+                                        <button
+                                            disabled
+                                            className="w-full bg-red-950/40 text-red-500 font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-not-allowed border border-red-900/20 opacity-70"
+                                        >
+                                            <span>Fix Stock Issues</span>
+                                        </button>
                                     ) : (
-                                        hasInactiveItems ? (
-                                            <button
-                                                disabled
-                                                className="w-full bg-red-950/40 text-amber-400 font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-not-allowed border border-amber-900/20 opacity-70"
-                                            >
-                                                <span>Remove Inactive Items</span>
-                                            </button>
-                                        ) : hasStockError ? (
-                                            <button
-                                                disabled
-                                                className="w-full bg-red-950/40 text-red-500 font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-not-allowed border border-red-900/20 opacity-70"
-                                            >
-                                                <span>Fix Stock Issues</span>
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCheckingOut(true)}
-                                                className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10 cursor-pointer"
-                                            >
-                                                <span>Proceed to Checkout</span>
-                                                <ArrowRight size={14} />
-                                            </button>
-                                        )
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCheckingOut(true)}
+                                            className="w-full bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-[#d8b66a]/5 hover:shadow-[#d8b66a]/10 cursor-pointer"
+                                        >
+                                            <span>Proceed to Checkout</span>
+                                            <ArrowRight size={14} />
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -1335,7 +1556,6 @@ export default function CartPage() {
                     </div>
                 )}
             </div>
-            {/* Error Notification */}
             <AnimatePresence>
                 {(actionCartError || cartError) && (
                     <motion.div

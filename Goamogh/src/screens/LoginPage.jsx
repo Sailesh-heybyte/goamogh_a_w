@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -10,20 +10,13 @@ import Link from 'next/link';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { 
-        user,
-        token,
-        requestOtp, 
-        submitOtpVerify, 
-        loginPendingItem,
-        setLoginPendingItem,
-        openLegalModal
-    } = useAuth();
+    const { user, token, requestOtp, submitOtpVerify, loginPendingItem, setLoginPendingItem, openLegalModal } =
+        useAuth();
     const { reloadCart } = useCart();
 
     const [phone, setPhone] = useState('');
     const [otpCode, setOtpCode] = useState('');
-    const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+    const [step, setStep] = useState('phone');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -31,7 +24,6 @@ export default function LoginPage() {
     const [termsAccepted, setTermsAccepted] = useState(true);
     const otpInputRef = useRef(null);
 
-    // Redirect to shop if user is already logged in
     useEffect(() => {
         if (user && token && step === 'phone') {
             if (!user.first_name) {
@@ -42,7 +34,6 @@ export default function LoginPage() {
         }
     }, [user, token, router, step]);
 
-    // Count down both timers
     useEffect(() => {
         let interval = null;
         if (resendTimer > 0 || expiryTimer > 0) {
@@ -54,7 +45,6 @@ export default function LoginPage() {
         return () => clearInterval(interval);
     }, [resendTimer, expiryTimer]);
 
-    // Auto-focus OTP input on step change
     useEffect(() => {
         if (step === 'otp' && otpInputRef.current) {
             const timeout = setTimeout(() => {
@@ -66,7 +56,6 @@ export default function LoginPage() {
         }
     }, [step]);
 
-    // Auto-submit OTP when 4 digits are entered
     useEffect(() => {
         if (otpCode.length === 4 && !submitting && expiryTimer > 0) {
             verifyOtpCode();
@@ -74,16 +63,13 @@ export default function LoginPage() {
     }, [otpCode]);
 
     const parseAndValidatePhone = (rawPhone) => {
-        // Remove all non-digit characters
         const clean = rawPhone.replace(/\D/g, '');
 
-        // Strip the "91" prefix if it has 12 digits (e.g. 919987654321 -> 9987654321)
         let finalPhone = clean;
         if (clean.length === 12 && clean.startsWith('91')) {
             finalPhone = clean.substring(2);
         }
 
-        // Validate that we have exactly 10 digits
         if (!/^\d{10}$/.test(finalPhone)) {
             return { valid: false, error: 'Please enter a valid 10-digit mobile number.' };
         }
@@ -109,10 +95,10 @@ export default function LoginPage() {
         try {
             const response = await requestOtp(validation.phone);
             if (response.success) {
-                setPhone(validation.phone); // Save E.164 formatted number in state
+                setPhone(validation.phone);
                 setStep('otp');
-                setResendTimer(60); // 60 seconds cooldown
-                setExpiryTimer(600); // 10 minutes OTP expiration
+                setResendTimer(60);
+                setExpiryTimer(600);
             } else {
                 setError(response.message || 'Failed to send OTP.');
             }
@@ -153,7 +139,6 @@ export default function LoginPage() {
                 const verifiedUser = response.data.user || response.data;
                 const verifiedToken = response.data.access_token;
 
-                // Sync pending cart item if exists
                 if (loginPendingItem) {
                     try {
                         const dbItem = { id: loginPendingItem.id, quantity: loginPendingItem.quantity };
@@ -165,7 +150,6 @@ export default function LoginPage() {
                     }
                 }
 
-                // Redirect based on profile completeness
                 if (!verifiedUser.first_name) {
                     router.push('/profile/complete');
                 } else {
@@ -232,8 +216,6 @@ export default function LoginPage() {
     return (
         <main className="min-h-screen bg-[#1a2416] flex items-center justify-center pt-32 pb-20 px-4 md:px-8">
             <div className="max-w-md w-full relative">
-                
-                {/* Back to Shop link */}
                 <Link
                     href="/shop"
                     className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#d8b66a] hover:text-[#efe3bf] transition duration-200 cursor-pointer mb-6"
@@ -248,27 +230,35 @@ export default function LoginPage() {
                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                     className="relative rounded-[32px] bg-[#0b150d] overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.5)] border border-[#d8b66a]/15 p-8 md:p-10"
                 >
-                    {/* Glow effect */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-60 pointer-events-none" />
 
                     {step === 'phone' ? (
-                        /* PHONE SUBMISSION VIEW */
                         <div className="relative z-10">
                             <div className="w-12 h-12 rounded-full bg-[#1a2416] border border-[#d8b66a]/15 flex items-center justify-center text-[#d8b66a] mb-6">
                                 <Phone size={20} />
                             </div>
-                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h2
+                                className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Welcome to Goamogh
                             </h2>
-                            <p className="text-[#d6cca9]/70 text-sm mb-6">Enter your mobile number to log in or register.</p>
+                            <p className="text-[#d6cca9]/70 text-sm mb-6">
+                                Enter your mobile number to log in or register.
+                            </p>
 
                             <form onSubmit={handleSendOtp} className="space-y-5">
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                    <label
+                                        className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                        style={{ fontFamily: "'Cinzel', serif" }}
+                                    >
                                         Mobile Number
                                     </label>
                                     <div className="relative flex items-center">
-                                        <span className="absolute left-4 text-[#efe3bf]/50 text-sm font-mono tracking-wider border-r border-[#d8b66a]/15 pr-3">+91</span>
+                                        <span className="absolute left-4 text-[#efe3bf]/50 text-sm font-mono tracking-wider border-r border-[#d8b66a]/15 pr-3">
+                                            +91
+                                        </span>
                                         <input
                                             type="tel"
                                             required
@@ -296,13 +286,33 @@ export default function LoginPage() {
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
                                         className="mt-0.5 rounded border-[#d8b66a]/30 text-[#d8b66a] focus:ring-[#d8b66a] accent-[#d8b66a] cursor-pointer"
                                     />
-                                    <label htmlFor="login_terms_accept" className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed">
-                                        Please accept <button type="button" onClick={() => openLegalModal('terms')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Terms & Conditions</button> and <button type="button" onClick={() => openLegalModal('privacy')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Privacy Policy</button>
+                                    <label
+                                        htmlFor="login_terms_accept"
+                                        className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed"
+                                    >
+                                        Please accept{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('terms')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Terms & Conditions
+                                        </button>{' '}
+                                        and{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('privacy')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Privacy Policy
+                                        </button>
                                     </label>
                                 </div>
 
                                 {error && (
-                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">{error}</p>
+                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                                        {error}
+                                    </p>
                                 )}
 
                                 <button
@@ -323,22 +333,28 @@ export default function LoginPage() {
                             </form>
                         </div>
                     ) : (
-                        /* OTP VERIFICATION VIEW */
                         <div className="relative z-10">
                             <div className="w-12 h-12 rounded-full bg-[#1a2416] border border-[#d8b66a]/15 flex items-center justify-center text-[#d8b66a] mb-6">
                                 <Lock size={20} />
                             </div>
-                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h2
+                                className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Verification Code
                             </h2>
                             <p className="text-[#d6cca9]/70 text-sm mb-6">
-                                We sent a 4-digit code to <span className="font-mono text-white">{formatMaskedPhone()}</span>
+                                We sent a 4-digit code to{' '}
+                                <span className="font-mono text-white">{formatMaskedPhone()}</span>
                             </p>
 
                             <form onSubmit={verifyOtpCode} className="space-y-5">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Enter 4-Digit OTP
                                         </label>
                                         {expiryTimer > 0 && (
@@ -359,14 +375,16 @@ export default function LoginPage() {
                                         disabled={submitting || expiryTimer === 0}
                                     />
                                     <p className="text-[10px] text-[#d6cca9]/45 font-mono text-center mt-1">
-                                        {expiryTimer > 0 
-                                            ? "Enter the 4-digit verification code sent to your phone number." 
-                                            : "OTP has expired. Please click Resend Code."}
+                                        {expiryTimer > 0
+                                            ? 'Enter the 4-digit verification code sent to your phone number.'
+                                            : 'OTP has expired. Please click Resend Code.'}
                                     </p>
                                 </div>
 
                                 {error && (
-                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl text-center">{error}</p>
+                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl text-center">
+                                        {error}
+                                    </p>
                                 )}
 
                                 <button
@@ -383,7 +401,6 @@ export default function LoginPage() {
                                 </button>
                             </form>
 
-                            {/* Resend Cooldown triggers */}
                             <div className="text-center mt-6 text-xs">
                                 {resendTimer > 0 ? (
                                     <p className="text-[#d6cca9]/50 font-mono">{formatResendTimer(resendTimer)}</p>

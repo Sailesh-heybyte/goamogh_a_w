@@ -3,7 +3,7 @@ const API_PREFIX = `${API_BASE}/api/v1`;
 
 function getSafeErrorMessage(status, rawMsg, errorData) {
     const lowerMsg = (rawMsg || '').toLowerCase();
-    const isTechnicalError = 
+    const isTechnicalError =
         lowerMsg.includes('sql') ||
         lowerMsg.includes('traceback') ||
         lowerMsg.includes('exception') ||
@@ -54,20 +54,19 @@ function getSafeErrorMessage(status, rawMsg, errorData) {
     }
 }
 
-// Helper for HTTP responses
 async function handleResponse(response) {
     if (!response.ok) {
         let errorData = null;
         try {
             errorData = await response.json();
-        } catch (e) { }
-        
+        } catch (e) {}
+
         let rawMsg = '';
         if (errorData?.detail) {
             if (typeof errorData.detail === 'string') {
                 rawMsg = errorData.detail;
             } else if (Array.isArray(errorData.detail)) {
-                rawMsg = errorData.detail.map(err => err.msg).join(', ');
+                rawMsg = errorData.detail.map((err) => err.msg).join(', ');
             } else {
                 rawMsg = JSON.stringify(errorData.detail);
             }
@@ -93,19 +92,15 @@ function subscribeTokenRefresh(cb) {
 }
 
 function onRefreshed(token) {
-    refreshSubscribers.forEach(cb => cb(null, token));
+    refreshSubscribers.forEach((cb) => cb(null, token));
     refreshSubscribers = [];
 }
 
 function onRefreshFailed(error) {
-    refreshSubscribers.forEach(cb => cb(error, null));
+    refreshSubscribers.forEach((cb) => cb(error, null));
     refreshSubscribers = [];
 }
 
-/**
- * apiFetch: custom wrapper around global fetch that automatically inserts
- * Bearer tokens, handles token refresh on 401, and queues concurrent requests.
- */
 async function apiFetch(url, options = {}) {
     let token = null;
     if (typeof window !== 'undefined') {
@@ -128,9 +123,8 @@ async function apiFetch(url, options = {}) {
         throw err;
     }
 
-    const isAuthEndpoint = url.includes('/auth/otp/send') || 
-                           url.includes('/auth/otp/verify') || 
-                           url.includes('/auth/refresh-token');
+    const isAuthEndpoint =
+        url.includes('/auth/otp/send') || url.includes('/auth/otp/verify') || url.includes('/auth/refresh-token');
 
     if (response.status === 401 && !options._isRetry && !isAuthEndpoint) {
         if (typeof window === 'undefined') {
@@ -139,9 +133,11 @@ async function apiFetch(url, options = {}) {
 
         const refreshToken = localStorage.getItem('goamogh_refresh_token');
         if (!refreshToken) {
-            window.dispatchEvent(new CustomEvent('goamogh-auth-error', { 
-                detail: { message: 'Session expired. Please log in again.' } 
-            }));
+            window.dispatchEvent(
+                new CustomEvent('goamogh-auth-error', {
+                    detail: { message: 'Session expired. Please log in again.' },
+                })
+            );
             return response;
         }
 
@@ -166,9 +162,9 @@ async function apiFetch(url, options = {}) {
             const refreshResponse = await fetch(`${API_PREFIX}/auth/refresh-token`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ refresh_token: refreshToken })
+                body: JSON.stringify({ refresh_token: refreshToken }),
             });
 
             if (refreshResponse.ok) {
@@ -183,12 +179,14 @@ async function apiFetch(url, options = {}) {
                     onRefreshed(newAccessToken);
                     isRefreshing = false;
 
-                    window.dispatchEvent(new CustomEvent('goamogh-token-refreshed', {
-                        detail: { 
-                            accessToken: newAccessToken,
-                            refreshToken: newRefreshToken
-                        }
-                    }));
+                    window.dispatchEvent(
+                        new CustomEvent('goamogh-token-refreshed', {
+                            detail: {
+                                accessToken: newAccessToken,
+                                refreshToken: newRefreshToken,
+                            },
+                        })
+                    );
 
                     options.headers['Authorization'] = `Bearer ${newAccessToken}`;
                     return await fetch(url, options);
@@ -200,11 +198,13 @@ async function apiFetch(url, options = {}) {
             localStorage.removeItem('goamogh_access_token');
             localStorage.removeItem('goamogh_refresh_token');
             localStorage.removeItem('goamogh_user');
-            
-            window.dispatchEvent(new CustomEvent('goamogh-auth-error', {
-                detail: { message: 'Session expired. Please log in again.' }
-            }));
-            
+
+            window.dispatchEvent(
+                new CustomEvent('goamogh-auth-error', {
+                    detail: { message: 'Session expired. Please log in again.' },
+                })
+            );
+
             return response;
         } catch (refreshErr) {
             isRefreshing = false;

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ export default function CompleteProfilePage() {
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
-        email: ''
+        email: '',
     });
 
     const [saving, setSaving] = useState(false);
@@ -20,26 +20,22 @@ export default function CompleteProfilePage() {
     const [apiError, setApiError] = useState('');
     const [success, setSuccess] = useState(false);
 
-    // Redirect checks
     useEffect(() => {
         if (!loading) {
             if (!user || !token) {
-                // If not logged in at all, open login modal and redirect to home/shop
                 triggerLoginModal();
                 router.push('/shop');
             } else if (user.first_name) {
-                // If profile is already complete, redirect to shop
                 router.push('/shop');
             }
         }
     }, [user, token, loading, router, triggerLoginModal]);
 
-    // Handle form input updates
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
@@ -75,12 +71,11 @@ export default function CompleteProfilePage() {
             const res = await updateProfile({
                 first_name: formData.first_name.trim(),
                 last_name: formData.last_name.trim(),
-                email: formData.email.trim() || null
+                email: formData.email.trim() || null,
             });
 
             if (res && res.success) {
                 setSuccess(true);
-                // Wait briefly for a smooth transition animation, then redirect
                 setTimeout(() => {
                     router.push('/shop');
                 }, 1500);
@@ -115,24 +110,25 @@ export default function CompleteProfilePage() {
                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                     className="relative rounded-[32px] bg-[#0b150d] overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.5)] border border-[#d8b66a]/15 p-8 md:p-10"
                 >
-                    {/* Glowing radial background effect */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-60 pointer-events-none" />
 
-                    {/* Header info */}
                     <div className="text-center relative z-10 mb-8">
                         <div className="w-16 h-16 rounded-full bg-[#d8b66a]/10 text-[#d8b66a] flex items-center justify-center mx-auto mb-5 border border-[#d8b66a]/20">
                             <User size={28} />
                         </div>
-                        <h1 className="font-serif text-3xl text-[#f3e7c6] tracking-tight mb-2" style={{ fontFamily: "'Cinzel', serif" }}>
+                        <h1
+                            className="font-serif text-3xl text-[#f3e7c6] tracking-tight mb-2"
+                            style={{ fontFamily: "'Cinzel', serif" }}
+                        >
                             Complete Your Profile
                         </h1>
                         <p className="text-[#d6cca9]/75 text-sm leading-relaxed">
-                            Welcome to Goamogh! Let us know your name and contact details to finalize your account setup.
+                            Welcome to Goamogh! Let us know your name and contact details to finalize your account
+                            setup.
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-                        {/* Alert message displays */}
                         <AnimatePresence mode="wait">
                             {validationError && (
                                 <motion.div
@@ -171,9 +167,11 @@ export default function CompleteProfilePage() {
                             )}
                         </AnimatePresence>
 
-                        {/* First Name Field */}
                         <div className="space-y-1.5">
-                            <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <label
+                                className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 First Name *
                             </label>
                             <div className="relative">
@@ -191,9 +189,11 @@ export default function CompleteProfilePage() {
                             </div>
                         </div>
 
-                        {/* Last Name Field */}
                         <div className="space-y-1.5">
-                            <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <label
+                                className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Last Name *
                             </label>
                             <div className="relative">
@@ -211,9 +211,11 @@ export default function CompleteProfilePage() {
                             </div>
                         </div>
 
-                        {/* Email Address Field (Optional) */}
                         <div className="space-y-1.5">
-                            <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <label
+                                className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Email Address (Optional)
                             </label>
                             <div className="relative">
@@ -230,13 +232,17 @@ export default function CompleteProfilePage() {
                             </div>
                         </div>
 
-                        {/* Phone field (Read Only) */}
                         <div className="space-y-1.5 opacity-70">
                             <div className="flex justify-between items-center">
-                                <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                <label
+                                    className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     Phone Number
                                 </label>
-                                <span className="text-[8px] text-[#efe3bf]/30 uppercase font-mono tracking-wider font-semibold">Locked</span>
+                                <span className="text-[8px] text-[#efe3bf]/30 uppercase font-mono tracking-wider font-semibold">
+                                    Locked
+                                </span>
                             </div>
                             <div className="relative">
                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#efe3bf]/30 w-4.5 h-4.5" />
@@ -246,11 +252,13 @@ export default function CompleteProfilePage() {
                                     disabled
                                     className="w-full bg-[#11180f]/20 text-[#efe3bf]/40 border border-white/5 rounded-xl pl-12 pr-4 py-3.5 text-sm cursor-not-allowed font-mono"
                                 />
-                                <Lock size={12} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#efe3bf]/30" />
+                                <Lock
+                                    size={12}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#efe3bf]/30"
+                                />
                             </div>
                         </div>
 
-                        {/* Submit Button */}
                         <div className="pt-4">
                             <button
                                 type="submit"

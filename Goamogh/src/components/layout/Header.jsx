@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import classNames from 'classnames';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -8,7 +8,6 @@ import { Menu, X, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
-// verified caching fix with webpack memory cache
 export default function Header() {
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
@@ -21,7 +20,7 @@ export default function Header() {
         { name: 'Recipes', path: '/recipes' },
         { name: 'Heritage', path: '/heritage' },
         { name: 'About Us', path: '/about' },
-        { name: 'Contact', path: '/contact' }
+        { name: 'Contact', path: '/contact' },
     ];
 
     useEffect(() => {
@@ -34,11 +33,9 @@ export default function Header() {
     }, []);
 
     useEffect(() => {
-        // Close menu when route changes
         setIsMenuOpen(false);
     }, [pathname]);
 
-    // Prevent body scroll when mobile menu is open
     useEffect(() => {
         if (isMenuOpen) {
             document.body.style.overflow = 'hidden';
@@ -50,7 +47,6 @@ export default function Header() {
         };
     }, [isMenuOpen]);
 
-    // Framer Motion Variants
     const menuVariants = {
         closed: {
             y: '-100%',
@@ -58,8 +54,8 @@ export default function Header() {
             transition: {
                 y: { stiffness: 1000 },
                 duration: 0.4,
-                ease: [0.16, 1, 0.3, 1]
-            }
+                ease: [0.16, 1, 0.3, 1],
+            },
         },
         open: {
             y: 0,
@@ -68,9 +64,9 @@ export default function Header() {
                 duration: 0.5,
                 ease: [0.16, 1, 0.3, 1],
                 staggerChildren: 0.08,
-                delayChildren: 0.1
-            }
-        }
+                delayChildren: 0.1,
+            },
+        },
     };
 
     const linkVariants = {
@@ -81,42 +77,41 @@ export default function Header() {
             transition: {
                 type: 'spring',
                 stiffness: 260,
-                damping: 20
-            }
-        }
+                damping: 20,
+            },
+        },
     };
 
     const footerVariants = {
         closed: { opacity: 0 },
         open: {
             opacity: 1,
-            transition: { delay: 0.5, duration: 0.4 }
-        }
+            transition: { delay: 0.5, duration: 0.4 },
+        },
     };
 
     return (
         <>
-            {/* ========================================================================= */}
-            {/* DESKTOP HEADER (Floating Symmetrical Pill Header)                           */}
-            {/* ========================================================================= */}
-            <motion.header
-                className="hidden md:flex fixed top-0 left-0 w-full z-50 transition-all duration-500 px-4 lg:px-8 py-3 pointer-events-none"
-            >
+            <motion.header className="hidden md:flex fixed top-0 left-0 w-full z-50 transition-all duration-500 px-4 lg:px-8 py-3 pointer-events-none">
                 <div
                     className={classNames(
-                        "w-full max-w-7xl mx-auto rounded-full pointer-events-auto transition-colors duration-500 flex items-center justify-between px-8 py-3.5 shadow-2xl border",
-                        scrolled 
-                            ? "bg-[#0b150d]/95 border-[#d8b66a]/30 shadow-[0_16px_40px_rgba(0,0,0,0.6)]" 
-                            : "bg-[#0b150d]/90 border-[#d8b66a]/20 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                        'w-full max-w-7xl mx-auto rounded-full pointer-events-auto transition-colors duration-500 flex items-center justify-between px-8 py-3.5 shadow-2xl border',
+                        scrolled
+                            ? 'bg-[#0b150d]/95 border-[#d8b66a]/30 shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
+                            : 'bg-[#0b150d]/90 border-[#d8b66a]/20 shadow-[0_10px_30px_rgba(0,0,0,0.35)]'
                     )}
                 >
-                    {/* Left: Navigation Group 1 (Shop, Recipes, Heritage) */}
-                    <nav className="flex items-center gap-6 lg:gap-8 text-[11px] uppercase tracking-[0.25em] font-bold font-serif w-1/3 whitespace-nowrap" style={{ fontFamily: "'Cinzel', serif" }}>
+                    <nav
+                        className="flex items-center gap-6 lg:gap-8 text-[11px] uppercase tracking-[0.25em] font-bold font-serif w-1/3 whitespace-nowrap"
+                        style={{ fontFamily: "'Cinzel', serif" }}
+                    >
                         <Link
                             href="/shop"
                             className={classNames(
-                                "relative py-1 transition-all duration-300 hover:text-[#d8b66a]",
-                                pathname === "/shop" ? "text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full" : "text-white/80"
+                                'relative py-1 transition-all duration-300 hover:text-[#d8b66a]',
+                                pathname === '/shop'
+                                    ? 'text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full'
+                                    : 'text-white/80'
                             )}
                         >
                             Shop
@@ -124,8 +119,10 @@ export default function Header() {
                         <Link
                             href="/recipes"
                             className={classNames(
-                                "relative py-1 transition-all duration-300 hover:text-[#d8b66a]",
-                                pathname === "/recipes" ? "text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full" : "text-white/80"
+                                'relative py-1 transition-all duration-300 hover:text-[#d8b66a]',
+                                pathname === '/recipes'
+                                    ? 'text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full'
+                                    : 'text-white/80'
                             )}
                         >
                             Recipes
@@ -133,15 +130,16 @@ export default function Header() {
                         <Link
                             href="/heritage"
                             className={classNames(
-                                "relative py-1 transition-all duration-300 hover:text-[#d8b66a]",
-                                pathname === "/heritage" ? "text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full" : "text-white/80"
+                                'relative py-1 transition-all duration-300 hover:text-[#d8b66a]',
+                                pathname === '/heritage'
+                                    ? 'text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full'
+                                    : 'text-white/80'
                             )}
                         >
                             Heritage
                         </Link>
                     </nav>
 
-                    {/* Center: Brand Logo (100% Mathematically Centered) */}
                     <div className="flex justify-center items-center w-1/3">
                         <Link href="/" className="shrink-0 group">
                             <img
@@ -152,14 +150,18 @@ export default function Header() {
                         </Link>
                     </div>
 
-                    {/* Right: Navigation Group 2 (About, Contact) + Auth & Cart */}
                     <div className="flex items-center justify-end gap-6 lg:gap-8 w-1/3 whitespace-nowrap">
-                        <nav className="flex items-center gap-6 lg:gap-8 text-[11px] uppercase tracking-[0.25em] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                        <nav
+                            className="flex items-center gap-6 lg:gap-8 text-[11px] uppercase tracking-[0.25em] font-bold font-serif"
+                            style={{ fontFamily: "'Cinzel', serif" }}
+                        >
                             <Link
                                 href="/about"
                                 className={classNames(
-                                    "relative py-1 transition-all duration-300 hover:text-[#d8b66a]",
-                                    pathname === "/about" ? "text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full" : "text-white/80"
+                                    'relative py-1 transition-all duration-300 hover:text-[#d8b66a]',
+                                    pathname === '/about'
+                                        ? 'text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full'
+                                        : 'text-white/80'
                                 )}
                             >
                                 About Us
@@ -167,8 +169,10 @@ export default function Header() {
                             <Link
                                 href="/contact"
                                 className={classNames(
-                                    "relative py-1 transition-all duration-300 hover:text-[#d8b66a]",
-                                    pathname === "/contact" ? "text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full" : "text-white/80"
+                                    'relative py-1 transition-all duration-300 hover:text-[#d8b66a]',
+                                    pathname === '/contact'
+                                        ? 'text-[#d8b66a] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#d8b66a] after:rounded-full'
+                                        : 'text-white/80'
                                 )}
                             >
                                 Contact
@@ -182,8 +186,10 @@ export default function Header() {
                                 <Link
                                     href="/profile"
                                     className={classNames(
-                                        "text-[11px] uppercase tracking-[0.25em] font-bold font-serif transition-colors whitespace-nowrap",
-                                        pathname === "/profile" ? "text-[#d8b66a]" : "text-[#efe3bf] hover:text-[#d8b66a]"
+                                        'text-[11px] uppercase tracking-[0.25em] font-bold font-serif transition-colors whitespace-nowrap',
+                                        pathname === '/profile'
+                                            ? 'text-[#d8b66a]'
+                                            : 'text-[#efe3bf] hover:text-[#d8b66a]'
                                     )}
                                     style={{ fontFamily: "'Cinzel', serif" }}
                                 >
@@ -223,28 +229,16 @@ export default function Header() {
                 </div>
             </motion.header>
 
-
-            {/* ========================================================================= */}
-            {/* MOBILE HEADER (Sleek Top Ribbon)                                          */}
-            {/* ========================================================================= */}
             <div
                 className={classNames(
-                    "md:hidden fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4 flex items-center justify-between",
-                    scrolled 
-                        ? "bg-[#1a2416]/[0.97] border-b border-[#c5a47e]/15 shadow-lg" 
-                        : "bg-transparent"
+                    'md:hidden fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4 flex items-center justify-between',
+                    scrolled ? 'bg-[#1a2416]/[0.97] border-b border-[#c5a47e]/15 shadow-lg' : 'bg-transparent'
                 )}
             >
-                {/* Logo */}
                 <Link href="/" className="flex items-center justify-center shrink-0">
-                    <img
-                        src="/brand/goamogh-golden.png"
-                        alt="Goamogh"
-                        className="h-5 w-auto object-contain"
-                    />
+                    <img src="/brand/goamogh-golden.png" alt="Goamogh" className="h-5 w-auto object-contain" />
                 </Link>
 
-                {/* Action Buttons */}
                 <div className="flex items-center gap-4">
                     <Link
                         href="/cart"
@@ -268,10 +262,6 @@ export default function Header() {
                 </div>
             </div>
 
-
-            {/* ========================================================================= */}
-            {/* MOBILE MENU CANVAS OVERLAY                                                */}
-            {/* ========================================================================= */}
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
@@ -282,17 +272,18 @@ export default function Header() {
                         variants={menuVariants}
                         className="md:hidden fixed inset-0 z-[100] bg-[#11180f] text-[#efe3bf] flex flex-col justify-between p-6 overflow-hidden"
                     >
-                        {/* Overlay Header Bar */}
                         <div className="flex items-center justify-between py-2 border-b border-[#c5a47e]/10">
-                            {/* Logo */}
-                            <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-center shrink-0">
+                            <Link
+                                href="/"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="flex items-center justify-center shrink-0"
+                            >
                                 <img
                                     src="/brand/goamogh-golden.png"
                                     alt="Goamogh"
                                     className="h-5 w-auto object-contain"
                                 />
                             </Link>
-                            {/* Close Button */}
                             <div className="flex items-center gap-4">
                                 <Link
                                     href="/cart"
@@ -317,19 +308,17 @@ export default function Header() {
                             </div>
                         </div>
 
-                        {/* Navigation Links Area */}
                         <div className="flex flex-col gap-6 my-auto pt-10 pl-4">
                             {navItems.map((item) => (
-                                <motion.div
-                                    key={item.name}
-                                    variants={linkVariants}
-                                >
+                                <motion.div key={item.name} variants={linkVariants}>
                                     <Link
                                         href={item.path}
                                         onClick={() => setIsMenuOpen(false)}
                                         className={classNames(
-                                            "text-4xl font-bold tracking-[0.15em] block transition-all duration-300 font-serif",
-                                            pathname === item.path ? "text-[#c5a47e] translate-x-2" : "text-[#efe3bf]/80 hover:text-white hover:translate-x-2"
+                                            'text-4xl font-bold tracking-[0.15em] block transition-all duration-300 font-serif',
+                                            pathname === item.path
+                                                ? 'text-[#c5a47e] translate-x-2'
+                                                : 'text-[#efe3bf]/80 hover:text-white hover:translate-x-2'
                                         )}
                                         style={{ fontFamily: "'Cinzel', serif" }}
                                     >
@@ -344,8 +333,10 @@ export default function Header() {
                                             href="/profile"
                                             onClick={() => setIsMenuOpen(false)}
                                             className={classNames(
-                                                "text-4xl font-bold tracking-[0.15em] block transition-all font-serif",
-                                                pathname === "/profile" ? "text-[#d8b66a]" : "text-[#efe3bf]/80 hover:text-white"
+                                                'text-4xl font-bold tracking-[0.15em] block transition-all font-serif',
+                                                pathname === '/profile'
+                                                    ? 'text-[#d8b66a]'
+                                                    : 'text-[#efe3bf]/80 hover:text-white'
                                             )}
                                             style={{ fontFamily: "'Cinzel', serif" }}
                                         >
@@ -377,7 +368,6 @@ export default function Header() {
                             </motion.div>
                         </div>
 
-                        {/* Fine details footer inside overlay */}
                         <motion.div
                             variants={footerVariants}
                             className="border-t border-[#c5a47e]/10 pt-6 pb-4 flex flex-col gap-4 pl-4 text-xs font-serif tracking-[0.2em] text-[#efe3bf]/60 uppercase"
@@ -390,7 +380,8 @@ export default function Header() {
                             <div className="flex items-start gap-2 pr-4">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[#c5a47e] mt-1.5 shrink-0" />
                                 <span className="text-[11px] normal-case tracking-normal text-[#efe3bf]/75 font-sans leading-relaxed">
-                                    Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramnagar, Nidadavole, East Godavari, Andhra Pradesh – 534301
+                                    Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramnagar, Nidadavole,
+                                    East Godavari, Andhra Pradesh – 534301
                                 </span>
                             </div>
                             <div className="flex justify-between items-center mt-2 text-[10px] lowercase tracking-[0.1em] text-[#efe3bf]/40 border-t border-[#c5a47e]/5 pt-3 pr-4">
@@ -406,4 +397,3 @@ export default function Header() {
         </>
     );
 }
-

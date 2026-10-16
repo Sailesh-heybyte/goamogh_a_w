@@ -24,39 +24,35 @@ export default function HeroCanvas({ scrollTrackRef }) {
 
     const frameConfig = isPortrait ? MOBILE_FRAME_CONFIG : DESKTOP_FRAME_CONFIG;
 
-    // Use the hook to get the image drawing function
     const { drawFrame, isReady } = useCanvasVideo(canvasRef, frameConfig);
 
     useEffect(() => {
         if (!isReady) return;
 
-        // Initial draw
         drawFrame(0);
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             return;
         }
 
-        // GSAP ScrollTrigger for frame animation
         const tl = gsap.timeline({
             scrollTrigger: {
-                id: "hero-scroll",
+                id: 'hero-scroll',
                 trigger: scrollTrackRef.current,
-                start: "top top",
-                end: "bottom bottom",
+                start: 'top top',
+                end: 'bottom bottom',
                 scrub: true,
                 onUpdate: (self) => {
                     const frameIndex = Math.floor(self.progress * (frameConfig.frameCount - 1));
                     drawFrame(frameIndex);
-                }
-            }
+                },
+            },
         });
 
         return () => {
-            ScrollTrigger.getById("hero-scroll")?.kill();
+            ScrollTrigger.getById('hero-scroll')?.kill();
             tl.kill();
         };
-
     }, [isReady, drawFrame, scrollTrackRef, frameConfig]);
 
     return (

@@ -1,10 +1,11 @@
-import HomePage from '../src/screens/HomePage'
+import HomePage from '../src/screens/HomePage';
 
 export const metadata = {
-  title: 'Goamogh | Premium Spices and Blends',
-  description: 'Discover the architecture of flavor with Goamogh. Small-batch, hand-pounded artisan spices and blends built for the modern kitchen.',
-}
+    title: 'Goamogh | Premium Spices and Blends',
+    description:
+        'Discover the architecture of flavor with Goamogh. Small-batch, hand-pounded artisan spices and blends built for the modern kitchen.',
+};
 
 export default function Page() {
-  return <HomePage />
+    return <HomePage />;
 }

@@ -1,19 +1,19 @@
-"use client";
+'use client';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    MapPin, 
-    Phone, 
-    Mail, 
-    Clock, 
-    Send, 
-    MessageSquare, 
-    CheckCircle2, 
-    ChevronDown, 
-    Sparkles, 
+import {
+    MapPin,
+    Phone,
+    Mail,
+    Clock,
+    Send,
+    MessageSquare,
+    CheckCircle2,
+    ChevronDown,
+    Sparkles,
     ArrowRight,
     Building2,
-    ShieldCheck
+    ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,7 @@ export default function ContactPage() {
         email: '',
         phone: '',
         subject: 'General Inquiry',
-        message: ''
+        message: '',
     });
 
     const [termsAccepted, setTermsAccepted] = useState(true);
@@ -39,7 +39,7 @@ export default function ContactPage() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
@@ -61,7 +61,7 @@ export default function ContactPage() {
                 phone: formData.phone,
                 inquiry_topic: formData.subject,
                 message: formData.message,
-                terms_accepted: termsAccepted
+                terms_accepted: termsAccepted,
             });
             if (res?.message) {
                 setSuccessMsg(res.message);
@@ -80,39 +80,37 @@ export default function ContactPage() {
 
     const faqs = [
         {
-            question: "Where are Goamogh spices sourced and produced?",
-            answer: "All Goamogh spices are ethically sourced from verified heritage farms across India and hand-pounded in small batches at our unit in Nidadavole, East Godavari District, Andhra Pradesh."
+            question: 'Where are Goamogh spices sourced and produced?',
+            answer: 'All Goamogh spices are ethically sourced from verified heritage farms across India and hand-pounded in small batches at our unit in Nidadavole, East Godavari District, Andhra Pradesh.',
         },
         {
-            question: "How can I place bulk or wholesale orders?",
-            answer: "For bulk orders, hotel & restaurant inquiries, or custom spice blends, you can select 'Bulk & Wholesale Order' in the contact form above or reach out directly to our WhatsApp support team."
+            question: 'How can I place bulk or wholesale orders?',
+            answer: "For bulk orders, hotel & restaurant inquiries, or custom spice blends, you can select 'Bulk & Wholesale Order' in the contact form above or reach out directly to our WhatsApp support team.",
         },
         {
-            question: "What are your delivery timelines across India?",
-            answer: "Standard orders are dispatched within 24-48 hours. Express delivery takes 2-4 business days, while standard shipping takes 4-7 business days across India."
+            question: 'What are your delivery timelines across India?',
+            answer: 'Standard orders are dispatched within 24-48 hours. Express delivery takes 2-4 business days, while standard shipping takes 4-7 business days across India.',
         },
         {
-            question: "Are your spice blends free from preservatives and artificial colors?",
-            answer: "Yes, 100%. We do not use any anti-caking agents, artificial food colors, synthetic flavors, or chemical preservatives. Our spices are 100% pure and unadulterated."
-        }
+            question: 'Are your spice blends free from preservatives and artificial colors?',
+            answer: 'Yes, 100%. We do not use any anti-caking agents, artificial food colors, synthetic flavors, or chemical preservatives. Our spices are 100% pure and unadulterated.',
+        },
     ];
 
     const addressDetails = {
-        doorNo: "3-11-8",
-        street: "Kandukuri Vari Street",
-        locality: "Ramnagar",
-        city: "Nidadavole",
-        district: "East Godavari",
-        state: "Andhra Pradesh",
-        pinCode: "534301",
-        country: "India"
+        doorNo: '3-11-8',
+        street: 'Kandukuri Vari Street',
+        locality: 'Ramnagar',
+        city: 'Nidadavole',
+        district: 'East Godavari',
+        state: 'Andhra Pradesh',
+        pinCode: '534301',
+        country: 'India',
     };
 
     return (
         <main className="min-h-screen bg-[#1a2416] text-[#efe3bf] pt-32 pb-24 px-4 md:px-8 selection:bg-[#d8b66a] selection:text-[#0b150d]">
             <div className="max-w-7xl mx-auto space-y-16">
-
-                {/* HERO SECTION */}
                 <section className="text-center space-y-4 max-w-3xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -123,7 +121,7 @@ export default function ContactPage() {
                         <Sparkles size={14} />
                         <span>Get In Touch</span>
                     </motion.div>
-                    
+
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -140,14 +138,12 @@ export default function ContactPage() {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="text-[#d6cca9]/75 text-base md:text-lg leading-relaxed font-sans"
                     >
-                        Have questions about our artisanal hand-pounded spices, bulk inquiries, or order status? Reach out to our team at Goamogh — we are always here to assist.
+                        Have questions about our artisanal hand-pounded spices, bulk inquiries, or order status? Reach
+                        out to our team at Goamogh — we are always here to assist.
                     </motion.p>
                 </section>
 
-                {/* CONTACT INFO GRID & ADDRESS CARD */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                    {/* REGISTERED ADDRESS CARD */}
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -162,10 +158,15 @@ export default function ContactPage() {
                                     <Building2 size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="font-serif text-lg text-white font-bold" style={{ fontFamily: "'Cinzel', serif" }}>
+                                    <h3
+                                        className="font-serif text-lg text-white font-bold"
+                                        style={{ fontFamily: "'Cinzel', serif" }}
+                                    >
                                         Registered Office
                                     </h3>
-                                    <p className="text-[10px] uppercase font-mono tracking-wider text-[#d8b66a]/80">Official Business Location</p>
+                                    <p className="text-[10px] uppercase font-mono tracking-wider text-[#d8b66a]/80">
+                                        Official Business Location
+                                    </p>
                                 </div>
                             </div>
 
@@ -175,15 +176,16 @@ export default function ContactPage() {
                                     Goamogh Spices
                                 </p>
                                 <p className="pl-6 font-sans text-sm text-[#efe3bf]/90 leading-relaxed">
-                                    Door No. {addressDetails.doorNo}, {addressDetails.street}, {addressDetails.locality}, {addressDetails.city}, {addressDetails.district} District, {addressDetails.state} – {addressDetails.pinCode}, {addressDetails.country}
+                                    Door No. {addressDetails.doorNo}, {addressDetails.street}, {addressDetails.locality}
+                                    , {addressDetails.city}, {addressDetails.district} District, {addressDetails.state}{' '}
+                                    – {addressDetails.pinCode}, {addressDetails.country}
                                 </p>
                             </div>
                         </div>
 
-                        {/* GOOGLE MAPS LINK BUTTON */}
                         <div className="pt-6 border-t border-[#d8b66a]/15 space-y-3">
                             <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Ramnagar, Nidadavole, East Godavari, Andhra Pradesh 534301")}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Ramnagar, Nidadavole, East Godavari, Andhra Pradesh 534301')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full bg-[#1a2416] hover:bg-[#d8b66a]/15 border border-[#d8b66a]/30 text-[#d8b66a] hover:text-white py-3 px-4 rounded-xl font-mono text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
@@ -194,10 +196,7 @@ export default function ContactPage() {
                         </div>
                     </motion.div>
 
-                    {/* QUICK CONTACT CHANNELS */}
                     <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-                        {/* CUSTOMER SUPPORT CARD */}
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -207,19 +206,29 @@ export default function ContactPage() {
                             <div className="w-10 h-10 rounded-full bg-[#1a2416] border border-[#d8b66a]/20 flex items-center justify-center text-[#d8b66a]">
                                 <Phone size={18} />
                             </div>
-                            <h3 className="font-serif text-lg text-white font-semibold" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h3
+                                className="font-serif text-lg text-white font-semibold"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Phone & Helpline
                             </h3>
                             <p className="text-xs text-[#d6cca9]/70 leading-relaxed">
                                 Reach out directly to our customer assistance team for immediate order queries.
                             </p>
                             <div className="font-mono text-sm text-[#d8b66a] font-bold space-y-1">
-                                <div><a href="tel:+919903943909" className="hover:underline">+91 99039 43909</a></div>
-                                <div><a href="tel:+918100081766" className="hover:underline">+91 81000 81766</a></div>
+                                <div>
+                                    <a href="tel:+919903943909" className="hover:underline">
+                                        +91 99039 43909
+                                    </a>
+                                </div>
+                                <div>
+                                    <a href="tel:+918100081766" className="hover:underline">
+                                        +91 81000 81766
+                                    </a>
+                                </div>
                             </div>
                         </motion.div>
 
-                        {/* EMAIL INQUIRIES CARD */}
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -229,20 +238,32 @@ export default function ContactPage() {
                             <div className="w-10 h-10 rounded-full bg-[#1a2416] border border-[#d8b66a]/20 flex items-center justify-center text-[#d8b66a]">
                                 <Mail size={18} />
                             </div>
-                            <h3 className="font-serif text-lg text-white font-semibold" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h3
+                                className="font-serif text-lg text-white font-semibold"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Email Support
                             </h3>
                             <p className="text-xs text-[#d6cca9]/70 leading-relaxed">
                                 Send us an email for detailed inquiries, feedback, or custom requests.
                             </p>
                             <div className="font-mono text-sm text-[#d8b66a] font-bold space-y-1">
-                                <p className="text-[10px] uppercase tracking-[0.2em] text-[#d6cca9]/60 font-light font-sans">Grievance Officer</p>
-                                <div><a href="mailto:aaradhya@goamogh.com" className="hover:underline">aaradhya@goamogh.com</a></div>
-                                <div><a href="mailto:hello@goamogh.com" className="hover:underline">hello@goamogh.com</a></div>
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-[#d6cca9]/60 font-light font-sans">
+                                    Grievance Officer
+                                </p>
+                                <div>
+                                    <a href="mailto:aaradhya@goamogh.com" className="hover:underline">
+                                        aaradhya@goamogh.com
+                                    </a>
+                                </div>
+                                <div>
+                                    <a href="mailto:hello@goamogh.com" className="hover:underline">
+                                        hello@goamogh.com
+                                    </a>
+                                </div>
                             </div>
                         </motion.div>
 
-                        {/* WHATSAPP DIRECT CHAT */}
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -252,7 +273,10 @@ export default function ContactPage() {
                             <div className="w-10 h-10 rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                                 <MessageSquare size={18} />
                             </div>
-                            <h3 className="font-serif text-lg text-white font-semibold" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h3
+                                className="font-serif text-lg text-white font-semibold"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Instant WhatsApp
                             </h3>
                             <p className="text-xs text-[#d6cca9]/70 leading-relaxed">
@@ -269,7 +293,6 @@ export default function ContactPage() {
                             </a>
                         </motion.div>
 
-                        {/* WORKING HOURS CARD */}
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -279,22 +302,25 @@ export default function ContactPage() {
                             <div className="w-10 h-10 rounded-full bg-[#1a2416] border border-[#d8b66a]/20 flex items-center justify-center text-[#d8b66a]">
                                 <Clock size={18} />
                             </div>
-                            <h3 className="font-serif text-lg text-white font-semibold" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h3
+                                className="font-serif text-lg text-white font-semibold"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Business Hours
                             </h3>
                             <p className="text-xs text-[#d6cca9]/70 leading-relaxed">
                                 Our support team is available during standard operational hours.
                             </p>
                             <div className="font-mono text-xs text-[#efe3bf] space-y-1">
-                                <p><strong>Mon - Sat:</strong> 9:00 AM – 6:00 PM IST</p>
+                                <p>
+                                    <strong>Mon - Sat:</strong> 9:00 AM – 6:00 PM IST
+                                </p>
                                 <p className="font-bold text-[#efe3bf]/90">Sunday: Closed</p>
                             </div>
                         </motion.div>
-
                     </div>
                 </div>
 
-                {/* CONTACT FORM SECTION */}
                 <motion.section
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -303,7 +329,10 @@ export default function ContactPage() {
                 >
                     <div className="max-w-3xl mx-auto space-y-8">
                         <div className="text-center space-y-2">
-                            <h2 className="font-serif text-2xl md:text-4xl text-white" style={{ fontFamily: "'Cinzel', serif" }}>
+                            <h2
+                                className="font-serif text-2xl md:text-4xl text-white"
+                                style={{ fontFamily: "'Cinzel', serif" }}
+                            >
                                 Send Us a Message
                             </h2>
                             <p className="text-xs md:text-sm text-[#d6cca9]/70 font-sans">
@@ -320,7 +349,10 @@ export default function ContactPage() {
                                 <div className="w-16 h-16 rounded-full bg-[#d8b66a]/15 text-[#d8b66a] flex items-center justify-center mx-auto border border-[#d8b66a]/30">
                                     <CheckCircle2 size={32} />
                                 </div>
-                                <h3 className="font-serif text-2xl text-white" style={{ fontFamily: "'Cinzel', serif" }}>
+                                <h3
+                                    className="font-serif text-2xl text-white"
+                                    style={{ fontFamily: "'Cinzel', serif" }}
+                                >
                                     Message Received!
                                 </h3>
                                 <p className="text-sm text-[#d6cca9]/80 max-w-md mx-auto leading-relaxed">
@@ -329,7 +361,13 @@ export default function ContactPage() {
                                 <button
                                     onClick={() => {
                                         setSubmitted(false);
-                                        setFormData({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '' });
+                                        setFormData({
+                                            name: '',
+                                            email: '',
+                                            phone: '',
+                                            subject: 'General Inquiry',
+                                            message: '',
+                                        });
                                     }}
                                     className="mt-4 px-6 py-2.5 bg-[#d8b66a] hover:bg-[#c5a47e] text-[#0b150d] font-bold text-xs uppercase tracking-widest rounded-xl transition cursor-pointer font-serif"
                                     style={{ fontFamily: "'Cinzel', serif" }}
@@ -341,7 +379,10 @@ export default function ContactPage() {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Your Full Name *
                                         </label>
                                         <input
@@ -356,7 +397,10 @@ export default function ContactPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Email Address *
                                         </label>
                                         <input
@@ -373,7 +417,10 @@ export default function ContactPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Phone Number (Optional)
                                         </label>
                                         <input
@@ -387,7 +434,10 @@ export default function ContactPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                        <label
+                                            className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                            style={{ fontFamily: "'Cinzel', serif" }}
+                                        >
                                             Inquiry Topic *
                                         </label>
                                         <select
@@ -406,7 +456,10 @@ export default function ContactPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif" style={{ fontFamily: "'Cinzel', serif" }}>
+                                    <label
+                                        className="block text-[10px] uppercase tracking-[0.2em] text-[#d8b66a] font-bold font-serif"
+                                        style={{ fontFamily: "'Cinzel', serif" }}
+                                    >
                                         Your Message *
                                     </label>
                                     <textarea
@@ -421,7 +474,6 @@ export default function ContactPage() {
                                     />
                                 </div>
 
-                                {/* DEFAULT ACCEPTED TERMS CHECKBOX */}
                                 <div className="flex items-start gap-2.5 pt-1 pb-1 bg-[#1a2416]/50 p-4 rounded-xl border border-[#d8b66a]/15">
                                     <input
                                         type="checkbox"
@@ -430,8 +482,26 @@ export default function ContactPage() {
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
                                         className="mt-0.5 rounded border-[#d8b66a]/30 text-[#d8b66a] focus:ring-[#d8b66a] accent-[#d8b66a] cursor-pointer"
                                     />
-                                    <label htmlFor="contact_terms_accept" className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed">
-                                        Please accept <button type="button" onClick={() => openLegalModal('terms')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Terms & Conditions</button> and <button type="button" onClick={() => openLegalModal('privacy')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Privacy Policy</button>
+                                    <label
+                                        htmlFor="contact_terms_accept"
+                                        className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed"
+                                    >
+                                        Please accept{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('terms')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Terms & Conditions
+                                        </button>{' '}
+                                        and{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('privacy')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Privacy Policy
+                                        </button>
                                     </label>
                                 </div>
 
@@ -462,15 +532,12 @@ export default function ContactPage() {
                     </div>
                 </motion.section>
 
-                {/* FOLLOW US SECTION */}
                 <section className="max-w-4xl mx-auto text-center space-y-6">
                     <div className="space-y-2">
                         <p className="font-sans font-bold text-[10px] tracking-[0.3em] text-[#d8b66a] uppercase">
                             Stay Connected
                         </p>
-                        <h2 className="font-sans font-bold text-2xl md:text-3xl text-white">
-                            Follow Our Journey
-                        </h2>
+                        <h2 className="font-sans font-bold text-2xl md:text-3xl text-white">Follow Our Journey</h2>
                         <p className="text-xs md:text-sm text-[#d6cca9]/70">
                             Recipes, harvest stories and new arrivals from the Goamogh kitchen.
                         </p>
@@ -496,7 +563,6 @@ export default function ContactPage() {
                     </div>
                 </section>
 
-                {/* FAQ ACCORDION SECTION */}
                 <section className="space-y-8 max-w-4xl mx-auto pt-8">
                     <div className="text-center space-y-2">
                         <h2 className="font-sans font-bold text-2xl md:text-3xl text-white">
@@ -528,7 +594,7 @@ export default function ContactPage() {
                                         <motion.div
                                             key="content"
                                             initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
                                             transition={{ duration: 0.35, ease: [0.04, 0.62, 0.23, 0.98] }}
                                             className="overflow-hidden border-t border-[#d8b66a]/10"
@@ -543,7 +609,6 @@ export default function ContactPage() {
                         ))}
                     </div>
                 </section>
-
             </div>
         </main>
     );

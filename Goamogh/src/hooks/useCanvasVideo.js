@@ -1,11 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 
 export function useCanvasVideo(canvasRef, options = {}) {
-    const {
-        folder = '/frames-desktop/',
-        frameCount = 360,
-        fit = 'cover'
-    } = options;
+    const { folder = '/frames-desktop/', frameCount = 360, fit = 'cover' } = options;
 
     const [isReady, setIsReady] = useState(false);
 
@@ -29,73 +25,74 @@ export function useCanvasVideo(canvasRef, options = {}) {
         return ctx;
     }, [canvasRef]);
 
-    const drawFrame = useCallback((index, force = false) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    const drawFrame = useCallback(
+        (index, force = false) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-        const ctx = ctxRef.current || getContext();
-        if (!ctx) return;
+            const ctx = ctxRef.current || getContext();
+            if (!ctx) return;
 
-        const { width, height } = dimensionsRef.current;
-        if (width <= 0 || height <= 0) return;
+            const { width, height } = dimensionsRef.current;
+            if (width <= 0 || height <= 0) return;
 
-        const targetIndex = Math.min(frameCount - 1, Math.max(0, Math.round(index)));
-        lastRequestedIndexRef.current = targetIndex;
+            const targetIndex = Math.min(frameCount - 1, Math.max(0, Math.round(index)));
+            lastRequestedIndexRef.current = targetIndex;
 
-        // Search outward for the nearest loaded frame
-        let chosenIndex = -1;
-        const images = imagesRef.current;
-        if (images[targetIndex]?.complete && images[targetIndex]?.naturalWidth > 0) {
-            chosenIndex = targetIndex;
-        } else {
-            for (let offset = 1; offset < frameCount; offset++) {
-                const left = targetIndex - offset;
-                if (left >= 0 && images[left]?.complete && images[left]?.naturalWidth > 0) {
-                    chosenIndex = left;
-                    break;
-                }
-                const right = targetIndex + offset;
-                if (right < frameCount && images[right]?.complete && images[right]?.naturalWidth > 0) {
-                    chosenIndex = right;
-                    break;
+            let chosenIndex = -1;
+            const images = imagesRef.current;
+            if (images[targetIndex]?.complete && images[targetIndex]?.naturalWidth > 0) {
+                chosenIndex = targetIndex;
+            } else {
+                for (let offset = 1; offset < frameCount; offset++) {
+                    const left = targetIndex - offset;
+                    if (left >= 0 && images[left]?.complete && images[left]?.naturalWidth > 0) {
+                        chosenIndex = left;
+                        break;
+                    }
+                    const right = targetIndex + offset;
+                    if (right < frameCount && images[right]?.complete && images[right]?.naturalWidth > 0) {
+                        chosenIndex = right;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (chosenIndex === -1) return;
+            if (chosenIndex === -1) return;
 
-        // Skip drawing if the frame actually drawn is the same as last time
-        if (!force && chosenIndex === lastDrawnIndexRef.current) return;
+            if (!force && chosenIndex === lastDrawnIndexRef.current) return;
 
-        const img = images[chosenIndex];
-        const vW = img.naturalWidth;
-        const vH = img.naturalHeight;
-        if (!vW || !vH) return;
+            const img = images[chosenIndex];
+            const vW = img.naturalWidth;
+            const vH = img.naturalHeight;
+            if (!vW || !vH) return;
 
-        const rW = width / vW;
-        const rH = height / vH;
-        const ratio = fit === 'contain' ? Math.min(rW, rH) : Math.max(rW, rH);
+            const rW = width / vW;
+            const rH = height / vH;
+            const ratio = fit === 'contain' ? Math.min(rW, rH) : Math.max(rW, rH);
 
-        const newW = vW * ratio;
-        const newH = vH * ratio;
-        const x = (width - newW) / 2;
-        const y = (height - newH) / 2;
+            const newW = vW * ratio;
+            const newH = vH * ratio;
+            const x = (width - newW) / 2;
+            const y = (height - newH) / 2;
 
-        if (fit === 'contain') {
-            if (!heroPaperColorRef.current && typeof window !== 'undefined') {
-                const style = getComputedStyle(document.documentElement);
-                heroPaperColorRef.current = style.getPropertyValue('--hero-paper').trim() || '#1a2416';
+            if (fit === 'contain') {
+                if (!heroPaperColorRef.current && typeof window !== 'undefined') {
+                    const style = getComputedStyle(document.documentElement);
+                    heroPaperColorRef.current = style.getPropertyValue('--hero-paper').trim() || '#1a2416';
+                }
+                ctx.fillStyle = heroPaperColorRef.current || '#1a2416';
+                ctx.fillRect(0, 0, width, height);
             }
-            ctx.fillStyle = heroPaperColorRef.current || '#1a2416';
-            ctx.fillRect(0, 0, width, height);
-        }
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, x, y, newW, newH);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, x, y, newW, newH);
 
-        lastDrawnIndexRef.current = chosenIndex;
-    }, [canvasRef, frameCount, fit, getContext]);
+            lastDrawnIndexRef.current = chosenIndex;
+        },
+        [canvasRef, frameCount, fit, getContext]
+    );
 
     const resize = useCallback(() => {
         const canvas = canvasRef.current;
@@ -117,11 +114,9 @@ export function useCanvasVideo(canvasRef, options = {}) {
 
         dimensionsRef.current = { width: cssWidth, height: cssHeight, dpr };
 
-        // Redraw last frame on resize
         drawFrame(lastRequestedIndexRef.current, true);
     }, [canvasRef, getContext, drawFrame]);
 
-    // Resize on mount and window resize
     useEffect(() => {
         resize();
         window.addEventListener('resize', resize);
@@ -130,7 +125,6 @@ export function useCanvasVideo(canvasRef, options = {}) {
         };
     }, [resize]);
 
-    // Redraw initial frame once ready
     useEffect(() => {
         if (isReady) {
             resize();
@@ -138,7 +132,6 @@ export function useCanvasVideo(canvasRef, options = {}) {
         }
     }, [isReady, resize, drawFrame]);
 
-    // Stream load frames
     useEffect(() => {
         isCancelledRef.current = false;
         imagesRef.current = new Array(frameCount);
@@ -151,11 +144,7 @@ export function useCanvasVideo(canvasRef, options = {}) {
         const getFrameUrl = (i) => `${cleanFolder}f-${String(i).padStart(3, '0')}.webp`;
 
         const pumpQueue = () => {
-            while (
-                activeLoadsRef.current < 6 &&
-                queueRef.current.length > 0 &&
-                !isCancelledRef.current
-            ) {
+            while (activeLoadsRef.current < 6 && queueRef.current.length > 0 && !isCancelledRef.current) {
                 const frameNum = queueRef.current.shift();
                 const img = new Image();
                 activeLoadsRef.current++;
@@ -182,7 +171,6 @@ export function useCanvasVideo(canvasRef, options = {}) {
             }
         };
 
-        // 1. Load frame 1 first
         const firstImg = new Image();
         inFlightImagesRef.current.add(firstImg);
 
@@ -193,7 +181,6 @@ export function useCanvasVideo(canvasRef, options = {}) {
             imagesRef.current[0] = firstImg;
             setIsReady(true);
 
-            // 2. Queue remaining frames: every 16th, 8th, 4th, 2nd, then all
             const seen = new Set([1]);
             const queue = [];
             const steps = [16, 8, 4, 2, 1];

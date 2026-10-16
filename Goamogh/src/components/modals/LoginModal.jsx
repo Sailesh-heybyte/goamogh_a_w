@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -9,20 +9,20 @@ import { X, ArrowRight, Phone, Lock } from 'lucide-react';
 
 export default function LoginModal() {
     const router = useRouter();
-    const { 
-        loginModalOpen, 
-        closeLoginModal, 
-        requestOtp, 
-        submitOtpVerify, 
+    const {
+        loginModalOpen,
+        closeLoginModal,
+        requestOtp,
+        submitOtpVerify,
         loginPendingItem,
         setLoginPendingItem,
-        openLegalModal
+        openLegalModal,
     } = useAuth();
     const { reloadCart } = useCart();
 
     const [phone, setPhone] = useState('');
     const [otpCode, setOtpCode] = useState('');
-    const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+    const [step, setStep] = useState('phone');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -30,7 +30,6 @@ export default function LoginModal() {
     const [termsAccepted, setTermsAccepted] = useState(true);
     const otpInputRef = useRef(null);
 
-    // Count down both timers
     useEffect(() => {
         let interval = null;
         if (resendTimer > 0 || expiryTimer > 0) {
@@ -42,7 +41,6 @@ export default function LoginModal() {
         return () => clearInterval(interval);
     }, [resendTimer, expiryTimer]);
 
-    // Reset state when modal closes
     useEffect(() => {
         if (!loginModalOpen) {
             setPhone('');
@@ -55,10 +53,8 @@ export default function LoginModal() {
         }
     }, [loginModalOpen]);
 
-    // Auto-focus OTP input on step change
     useEffect(() => {
         if (step === 'otp' && otpInputRef.current) {
-            // Tiny delay to ensure input is rendered and visible in DOM
             const timeout = setTimeout(() => {
                 if (otpInputRef.current) {
                     otpInputRef.current.focus();
@@ -68,7 +64,6 @@ export default function LoginModal() {
         }
     }, [step]);
 
-    // Auto-submit OTP when 4 digits are entered
     useEffect(() => {
         if (otpCode.length === 4 && !submitting && expiryTimer > 0) {
             verifyOtpCode();
@@ -78,16 +73,13 @@ export default function LoginModal() {
     if (!loginModalOpen) return null;
 
     const parseAndValidatePhone = (rawPhone) => {
-        // Remove all non-digit characters
         const clean = rawPhone.replace(/\D/g, '');
 
-        // Strip the "91" prefix if it has 12 digits (e.g. 919987654321 -> 9987654321)
         let finalPhone = clean;
         if (clean.length === 12 && clean.startsWith('91')) {
             finalPhone = clean.substring(2);
         }
 
-        // Validate that we have exactly 10 digits
         if (!/^\d{10}$/.test(finalPhone)) {
             return { valid: false, error: 'Please enter a valid 10-digit mobile number.' };
         }
@@ -113,10 +105,10 @@ export default function LoginModal() {
         try {
             const response = await requestOtp(validation.phone);
             if (response.success) {
-                setPhone(validation.phone); // Save E.164 formatted number in state
+                setPhone(validation.phone);
                 setStep('otp');
-                setResendTimer(60); // 60 seconds cooldown
-                setExpiryTimer(600); // 10 minutes OTP expiration on backend
+                setResendTimer(60);
+                setExpiryTimer(600);
             } else {
                 setError(response.message || 'Failed to send OTP.');
             }
@@ -154,7 +146,6 @@ export default function LoginModal() {
             }
             const response = await submitOtpVerify(validation.phone, trimmedOtp);
             if (response.success && response.data) {
-                // If there's an item waiting to be added to the cart, sync it to the database now
                 if (loginPendingItem) {
                     try {
                         const token = response.data.access_token;
@@ -229,13 +220,11 @@ export default function LoginModal() {
         return `OTP expires in ${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    // Determine what phone digits to show in the phone input box (hide +91 if already shown in visual prefix box)
     const displayPhone = phone.startsWith('+') && !phone.startsWith('+91') ? phone : phone.replace(/^\+91/, '');
 
     return (
         <AnimatePresence>
             <div data-lenis-prevent className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                {/* Backdrop Overlay */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -244,7 +233,6 @@ export default function LoginModal() {
                     className="absolute inset-0 bg-black/85 backdrop-blur-sm"
                 />
 
-                {/* Modal Container */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 15 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -252,10 +240,8 @@ export default function LoginModal() {
                     transition={{ type: 'spring', damping: 25, stiffness: 220 }}
                     className="relative w-full max-w-md bg-[#0b150d] border border-[#d8b66a]/15 rounded-[28px] p-8 md:p-10 shadow-2xl z-10 overflow-hidden"
                 >
-                    {/* Top Radial Glow */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#d8b66a]/5 via-transparent to-transparent opacity-60 pointer-events-none" />
 
-                    {/* Close Button */}
                     <button
                         onClick={closeLoginModal}
                         className="absolute top-5 right-5 text-[#efe3bf]/60 hover:text-[#d8b66a] hover:bg-[#1a2416] p-2 rounded-full transition"
@@ -265,19 +251,26 @@ export default function LoginModal() {
                     </button>
 
                     {step === 'phone' ? (
-                        /* ============================ PHONE STEP ============================ */
                         <div className="relative z-10">
                             <div className="w-12 h-12 rounded-full bg-[#1a2416] border border-[#d8b66a]/15 flex items-center justify-center text-[#d8b66a] mb-6">
                                 <Phone size={20} />
                             </div>
-                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight">Welcome to Goamogh</h2>
-                            <p className="text-[#d6cca9]/70 text-sm mb-6">Enter your mobile number to log in or register.</p>
+                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight">
+                                Welcome to Goamogh
+                            </h2>
+                            <p className="text-[#d6cca9]/70 text-sm mb-6">
+                                Enter your mobile number to log in or register.
+                            </p>
 
                             <form onSubmit={handleSendOtp} className="space-y-5">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-mono uppercase tracking-widest text-[#d8b66a]/80">Mobile Number</label>
+                                    <label className="text-xs font-mono uppercase tracking-widest text-[#d8b66a]/80">
+                                        Mobile Number
+                                    </label>
                                     <div className="relative flex items-center">
-                                        <span className="absolute left-4 text-[#efe3bf]/50 text-sm font-mono tracking-wider border-r border-[#d8b66a]/15 pr-3">+91</span>
+                                        <span className="absolute left-4 text-[#efe3bf]/50 text-sm font-mono tracking-wider border-r border-[#d8b66a]/15 pr-3">
+                                            +91
+                                        </span>
                                         <input
                                             type="tel"
                                             required
@@ -305,13 +298,33 @@ export default function LoginModal() {
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
                                         className="mt-0.5 rounded border-[#d8b66a]/30 text-[#d8b66a] focus:ring-[#d8b66a] accent-[#d8b66a] cursor-pointer"
                                     />
-                                    <label htmlFor="modal_terms_accept" className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed">
-                                        Please accept <button type="button" onClick={() => openLegalModal('terms')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Terms & Conditions</button> and <button type="button" onClick={() => openLegalModal('privacy')} className="text-[#d8b66a] underline hover:text-white cursor-pointer">Privacy Policy</button>
+                                    <label
+                                        htmlFor="modal_terms_accept"
+                                        className="text-xs text-[#d6cca9]/80 cursor-pointer select-none leading-relaxed"
+                                    >
+                                        Please accept{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('terms')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Terms & Conditions
+                                        </button>{' '}
+                                        and{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => openLegalModal('privacy')}
+                                            className="text-[#d8b66a] underline hover:text-white cursor-pointer"
+                                        >
+                                            Privacy Policy
+                                        </button>
                                     </label>
                                 </div>
 
                                 {error && (
-                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">{error}</p>
+                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                                        {error}
+                                    </p>
                                 )}
 
                                 <button
@@ -331,20 +344,24 @@ export default function LoginModal() {
                             </form>
                         </div>
                     ) : (
-                        /* ============================= OTP STEP ============================= */
                         <div className="relative z-10">
                             <div className="w-12 h-12 rounded-full bg-[#1a2416] border border-[#d8b66a]/15 flex items-center justify-center text-[#d8b66a] mb-6">
                                 <Lock size={20} />
                             </div>
-                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight">Verification Code</h2>
+                            <h2 className="font-serif text-2xl md:text-3xl text-white mb-2 leading-tight">
+                                Verification Code
+                            </h2>
                             <p className="text-[#d6cca9]/70 text-sm mb-6">
-                                We sent a 4-digit code to <span className="font-mono text-white">{formatMaskedPhone()}</span>
+                                We sent a 4-digit code to{' '}
+                                <span className="font-mono text-white">{formatMaskedPhone()}</span>
                             </p>
 
                             <form onSubmit={verifyOtpCode} className="space-y-5">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-xs font-mono uppercase tracking-widest text-[#d8b66a]/80">Enter 4-Digit OTP</label>
+                                        <label className="text-xs font-mono uppercase tracking-widest text-[#d8b66a]/80">
+                                            Enter 4-Digit OTP
+                                        </label>
                                         {expiryTimer > 0 && (
                                             <span className="text-[11px] font-mono text-[#d8b66a]/90 bg-[#1a2416] px-2 py-0.5 rounded border border-[#d8b66a]/10">
                                                 {formatExpiryTimer(expiryTimer)}
@@ -363,14 +380,14 @@ export default function LoginModal() {
                                         disabled={submitting || expiryTimer === 0}
                                     />
                                     <p className="text-[10px] text-[#d6cca9]/45 font-mono text-center mt-1">
-                                        {expiryTimer > 0 
-                                            ? " " 
-                                            : "OTP has expired. Please click Resend Code."}
+                                        {expiryTimer > 0 ? ' ' : 'OTP has expired. Please click Resend Code.'}
                                     </p>
                                 </div>
 
                                 {error && (
-                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl text-center">{error}</p>
+                                    <p className="text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl text-center">
+                                        {error}
+                                    </p>
                                 )}
 
                                 <button
@@ -386,7 +403,6 @@ export default function LoginModal() {
                                 </button>
                             </form>
 
-                            {/* Resend Cooldown section */}
                             <div className="text-center mt-6 text-xs">
                                 {resendTimer > 0 ? (
                                     <p className="text-[#d6cca9]/50 font-mono">{formatResendTimer(resendTimer)}</p>
