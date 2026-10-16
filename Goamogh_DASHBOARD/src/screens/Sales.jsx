@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  ShoppingCart,
-  Search,
-  Plus,
-  AlertCircle,
-  User,
-  MapPin,
-  Eye
-} from "lucide-react"
-import {
-  getSales,
-  getSaleDetails,
-  updateSalesOrderStatus
-} from "@/api/sales"
+import { ShoppingCart, Search, Plus, AlertCircle, User, MapPin, Eye } from "lucide-react"
+import { getSales, getSaleDetails, updateSalesOrderStatus } from "@/api/sales"
 import { generateTaxInvoice } from "@/api/invoices"
 import useAuth from "@/hooks/useAuth"
 import Spinner from "@/components/ui/Spinner"
@@ -35,12 +23,10 @@ function Sales() {
   const navigate = useNavigate()
   const { isSuperAdmin, hasPermission } = useAuth()
 
-  // State Lists
   const [sales, setSales] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Filter States
   const [saleTypeFilter, setSaleTypeFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
@@ -48,7 +34,6 @@ function Sales() {
   const limit = 50
   const latestRequestRef = useRef(0)
 
-  // Details Modal States
   const [selectedSale, setSelectedSale] = useState(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -82,12 +67,10 @@ function Sales() {
     fetchSales()
   }, [fetchSales])
 
-  // Reset skip when filters change
   useEffect(() => {
     setSkip(0)
   }, [searchQuery, saleTypeFilter, statusFilter])
 
-  // Open Details Modal and fetch fresh details
   const handleOpenDetails = async (sale) => {
     setSelectedSale(sale)
     setIsDetailOpen(true)
@@ -102,21 +85,19 @@ function Sales() {
     }
   }
 
-  // Helper to get sale order number for dialog
   const getSaleOrderNumber = (saleId) => {
     if (selectedSale && selectedSale.id === saleId) return selectedSale.sale_number || saleId
     const found = sales.find((s) => s.id === saleId)
     return found?.sale_number || saleId
   }
 
-  // Confirm order (from draft to confirmed status, triggers stock deduction)
   const handleConfirmOrder = async (saleId) => {
     const orderNum = getSaleOrderNumber(saleId)
     const ok = await confirm({
       title: `Confirm order ${orderNum}?`,
       message: "Confirm this order? This will immediately deduct variant stock levels.",
       confirmLabel: "Confirm order",
-      tone: "danger"
+      tone: "danger",
     })
     if (!ok) return
 
@@ -138,13 +119,13 @@ function Sales() {
     }
   }
 
-  // Dispatch order
   const handleDispatchOrder = async (saleId) => {
     const orderNum = getSaleOrderNumber(saleId)
     const ok = await confirm({
       title: `Dispatch order ${orderNum}?`,
-      message: "Mark order as dispatched? Tax invoice will be generated automatically and attached to dispatch notifications.",
-      confirmLabel: "Dispatch"
+      message:
+        "Mark order as dispatched? Tax invoice will be generated automatically and attached to dispatch notifications.",
+      confirmLabel: "Dispatch",
     })
     if (!ok) return
 
@@ -155,7 +136,9 @@ function Sales() {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(parseErrorDetail(errJson.detail, "Dispatch failed."))
       }
-      alert("Order successfully marked as Dispatched! Tax Invoice PDF generated and SMS, Email, and WhatsApp dispatch alerts were sent.")
+      alert(
+        "Order successfully marked as Dispatched! Tax Invoice PDF generated and SMS, Email, and WhatsApp dispatch alerts were sent."
+      )
       fetchSales()
       const freshRes = await getSaleDetails(saleId)
       if (freshRes.ok) {
@@ -171,13 +154,12 @@ function Sales() {
     }
   }
 
-  // Deliver order
   const handleDeliverOrder = async (saleId) => {
     const orderNum = getSaleOrderNumber(saleId)
     const ok = await confirm({
       title: `Deliver order ${orderNum}?`,
       message: "Mark order as delivered?",
-      confirmLabel: "Deliver"
+      confirmLabel: "Deliver",
     })
     if (!ok) return
 
@@ -188,7 +170,9 @@ function Sales() {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(parseErrorDetail(errJson.detail, "Delivery update failed."))
       }
-      alert("Order successfully marked as Delivered! Delivery SMS, customer feedback request, and WhatsApp notifications were sent.")
+      alert(
+        "Order successfully marked as Delivered! Delivery SMS, customer feedback request, and WhatsApp notifications were sent."
+      )
       fetchSales()
       const freshRes = await getSaleDetails(saleId)
       if (freshRes.ok) {
@@ -204,14 +188,13 @@ function Sales() {
     }
   }
 
-  // Mark failed delivery
   const handleFailDelivery = async (saleId) => {
     const orderNum = getSaleOrderNumber(saleId)
     const ok = await confirm({
       title: `Mark delivery failed for order ${orderNum}?`,
       message: "Mark order delivery as failed? Stock remains deducted and payment captured for manual intervention.",
       confirmLabel: "Mark failed",
-      tone: "danger"
+      tone: "danger",
     })
     if (!ok) return
 
@@ -234,13 +217,12 @@ function Sales() {
 
   const hasBillingPermission = isSuperAdmin || hasPermission("sales_manage")
 
-  // Generate / View Tax Invoice (Idempotent)
   const handleGenerateInvoice = async (saleId) => {
     const orderNum = getSaleOrderNumber(saleId)
     const ok = await confirm({
       title: `Generate tax invoice for order ${orderNum}?`,
       message: "Are you sure you want to generate a formal GST tax invoice for this sales order?",
-      confirmLabel: "Generate invoice"
+      confirmLabel: "Generate invoice",
     })
     if (!ok) return
 
@@ -270,11 +252,10 @@ function Sales() {
     return new Date(isoString).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
-  // Filter lists in memory
   const filteredSales = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     return sales.filter((s) => {
@@ -292,8 +273,6 @@ function Sales() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
@@ -301,7 +280,8 @@ function Sales() {
             <span>Sales</span>
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Unified 3-step order lifecycle: create draft sale, confirm order, dispatch, and deliver with automated notifications.
+            Unified 3-step order lifecycle: create draft sale, confirm order, dispatch, and deliver with automated
+            notifications.
           </p>
         </div>
 
@@ -316,7 +296,6 @@ function Sales() {
         )}
       </div>
 
-      {/* Toolbar filters */}
       <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -370,9 +349,10 @@ function Sales() {
         </div>
       )}
 
-      {/* Main Listing Table */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Spinner size="lg" />
+        </div>
       ) : filteredSales.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No sales records found.</p>
@@ -388,32 +368,50 @@ function Sales() {
                   <th className="px-2 md:px-3.5 py-3.5 w-[22%] md:w-[18%] lg:w-[18%]">Status & Payment</th>
                   <th className="px-2 md:px-3.5 py-3.5 text-right w-[20%] md:w-[16%] lg:w-[14%]">Total Amount</th>
                   <th className="px-2 md:px-3.5 py-3.5 hidden lg:table-cell lg:w-[12%]">Date</th>
-                  <th className="pl-1 md:pl-2 pr-3 md:pr-5 py-3.5 w-[14%] md:w-[12%] lg:w-[12%] text-right"><span className="hidden md:inline">Actions</span></th>
+                  <th className="pl-1 md:pl-2 pr-3 md:pr-5 py-3.5 w-[14%] md:w-[12%] lg:w-[12%] text-right">
+                    <span className="hidden md:inline">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {pageRows.map((sale) => (
                   <tr key={sale.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* Column 1: Sale Order # & Type Badge */}
                     <td className="px-2 md:px-3.5 py-3 min-w-0">
                       <div className="flex flex-col items-start gap-1 min-w-0">
-                        <span className="tabular-nums text-brand-700 font-bold text-xs truncate" title={sale.sale_number}>{sale.sale_number}</span>
+                        <span
+                          className="tabular-nums text-brand-700 font-bold text-xs truncate"
+                          title={sale.sale_number}
+                        >
+                          {sale.sale_number}
+                        </span>
                         <div className="flex flex-wrap items-center gap-1">
                           {sale.created_by === null && (
-                            <span className="text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-sky-200/60">Web</span>
+                            <span className="text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-sky-200/60">
+                              Web
+                            </span>
                           )}
                           {sale.sale_type === "retail" && (
-                            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-emerald-200/60">Retail</span>
+                            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-emerald-200/60">
+                              Retail
+                            </span>
                           )}
                           {sale.sale_type === "wholesale" && (
-                            <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-purple-200/60">Wholesale</span>
+                            <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-purple-200/60">
+                              Wholesale
+                            </span>
                           )}
                           {sale.sale_type === "indent_conversion" && (
-                            <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-blue-200/60">Indent Conv</span>
+                            <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-blue-200/60">
+                              Indent Conv
+                            </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-500 font-normal truncate md:hidden mt-0.5" title={sale.customer_name || ""}>
-                          {sale.customer_name || "Walk-in"}{sale.customer_phone ? ` • ${sale.customer_phone}` : ""}
+                        <div
+                          className="text-[10px] text-slate-500 font-normal truncate md:hidden mt-0.5"
+                          title={sale.customer_name || ""}
+                        >
+                          {sale.customer_name || "Walk-in"}
+                          {sale.customer_phone ? ` • ${sale.customer_phone}` : ""}
                         </div>
                         <div className="text-[10px] text-slate-400 tabular-nums lg:hidden truncate">
                           {formatShortDate(sale.created_at)}
@@ -421,61 +419,79 @@ function Sales() {
                       </div>
                     </td>
 
-                    {/* Column 2: Customer Name & Phone */}
                     <td className="px-2 md:px-3 py-3 min-w-0 hidden md:table-cell">
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-900 text-xs truncate" title={sale.customer_name || "Walk-in Customer"}>
+                        <p
+                          className="font-bold text-slate-900 text-xs truncate"
+                          title={sale.customer_name || "Walk-in Customer"}
+                        >
                           {sale.customer_name || "Walk-in Customer"}
                         </p>
-                        <p className="text-[11px] tabular-nums text-slate-500 mt-0.5 truncate">{sale.customer_phone || "—"}</p>
+                        <p className="text-[11px] tabular-nums text-slate-500 mt-0.5 truncate">
+                          {sale.customer_phone || "—"}
+                        </p>
                       </div>
                     </td>
 
-                    {/* Column 3: Status & Payment Badges */}
                     <td className="px-2 md:px-3 py-3 min-w-0">
                       <div className="flex flex-wrap items-center gap-1">
                         {sale.status === "draft" && (
-                          <span className="text-slate-600 bg-slate-100 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-slate-200 whitespace-nowrap">Draft</span>
+                          <span className="text-slate-600 bg-slate-100 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-slate-200 whitespace-nowrap">
+                            Draft
+                          </span>
                         )}
                         {sale.status === "confirmed" && (
-                          <span className="text-blue-700 bg-blue-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-blue-200/80 whitespace-nowrap">Confirmed</span>
+                          <span className="text-blue-700 bg-blue-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-blue-200/80 whitespace-nowrap">
+                            Confirmed
+                          </span>
                         )}
                         {sale.status === "dispatched" && (
-                          <span className="text-amber-800 bg-amber-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-amber-200/80 whitespace-nowrap">Dispatched</span>
+                          <span className="text-amber-800 bg-amber-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-amber-200/80 whitespace-nowrap">
+                            Dispatched
+                          </span>
                         )}
                         {sale.status === "delivered" && (
-                          <span className="text-emerald-700 bg-emerald-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-emerald-200/80 whitespace-nowrap">Delivered</span>
+                          <span className="text-emerald-700 bg-emerald-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-emerald-200/80 whitespace-nowrap">
+                            Delivered
+                          </span>
                         )}
                         {sale.status === "failed_delivery" && (
-                          <span className="text-rose-700 bg-rose-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-rose-200/80 whitespace-nowrap">Failed</span>
+                          <span className="text-rose-700 bg-rose-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-semibold border border-rose-200/80 whitespace-nowrap">
+                            Failed
+                          </span>
                         )}
                         {sale.status === "invoiced" && (
-                          <span className="text-emerald-800 bg-emerald-100 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-bold border border-emerald-300 whitespace-nowrap">Invoiced</span>
+                          <span className="text-emerald-800 bg-emerald-100 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-bold border border-emerald-300 whitespace-nowrap">
+                            Invoiced
+                          </span>
                         )}
 
                         {sale.payment_status === "unpaid" && (
-                          <span className="text-slate-500 bg-slate-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-slate-200 whitespace-nowrap">Unpaid</span>
+                          <span className="text-slate-500 bg-slate-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-slate-200 whitespace-nowrap">
+                            Unpaid
+                          </span>
                         )}
                         {sale.payment_status === "pending" && (
-                          <span className="text-amber-700 bg-amber-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-amber-200 whitespace-nowrap">Pending</span>
+                          <span className="text-amber-700 bg-amber-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-amber-200 whitespace-nowrap">
+                            Pending
+                          </span>
                         )}
                         {sale.payment_status === "paid" && (
-                          <span className="text-emerald-700 bg-emerald-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-emerald-200 whitespace-nowrap">Paid</span>
+                          <span className="text-emerald-700 bg-emerald-50 text-[10px] md:text-xs px-1.5 md:px-2.5 py-0.5 rounded font-medium border border-emerald-200 whitespace-nowrap">
+                            Paid
+                          </span>
                         )}
                       </div>
                     </td>
 
-                    {/* Column 4: Total Amount */}
                     <td className="px-2 md:px-3 py-3 text-right tabular-nums font-extrabold text-slate-900 text-xs whitespace-nowrap">
                       {sale.total_amount != null ? `₹${parseFloat(sale.total_amount).toFixed(2)}` : "—"}
                     </td>
 
-                    {/* Column 5: Date */}
                     <td className="px-2 md:px-3 py-3 text-slate-500 tabular-nums text-[11px] whitespace-nowrap hidden lg:table-cell">
                       {formatShortDate(sale.created_at)}
                     </td>
 
-                    {/* Column 6: Action */}
                     <td className="pl-1 md:pl-2 pr-3 md:pr-5 py-3 text-right whitespace-nowrap">
                       <button
                         onClick={() => handleOpenDetails(sale)}
@@ -495,45 +511,62 @@ function Sales() {
         </div>
       )}
 
-      {/* DETAIL DIALOG */}
       {isDetailOpen && selectedSale && (
         <Modal onClose={() => setIsDetailOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-3xl w-full shadow-2xl p-6 relative flex flex-col max-h-[90vh]">
-
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-slate-900 tabular-nums">{selectedSale.sale_number}</h3>
                   {selectedSale.created_by === null && (
-                    <span className="text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 font-bold text-[10px] whitespace-nowrap">Web Order</span>
+                    <span className="text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 font-bold text-[10px] whitespace-nowrap">
+                      Web Order
+                    </span>
                   )}
                   {(selectedSale.is_invoiced || selectedSale.status === "invoiced") && (
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-extrabold border border-emerald-200 uppercase">INVOICED</span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-extrabold border border-emerald-200 uppercase">
+                      INVOICED
+                    </span>
                   )}
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
                   Type: {selectedSale.sale_type} | Payment: {selectedSale.payment_status}
                 </p>
               </div>
-              <button onClick={() => setIsDetailOpen(false)} className="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+              <button
+                onClick={() => setIsDetailOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold"
+              >
+                &times;
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 my-4 space-y-5 text-xs font-semibold">
-
-              {/* Customer section card */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-700">
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-slate-400" />
                     <span>Customer Details</span>
                   </h4>
-                  <p>Name: <span className="font-bold text-slate-900">{selectedSale.customer_name || "Walk-in / General Customer"}</span></p>
-                  <p>Phone: <span className="tabular-nums font-bold text-slate-900">{selectedSale.customer_phone}</span></p>
+                  <p>
+                    Name:{" "}
+                    <span className="font-bold text-slate-900">
+                      {selectedSale.customer_name || "Walk-in / General Customer"}
+                    </span>
+                  </p>
+                  <p>
+                    Phone: <span className="tabular-nums font-bold text-slate-900">{selectedSale.customer_phone}</span>
+                  </p>
                   {selectedSale.customer_gstin && (
-                    <p>GSTIN: <span className="tabular-nums text-brand-700 font-bold">{selectedSale.customer_gstin}</span></p>
+                    <p>
+                      GSTIN:{" "}
+                      <span className="tabular-nums text-brand-700 font-bold">{selectedSale.customer_gstin}</span>
+                    </p>
                   )}
                   {selectedSale.company_name && (
-                    <p>Company: <span className="text-slate-900">{selectedSale.company_name}</span></p>
+                    <p>
+                      Company: <span className="text-slate-900">{selectedSale.company_name}</span>
+                    </p>
                   )}
                 </div>
 
@@ -545,13 +578,17 @@ function Sales() {
                   <p className="text-slate-800 leading-relaxed font-semibold">
                     {selectedSale.delivery_address || "No custom delivery address specified (Physical pickup)."}
                   </p>
-                  <p className="text-[10px] text-slate-400">Bill Type: <span className="uppercase font-bold text-slate-600">{selectedSale.bill_type || "Cash"}</span></p>
+                  <p className="text-[10px] text-slate-400">
+                    Bill Type:{" "}
+                    <span className="uppercase font-bold text-slate-600">{selectedSale.bill_type || "Cash"}</span>
+                  </p>
                 </div>
               </div>
 
-              {/* Items List Table */}
               <div className="space-y-2">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Line Items Invoice Breakdown</h4>
+                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  Line Items Invoice Breakdown
+                </h4>
                 <div className="border border-slate-100 rounded-xl w-full">
                   <table className="w-full text-left border-collapse table-fixed text-xs">
                     <thead>
@@ -568,18 +605,36 @@ function Sales() {
                       {selectedSale.items?.map((item) => (
                         <tr key={item.id} className="hover:bg-slate-50/20">
                           <td className="px-3 py-2.5 min-w-0">
-                            <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
+                            <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>
+                              {item.variant_display_name}
+                            </p>
                             <div className="text-[10px] text-slate-400 tabular-nums truncate">
                               <span>HSN: {item.hsn_code || "—"}</span>
-                              <span className="md:hidden"> • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</span>
-                              <span className="lg:hidden"> • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</span>
+                              <span className="md:hidden">
+                                {" "}
+                                • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}
+                              </span>
+                              <span className="lg:hidden">
+                                {" "}
+                                • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}
+                              </span>
                             </div>
                           </td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity != null ? item.quantity : "—"}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">{item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">{item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">
+                            {item.quantity != null ? item.quantity : "—"}
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">
+                            {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">
+                            {item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">
+                            {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">
+                            {item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -587,74 +642,117 @@ function Sales() {
                 </div>
               </div>
 
-              {/* Totals split breakdown grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl h-max">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold mb-1">Administrative Notes</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold mb-1">
+                    Administrative Notes
+                  </span>
                   <p className="text-slate-600 text-xs italic">{selectedSale.notes || "No notes logged."}</p>
                 </div>
 
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5 text-slate-600">
                   <div className="flex justify-between">
                     <span>Taxable Value:</span>
-                    <span className="tabular-nums text-slate-800 font-bold">{selectedSale.total_taxable_amount != null ? `₹${parseFloat(selectedSale.total_taxable_amount).toFixed(2)}` : "—"}</span>
+                    <span className="tabular-nums text-slate-800 font-bold">
+                      {selectedSale.total_taxable_amount != null
+                        ? `₹${parseFloat(selectedSale.total_taxable_amount).toFixed(2)}`
+                        : "—"}
+                    </span>
                   </div>
                   {selectedSale.total_cgst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>CGST:</span>
-                      <span className="tabular-nums">{selectedSale.total_cgst_amount != null ? `₹${parseFloat(selectedSale.total_cgst_amount).toFixed(2)}` : "—"}</span>
+                      <span className="tabular-nums">
+                        {selectedSale.total_cgst_amount != null
+                          ? `₹${parseFloat(selectedSale.total_cgst_amount).toFixed(2)}`
+                          : "—"}
+                      </span>
                     </div>
                   )}
                   {selectedSale.total_sgst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>SGST:</span>
-                      <span className="tabular-nums">{selectedSale.total_sgst_amount != null ? `₹${parseFloat(selectedSale.total_sgst_amount).toFixed(2)}` : "—"}</span>
+                      <span className="tabular-nums">
+                        {selectedSale.total_sgst_amount != null
+                          ? `₹${parseFloat(selectedSale.total_sgst_amount).toFixed(2)}`
+                          : "—"}
+                      </span>
                     </div>
                   )}
                   {selectedSale.total_igst_amount > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span>IGST:</span>
-                      <span className="tabular-nums">{selectedSale.total_igst_amount != null ? `₹${parseFloat(selectedSale.total_igst_amount).toFixed(2)}` : "—"}</span>
+                      <span className="tabular-nums">
+                        {selectedSale.total_igst_amount != null
+                          ? `₹${parseFloat(selectedSale.total_igst_amount).toFixed(2)}`
+                          : "—"}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-[11px] text-rose-700">
                     <span>Total Discount Allowed:</span>
-                    <span className="tabular-nums">{selectedSale.total_discount_amount != null ? `-₹${parseFloat(selectedSale.total_discount_amount).toFixed(2)}` : "—"}</span>
+                    <span className="tabular-nums">
+                      {selectedSale.total_discount_amount != null
+                        ? `-₹${parseFloat(selectedSale.total_discount_amount).toFixed(2)}`
+                        : "—"}
+                    </span>
                   </div>
                   <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline text-slate-900 font-bold">
                     <span className="text-xs">Invoice Value:</span>
-                    <span className="text-base font-extrabold tabular-nums text-brand-700">{selectedSale.total_amount != null ? `₹${parseFloat(selectedSale.total_amount).toFixed(2)}` : "—"}</span>
+                    <span className="text-base font-extrabold tabular-nums text-brand-700">
+                      {selectedSale.total_amount != null ? `₹${parseFloat(selectedSale.total_amount).toFixed(2)}` : "—"}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Order Status Timeline */}
               <div className="p-4 border border-slate-100 rounded-xl space-y-3">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Fulfillment Audit Timeline</h4>
+                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                  Fulfillment Audit Timeline
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center text-[10px] text-slate-500">
                   <div className="p-2 border border-slate-100 rounded-lg bg-slate-50">
                     <p className="font-bold text-slate-800">1. Draft Order</p>
                     <p className="tabular-nums text-[10px] mt-0.5">{formatShortDate(selectedSale.created_at)}</p>
                   </div>
-                  <div className={`p-2 border rounded-lg ${selectedSale.confirmed_at ? "bg-blue-50/50 border-blue-100 text-blue-700" : "border-slate-100 text-slate-300"}`}>
+                  <div
+                    className={`p-2 border rounded-lg ${selectedSale.confirmed_at ? "bg-blue-50/50 border-blue-100 text-blue-700" : "border-slate-100 text-slate-300"}`}
+                  >
                     <p className="font-bold">2. Confirmed</p>
-                    <p className="tabular-nums text-[10px] mt-0.5">{selectedSale.confirmed_at ? formatShortDate(selectedSale.confirmed_at) : "Pending"}</p>
+                    <p className="tabular-nums text-[10px] mt-0.5">
+                      {selectedSale.confirmed_at ? formatShortDate(selectedSale.confirmed_at) : "Pending"}
+                    </p>
                   </div>
-                  <div className={`p-2 border rounded-lg ${selectedSale.dispatched_at ? "bg-amber-50/50 border-amber-100 text-amber-700" : "border-slate-100 text-slate-300"}`}>
+                  <div
+                    className={`p-2 border rounded-lg ${selectedSale.dispatched_at ? "bg-amber-50/50 border-amber-100 text-amber-700" : "border-slate-100 text-slate-300"}`}
+                  >
                     <p className="font-bold">3. Dispatched</p>
-                    <p className="tabular-nums text-[10px] mt-0.5">{selectedSale.dispatched_at ? formatShortDate(selectedSale.dispatched_at) : "Pending"}</p>
+                    <p className="tabular-nums text-[10px] mt-0.5">
+                      {selectedSale.dispatched_at ? formatShortDate(selectedSale.dispatched_at) : "Pending"}
+                    </p>
                   </div>
-                  <div className={`p-2 border rounded-lg ${selectedSale.status === "delivered" ? "bg-emerald-50/50 border-emerald-100 text-emerald-700" :
-                    selectedSale.status === "failed_delivery" ? "bg-rose-50/50 border-rose-100 text-rose-700" : "border-slate-100 text-slate-300"
-                    }`}>
+                  <div
+                    className={`p-2 border rounded-lg ${
+                      selectedSale.status === "delivered"
+                        ? "bg-emerald-50/50 border-emerald-100 text-emerald-700"
+                        : selectedSale.status === "failed_delivery"
+                          ? "bg-rose-50/50 border-rose-100 text-rose-700"
+                          : "border-slate-100 text-slate-300"
+                    }`}
+                  >
                     <p className="font-bold">4. Fulfill Status</p>
-                    <p className="tabular-nums text-[10px] mt-0.5 uppercase">{selectedSale.status === "delivered" ? "Delivered" : selectedSale.status === "failed_delivery" ? "Failed" : "Pending"}</p>
+                    <p className="tabular-nums text-[10px] mt-0.5 uppercase">
+                      {selectedSale.status === "delivered"
+                        ? "Delivered"
+                        : selectedSale.status === "failed_delivery"
+                          ? "Failed"
+                          : "Pending"}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Footer buttons based on current status */}
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 border-t border-slate-100 pt-3.5 shrink-0">
               <button
                 type="button"
@@ -665,85 +763,89 @@ function Sales() {
               </button>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                {/* Confirm Order */}
                 <button
                   disabled={actionLoading || !hasSalesManagePermission || selectedSale.status !== "draft"}
                   onClick={() => handleConfirmOrder(selectedSale.id)}
-                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${hasSalesManagePermission && selectedSale.status === "draft"
+                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${
+                    hasSalesManagePermission && selectedSale.status === "draft"
                       ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/10 active:scale-95 cursor-pointer"
                       : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
                   Confirm Order
                 </button>
 
-                {/* Dispatch Goods */}
                 <button
                   disabled={actionLoading || !hasSalesManagePermission || selectedSale.status !== "confirmed"}
                   onClick={() => handleDispatchOrder(selectedSale.id)}
-                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${hasSalesManagePermission && selectedSale.status === "confirmed"
+                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${
+                    hasSalesManagePermission && selectedSale.status === "confirmed"
                       ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/10 active:scale-95 cursor-pointer"
                       : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
                   Dispatch Goods
                 </button>
 
-                {/* Fail Delivery */}
                 <button
                   disabled={actionLoading || !hasSalesManagePermission || selectedSale.status !== "dispatched"}
                   onClick={() => handleFailDelivery(selectedSale.id)}
-                  className={`px-5 py-2 rounded-xl font-bold transition-all border w-full sm:w-auto ${hasSalesManagePermission && selectedSale.status === "dispatched"
+                  className={`px-5 py-2 rounded-xl font-bold transition-all border w-full sm:w-auto ${
+                    hasSalesManagePermission && selectedSale.status === "dispatched"
                       ? "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 active:scale-95 cursor-pointer"
                       : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
                   Fail Delivery
                 </button>
 
-                {/* Deliver Goods */}
                 <button
                   disabled={actionLoading || !hasSalesManagePermission || selectedSale.status !== "dispatched"}
                   onClick={() => handleDeliverOrder(selectedSale.id)}
-                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${hasSalesManagePermission && selectedSale.status === "dispatched"
+                  className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${
+                    hasSalesManagePermission && selectedSale.status === "dispatched"
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/10 active:scale-95 cursor-pointer"
                       : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
                   Deliver Goods
                 </button>
 
-                {/* Billing Invoicing controls */}
-                {(selectedSale.is_invoiced || selectedSale.status === "invoiced") ? (
+                {selectedSale.is_invoiced || selectedSale.status === "invoiced" ? (
                   <button
                     disabled={actionLoading || !hasBillingPermission}
                     onClick={() => handleGenerateInvoice(selectedSale.id)}
-                    className={`px-5 py-2 rounded-xl font-bold transition-all shadow-md active:scale-95 w-full sm:w-auto ${hasBillingPermission
+                    className={`px-5 py-2 rounded-xl font-bold transition-all shadow-md active:scale-95 w-full sm:w-auto ${
+                      hasBillingPermission
                         ? "bg-brand-600 hover:bg-brand-700 text-white shadow-brand-500/10 cursor-pointer"
                         : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                      }`}
+                    }`}
                   >
                     View Tax Invoice
                   </button>
                 ) : (
                   <button
-                    disabled={actionLoading || !hasBillingPermission || !["confirmed", "dispatched", "delivered", "failed_delivery"].includes(selectedSale.status)}
+                    disabled={
+                      actionLoading ||
+                      !hasBillingPermission ||
+                      !["confirmed", "dispatched", "delivered", "failed_delivery"].includes(selectedSale.status)
+                    }
                     onClick={() => handleGenerateInvoice(selectedSale.id)}
-                    className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${hasBillingPermission && ["confirmed", "dispatched", "delivered", "failed_delivery"].includes(selectedSale.status)
+                    className={`px-5 py-2 rounded-xl font-bold transition-all w-full sm:w-auto ${
+                      hasBillingPermission &&
+                      ["confirmed", "dispatched", "delivered", "failed_delivery"].includes(selectedSale.status)
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/10 active:scale-95 cursor-pointer"
                         : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                      }`}
+                    }`}
                   >
                     Generate Invoice
                   </button>
                 )}
               </div>
             </div>
-
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

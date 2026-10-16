@@ -1,16 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import {
-  Star,
-  Search,
-  Filter,
-  Calendar,
-  Phone,
-  User,
-  ShoppingBag,
-  Copy,
-  Check,
-  X
-} from "lucide-react"
+import { Star, Search, Filter, Calendar, Phone, User, ShoppingBag, Copy, Check, X } from "lucide-react"
 import { getCustomerFeedbacks } from "@/api/feedback"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
@@ -38,20 +27,15 @@ export default function CustomerFeedback() {
     }
   }, [])
 
-  // Standard initial load on mount
   useEffect(() => {
     fetchFeedbacks()
   }, [fetchFeedbacks])
 
-
-  // Filtered List
   const filteredFeedbacks = feedbacks.filter((fb) => {
-    // Rating Filter
     if (ratingFilter !== "all" && Number(fb.rating) !== Number(ratingFilter)) {
       return false
     }
 
-    // Search Query (Customer Name, Phone, Order Number, Comments)
     if (!searchQuery.trim()) return true
     const q = searchQuery.toLowerCase().trim()
     const name = (fb.customer_name || "").toLowerCase()
@@ -62,7 +46,6 @@ export default function CustomerFeedback() {
     return name.includes(q) || phone.includes(q) || orderNum.includes(q) || comments.includes(q)
   })
 
-  // Date Formatter
   const formatDate = (dateStr) => {
     if (!dateStr) return "—"
     try {
@@ -74,7 +57,7 @@ export default function CustomerFeedback() {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-        hour12: true
+        hour12: true,
       })
     } catch {
       return dateStr
@@ -90,20 +73,19 @@ export default function CustomerFeedback() {
         date: d.toLocaleDateString("en-IN", {
           day: "2-digit",
           month: "short",
-          year: "numeric"
+          year: "numeric",
         }),
         time: d.toLocaleTimeString("en-IN", {
           hour: "2-digit",
           minute: "2-digit",
-          hour12: true
-        })
+          hour12: true,
+        }),
       }
     } catch {
       return { date: dateStr, time: "" }
     }
   }
 
-  // Copy helper
   const handleCopy = (text, fieldName) => {
     if (!text) return
     navigator.clipboard.writeText(text)
@@ -111,7 +93,6 @@ export default function CustomerFeedback() {
     setTimeout(() => setCopiedField(""), 2000)
   }
 
-  // Render Stars Helper
   const renderStars = (rating) => {
     const num = Math.min(5, Math.max(1, Math.round(Number(rating) || 5)))
     return (
@@ -119,8 +100,7 @@ export default function CustomerFeedback() {
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`w-3.5 h-3.5 ${star <= num ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-100"
-              }`}
+            className={`w-3.5 h-3.5 ${star <= num ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-100"}`}
           />
         ))}
         <span className="ml-1 text-xs font-bold text-slate-700">{num}.0</span>
@@ -130,7 +110,6 @@ export default function CustomerFeedback() {
 
   return (
     <div className="flex-1 flex flex-col space-y-3.5 animate-in fade-in duration-150">
-      {/* Page Title Header */}
       <div className="border-b border-slate-100 pb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
           <span>Sales & Storefront</span>
@@ -142,9 +121,7 @@ export default function CustomerFeedback() {
         </h2>
       </div>
 
-      {/* Toolbar Search & Rating Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-2 border border-slate-100 rounded-2xl shadow-sm">
-        {/* Search Bar */}
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
@@ -156,7 +133,6 @@ export default function CustomerFeedback() {
           />
         </div>
 
-        {/* Rating Filter Dropdown */}
         <div className="w-full sm:w-auto sm:min-w-[160px] flex items-center gap-2">
           <Filter className="w-4 h-4 text-slate-400 shrink-0" />
           <select
@@ -174,7 +150,6 @@ export default function CustomerFeedback() {
         </div>
       </div>
 
-      {/* Standard Bordered Table Grid Card */}
       {error ? (
         <div className="bg-white border border-rose-200/80 rounded-2xl p-10 text-center shadow-sm">
           <p className="text-rose-700 font-bold text-sm mb-3">{error}</p>
@@ -208,11 +183,7 @@ export default function CustomerFeedback() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredFeedbacks.map((fb) => (
-                  <tr
-                    key={fb.id || fb.sale_id || fb.order_number}
-                    className="hover:bg-slate-50/70 transition-colors"
-                  >
-                    {/* Date & Time */}
+                  <tr key={fb.id || fb.sale_id || fb.order_number} className="hover:bg-slate-50/70 transition-colors">
                     <td className="hidden lg:table-cell px-5 py-4 text-slate-500 whitespace-nowrap align-middle">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -228,7 +199,6 @@ export default function CustomerFeedback() {
                       </div>
                     </td>
 
-                    {/* Order Number (Clickable link/modal trigger) */}
                     <td className="hidden md:table-cell px-5 py-4 align-middle whitespace-nowrap">
                       <button
                         onClick={() => setSelectedFeedback(fb)}
@@ -245,15 +215,19 @@ export default function CustomerFeedback() {
                       </button>
                     </td>
 
-                    {/* Customer Name & Phone */}
                     <td className="px-5 py-4 align-middle">
                       <div>
                         <p className="font-bold text-slate-900 flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate" title={fb.customer_name || "Customer"}>{fb.customer_name || "Customer"}</span>
+                          <span className="truncate" title={fb.customer_name || "Customer"}>
+                            {fb.customer_name || "Customer"}
+                          </span>
                         </p>
                         {fb.customer_phone ? (
-                          <p className="text-[11px] tabular-nums text-slate-500 flex items-center gap-1 mt-0.5" title={fb.customer_phone}>
+                          <p
+                            className="text-[11px] tabular-nums text-slate-500 flex items-center gap-1 mt-0.5"
+                            title={fb.customer_phone}
+                          >
                             <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                             <span className="truncate">{fb.customer_phone}</span>
                           </p>
@@ -269,18 +243,17 @@ export default function CustomerFeedback() {
                         <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
                           {formatDate(fb.created_at)}
                         </div>
-                        <div className="md:hidden text-[10px] text-slate-500 font-normal truncate mt-0.5" title={fb.comments || ""}>
+                        <div
+                          className="md:hidden text-[10px] text-slate-500 font-normal truncate mt-0.5"
+                          title={fb.comments || ""}
+                        >
                           {fb.comments || "No comments"}
                         </div>
                       </div>
                     </td>
 
-                    {/* Rating */}
-                    <td className="px-5 py-4 align-middle whitespace-nowrap">
-                      {renderStars(fb.rating)}
-                    </td>
+                    <td className="px-5 py-4 align-middle whitespace-nowrap">{renderStars(fb.rating)}</td>
 
-                    {/* Customer Review / Comments */}
                     <td className="hidden md:table-cell px-5 py-4 align-middle">
                       <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5 text-xs text-slate-700 leading-relaxed max-w-sm">
                         <p className="line-clamp-2 truncate" title={fb.comments || ""}>
@@ -296,11 +269,9 @@ export default function CustomerFeedback() {
         </div>
       )}
 
-      {/* Customer Feedback Detail Modal */}
       {selectedFeedback && (
         <Modal onClose={() => setSelectedFeedback(null)}>
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
@@ -320,31 +291,31 @@ export default function CustomerFeedback() {
               </button>
             </div>
 
-            {/* Modal Content Body */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
-              {/* Rating Card */}
               <div className="bg-amber-50/60 border border-amber-200/70 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase text-amber-800 tracking-wider">Rating Given</p>
                   <div className="mt-1">{renderStars(selectedFeedback.rating)}</div>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-extrabold text-amber-900">
-                    {selectedFeedback.rating}.0
-                  </span>
+                  <span className="text-2xl font-extrabold text-amber-900">{selectedFeedback.rating}.0</span>
                   <span className="text-xs font-bold text-amber-700"> / 5.0</span>
                 </div>
               </div>
 
-              {/* Customer Metadata Card */}
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-slate-600" />
-                    <span className="font-bold text-slate-900 text-sm truncate" title={selectedFeedback.customer_name}>{selectedFeedback.customer_name}</span>
+                    <span className="font-bold text-slate-900 text-sm truncate" title={selectedFeedback.customer_name}>
+                      {selectedFeedback.customer_name}
+                    </span>
                   </div>
                   {selectedFeedback.customer_phone && (
-                    <span className="tabular-nums text-slate-600 text-xs flex items-center gap-1" title={selectedFeedback.customer_phone}>
+                    <span
+                      className="tabular-nums text-slate-600 text-xs flex items-center gap-1"
+                      title={selectedFeedback.customer_phone}
+                    >
                       <Phone className="w-3 h-3 text-slate-400" />
                       <span className="truncate">{selectedFeedback.customer_phone}</span>
                     </span>
@@ -360,7 +331,6 @@ export default function CustomerFeedback() {
                 </div>
               </div>
 
-              {/* Customer Written Comment */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -393,7 +363,6 @@ export default function CustomerFeedback() {
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 onClick={() => setSelectedFeedback(null)}

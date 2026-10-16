@@ -34,5 +34,5 @@ export const INDIAN_STATES = [
   "Jammu and Kashmir",
   "Ladakh",
   "Lakshadweep",
-  "Puducherry"
+  "Puducherry",
 ]

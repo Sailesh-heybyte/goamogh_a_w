@@ -14,7 +14,6 @@ export const updateIndentStatus = async (indentId, action) => {
   })
 }
 
-
 export const getIndents = async (params = {}) => {
   const query = new URLSearchParams(params).toString()
   return customFetch(`/api/v1/sales/indents?${query}`)
@@ -36,4 +35,3 @@ export const previewIndent = async (payload) =>
     method: "POST",
     body: JSON.stringify(payload),
   })
-

@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react"
 import { Plus, Edit2, ShieldAlert, X, FolderOpen, AlertTriangle, Calendar, Search } from "lucide-react"
-import { getCategoriesCached, clearCategoriesCache, createCategory, updateCategory, getCategoryDetails } from "@/api/categories"
+import {
+  getCategoriesCached,
+  clearCategoriesCache,
+  createCategory,
+  updateCategory,
+  getCategoryDetails,
+} from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
 import useConfirm from "@/hooks/useConfirm"
@@ -21,13 +27,11 @@ function CategoryManagement() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
 
-  // Create form state
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
@@ -36,7 +40,6 @@ function CategoryManagement() {
   const [createErrors, setCreateErrors] = useState({})
   const [isCreating, setIsCreating] = useState(false)
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
@@ -50,7 +53,6 @@ function CategoryManagement() {
     setIsLoading(true)
     setError("")
     try {
-      // Fetch both active and inactive categories
       const data = await getCategoriesCached(false)
       setCategoriesList(data || [])
     } catch (err) {
@@ -67,7 +69,6 @@ function CategoryManagement() {
     return () => clearTimeout(timer)
   }, [])
 
-  // Real-time validations
   const handleCreateChange = (field, value) => {
     setCreateForm((prev) => {
       const updated = { ...prev, [field]: value }
@@ -104,7 +105,6 @@ function CategoryManagement() {
     })
   }
 
-  // Submission validation
   const validateForm = (form) => {
     const errs = {}
     if (!form.name || form.name.length < 2 || form.name.length > 100) {
@@ -142,7 +142,7 @@ function CategoryManagement() {
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         const errorDetail = errJson.detail
-        
+
         if (errorDetail === "Category name already exists.") {
           setCreateErrors({ name: "Category name already exists." })
           throw new Error("Validation failed")
@@ -169,7 +169,7 @@ function CategoryManagement() {
     setIsDetailLoading(true)
     setIsEditOpen(true)
     setEditErrors({})
-    
+
     try {
       const res = await getCategoryDetails(category.id)
       if (!res.ok) {
@@ -242,7 +242,6 @@ function CategoryManagement() {
     }
   }
 
-  // Client-side search filter
   const filteredCategories = categoriesList.filter((cat) => {
     const term = searchQuery.toLowerCase().trim()
     if (!term) return true
@@ -277,14 +276,14 @@ function CategoryManagement() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-      
-      {/* Title Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Product Categories</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Configure classifications for catalog products and materials.</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Configure classifications for catalog products and materials.
+          </p>
         </div>
-        
+
         <button
           onClick={() => {
             setCreateForm({ name: "", description: "", image: "" })
@@ -298,7 +297,6 @@ function CategoryManagement() {
         </button>
       </div>
 
-      {/* Toolbar Search Input */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -312,7 +310,6 @@ function CategoryManagement() {
         </div>
       </div>
 
-      {/* Directory Table Grid Card */}
       <div className="bg-white border border-slate-100 shadow-lg rounded-2xl overflow-hidden w-full">
         <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed">
@@ -321,8 +318,12 @@ function CategoryManagement() {
                 <th className="px-3 md:px-6 py-4 w-[55%] md:w-[35%] lg:w-[25%]">Category Name</th>
                 <th className="hidden md:table-cell px-3 md:px-6 py-4 w-[40%] lg:w-[35%]">Description</th>
                 <th className="hidden lg:table-cell px-3 md:px-6 py-4 w-[16%]">Created Date</th>
-                <th className="px-3 md:px-6 py-4 w-[25%] md:w-[15%] lg:w-[12%]"><span className="hidden md:inline">Status</span></th>
-                <th className="px-3 md:px-6 py-4 w-[20%] md:w-[10%] lg:w-[12%] text-right"><span className="hidden md:inline">Actions</span></th>
+                <th className="px-3 md:px-6 py-4 w-[25%] md:w-[15%] lg:w-[12%]">
+                  <span className="hidden md:inline">Status</span>
+                </th>
+                <th className="px-3 md:px-6 py-4 w-[20%] md:w-[10%] lg:w-[12%] text-right">
+                  <span className="hidden md:inline">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
@@ -352,10 +353,16 @@ function CategoryManagement() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate" title={cat.name}>
+                          <p
+                            className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate"
+                            title={cat.name}
+                          >
                             {cat.name}
                           </p>
-                          <p className="md:hidden text-[10px] text-slate-400 truncate mt-0.5" title={cat.description || undefined}>
+                          <p
+                            className="md:hidden text-[10px] text-slate-400 truncate mt-0.5"
+                            title={cat.description || undefined}
+                          >
                             {cat.description || "—"}
                           </p>
                           <p className="lg:hidden text-[10px] text-slate-400 truncate">
@@ -364,26 +371,33 @@ function CategoryManagement() {
                         </div>
                       </div>
                     </td>
-                    <td className="hidden md:table-cell px-3 md:px-6 py-4 font-normal text-slate-500 truncate" title={cat.description || undefined}>
+                    <td
+                      className="hidden md:table-cell px-3 md:px-6 py-4 font-normal text-slate-500 truncate"
+                      title={cat.description || undefined}
+                    >
                       {cat.description || "—"}
                     </td>
                     <td className="hidden lg:table-cell px-3 md:px-6 py-4 font-normal text-slate-500 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>
-                          {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : "—"}
-                        </span>
+                        <span>{cat.created_at ? new Date(cat.created_at).toLocaleDateString() : "—"}</span>
                       </div>
                     </td>
                     <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       {cat.is_active ? (
-                        <span title="Active" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
+                        <span
+                          title="Active"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-success-500" aria-hidden="true" />
                           <span className="sr-only md:hidden">Active</span>
                           <span className="hidden md:inline">Active</span>
                         </span>
                       ) : (
-                        <span title="Inactive" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-error-50 text-error-800 border-error-100 whitespace-nowrap">
+                        <span
+                          title="Inactive"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-error-50 text-error-800 border-error-100 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-error-500" aria-hidden="true" />
                           <span className="sr-only md:hidden">Inactive</span>
                           <span className="hidden md:inline">Inactive</span>
@@ -409,7 +423,6 @@ function CategoryManagement() {
         </div>
       </div>
 
-      {/* Create Category Modal Overlay */}
       {isCreateOpen && (
         <Modal onClose={() => setIsCreateOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -422,7 +435,7 @@ function CategoryManagement() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 overflow-y-auto">
               {createErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
@@ -460,7 +473,9 @@ function CategoryManagement() {
               </div>
 
               <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Category Image URL</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Category Image URL
+                </label>
                 <input
                   type="text"
                   value={createForm.image}
@@ -492,7 +507,6 @@ function CategoryManagement() {
         </Modal>
       )}
 
-      {/* Edit Category Modal Overlay */}
       {isEditOpen && (
         <Modal onClose={() => setIsEditOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -505,7 +519,7 @@ function CategoryManagement() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             {isDetailLoading ? (
               <div className="p-12 flex justify-center items-center">
                 <Spinner size="lg" />
@@ -537,7 +551,9 @@ function CategoryManagement() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Description</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Description
+                  </label>
                   <textarea
                     value={editForm.description}
                     onChange={(e) => handleEditChange("description", e.target.value)}
@@ -548,7 +564,9 @@ function CategoryManagement() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Category Image URL</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Category Image URL
+                  </label>
                   <input
                     type="text"
                     value={editForm.image}
@@ -558,7 +576,6 @@ function CategoryManagement() {
                   />
                 </div>
 
-                {/* Active Status Switch and Warning Callout */}
                 <div className="flex flex-col gap-2 mt-2">
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
                     <input
@@ -602,7 +619,6 @@ function CategoryManagement() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

@@ -13,7 +13,7 @@ import {
   XCircle,
   Plus,
   X,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react"
 import {
   getPurchaseOrderDetails,
@@ -21,7 +21,7 @@ import {
   authorizePurchaseEntry,
   getPurchaseEntryDetails,
   getPurchaseEntryFormData,
-  previewPurchaseEntry
+  previewPurchaseEntry,
 } from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
@@ -36,7 +36,6 @@ function parseErrorDetail(detail, defaultMsg) {
   return typeof detail === "string" ? detail : defaultMsg
 }
 
-
 const GSTIN_STATE_MAP = {
   "01": "Jammu & Kashmir",
   "02": "Himachal Pradesh",
@@ -47,35 +46,35 @@ const GSTIN_STATE_MAP = {
   "07": "Delhi",
   "08": "Rajasthan",
   "09": "Uttar Pradesh",
-  "10": "Bihar",
-  "11": "Sikkim",
-  "12": "Arunachal Pradesh",
-  "13": "Nagaland",
-  "14": "Manipur",
-  "15": "Mizoram",
-  "16": "Tripura",
-  "17": "Meghalaya",
-  "18": "Assam",
-  "19": "West Bengal",
-  "20": "Jharkhand",
-  "21": "Odisha",
-  "22": "Chhattisgarh",
-  "23": "Madhya Pradesh",
-  "24": "Gujarat",
-  "26": "Dadra and Nagar Haveli and Daman and Diu",
-  "27": "Maharashtra",
-  "29": "Karnataka",
-  "30": "Goa",
-  "31": "Lakshadweep",
-  "32": "Kerala",
-  "33": "Tamil Nadu",
-  "34": "Puducherry",
-  "35": "Andaman and Nicobar Islands",
-  "36": "Telangana",
-  "37": "Andhra Pradesh",
-  "38": "Ladakh",
-  "97": "Other Territory",
-  "98": "Centre Jurisdiction"
+  10: "Bihar",
+  11: "Sikkim",
+  12: "Arunachal Pradesh",
+  13: "Nagaland",
+  14: "Manipur",
+  15: "Mizoram",
+  16: "Tripura",
+  17: "Meghalaya",
+  18: "Assam",
+  19: "West Bengal",
+  20: "Jharkhand",
+  21: "Odisha",
+  22: "Chhattisgarh",
+  23: "Madhya Pradesh",
+  24: "Gujarat",
+  26: "Dadra and Nagar Haveli and Daman and Diu",
+  27: "Maharashtra",
+  29: "Karnataka",
+  30: "Goa",
+  31: "Lakshadweep",
+  32: "Kerala",
+  33: "Tamil Nadu",
+  34: "Puducherry",
+  35: "Andaman and Nicobar Islands",
+  36: "Telangana",
+  37: "Andhra Pradesh",
+  38: "Ladakh",
+  97: "Other Territory",
+  98: "Centre Jurisdiction",
 }
 
 function CreatePurchaseEntry() {
@@ -85,7 +84,6 @@ function CreatePurchaseEntry() {
   const poId = searchParams.get("po_id")
   const peId = searchParams.get("pe_id")
 
-  // Form Data
   const [poDetails, setPoDetails] = useState(null)
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().substring(0, 10))
@@ -95,13 +93,11 @@ function CreatePurchaseEntry() {
   const [warnings, setWarnings] = useState([])
   const [items, setItems] = useState([])
 
-  // Direct Purchase Support States
   const [suppliers, setSuppliers] = useState([])
   const [productsList, setProductsList] = useState([])
   const [rawMaterialsList, setRawMaterialsList] = useState([])
   const [selectedSupplierId, setSelectedSupplierId] = useState("")
 
-  // UI States
   const [isLoading, setIsLoading] = useState(true)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isAuthorizing, setIsAuthorizing] = useState(false)
@@ -114,7 +110,6 @@ function CreatePurchaseEntry() {
   const [overrideError, setOverrideError] = useState("")
   const [isOverriding, setIsOverriding] = useState(false)
 
-  // Loaded/Previewed Entry Data
   const [createdPeId, setCreatedPeId] = useState(null)
   const [previewData, setPreviewData] = useState(null)
 
@@ -136,7 +131,6 @@ function CreatePurchaseEntry() {
     setIsLoading(true)
     setError("")
     try {
-      // 1. Fetch active lists and settings via bundle
       const formRes = await getPurchaseEntryFormData()
       if (!formRes.ok) throw new Error("Failed to load purchase entry form data")
       const formJson = await formRes.json()
@@ -146,7 +140,6 @@ function CreatePurchaseEntry() {
       setProductsList(bundle.products)
       setRawMaterialsList(bundle.raw_materials)
 
-      // 2. Load PO details if poId is provided
       if (poId) {
         const poRes = await getPurchaseOrderDetails(poId)
         if (!poRes.ok) throw new Error("Failed to load matching Purchase Order details")
@@ -155,7 +148,6 @@ function CreatePurchaseEntry() {
         setPoDetails(po)
         setSelectedSupplierId(po.supplier_id || "")
 
-        // Determine initial items list
         const poItems = po.items || []
         let initialItems = poItems.map((item) => ({
           id: item.id,
@@ -181,99 +173,110 @@ function CreatePurchaseEntry() {
           expiry_date: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
         }))
 
-        // Load existing draft if peId is provided
         if (peId) {
           const peRes = await getPurchaseEntryDetails(peId)
           if (!peRes.ok) throw new Error("Failed to load draft purchase entry")
           const existingPe = (await peRes.json()).data
 
           if (existingPe) {
-              setCreatedPeId(existingPe.id)
-              setInvoiceNumber(existingPe.invoice_number || "")
-              if (existingPe.others !== undefined) setOthers(existingPe.others.toString())
-              if (existingPe.rounding_adjustment !== undefined && existingPe.rounding_adjustment !== null) {
-                setRoundingAdjustment(existingPe.rounding_adjustment.toString())
-              }
-              if (existingPe.ship_to_state) setShipToState(existingPe.ship_to_state)
-              if (existingPe.invoice_date) {
-                setInvoiceDate(existingPe.invoice_date.substring(0, 10))
-              }
-
-              // Map items
-              initialItems = initialItems.map((poItem) => {
-                const peItem = existingPe.items?.find(
-                  (pi) =>
-                    (poItem.raw_material_id && pi.raw_material_id === poItem.raw_material_id) ||
-                    (poItem.product_id && pi.product_id === poItem.product_id)
-                )
-                if (peItem) {
-                  return {
-                    ...poItem,
-                    quantity_received: peItem.quantity_received.toString(),
-                    unit_price: peItem.unit_price.toString(),
-                    gst_percent: peItem.gst_percent !== undefined && peItem.gst_percent !== null ? peItem.gst_percent.toString() : (poItem.gst_percent || ""),
-                    gst_amount: peItem.gst_amount !== undefined && peItem.gst_amount !== null ? peItem.gst_amount.toString() : (poItem.gst_amount || ""),
-                    batch_number: peItem.batch_number || "",
-                    batch_date: peItem.batch_date ? peItem.batch_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
-                    expiry_date: peItem.expiry_date ? peItem.expiry_date.substring(0, 10) : new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
-                  }
-                }
-                return poItem
-              })
-              setPreviewData(existingPe)
+            setCreatedPeId(existingPe.id)
+            setInvoiceNumber(existingPe.invoice_number || "")
+            if (existingPe.others !== undefined) setOthers(existingPe.others.toString())
+            if (existingPe.rounding_adjustment !== undefined && existingPe.rounding_adjustment !== null) {
+              setRoundingAdjustment(existingPe.rounding_adjustment.toString())
             }
+            if (existingPe.ship_to_state) setShipToState(existingPe.ship_to_state)
+            if (existingPe.invoice_date) {
+              setInvoiceDate(existingPe.invoice_date.substring(0, 10))
+            }
+
+            initialItems = initialItems.map((poItem) => {
+              const peItem = existingPe.items?.find(
+                (pi) =>
+                  (poItem.raw_material_id && pi.raw_material_id === poItem.raw_material_id) ||
+                  (poItem.product_id && pi.product_id === poItem.product_id)
+              )
+              if (peItem) {
+                return {
+                  ...poItem,
+                  quantity_received: peItem.quantity_received.toString(),
+                  unit_price: peItem.unit_price.toString(),
+                  gst_percent:
+                    peItem.gst_percent !== undefined && peItem.gst_percent !== null
+                      ? peItem.gst_percent.toString()
+                      : poItem.gst_percent || "",
+                  gst_amount:
+                    peItem.gst_amount !== undefined && peItem.gst_amount !== null
+                      ? peItem.gst_amount.toString()
+                      : poItem.gst_amount || "",
+                  batch_number: peItem.batch_number || "",
+                  batch_date: peItem.batch_date
+                    ? peItem.batch_date.substring(0, 10)
+                    : new Date().toISOString().substring(0, 10),
+                  expiry_date: peItem.expiry_date
+                    ? peItem.expiry_date.substring(0, 10)
+                    : new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
+                }
+              }
+              return poItem
+            })
+            setPreviewData(existingPe)
+          }
         }
         setItems(initialItems)
       } else {
-        // Direct Purchase Mode
         if (peId) {
           const peRes = await getPurchaseEntryDetails(peId)
           if (!peRes.ok) throw new Error("Failed to load draft purchase entry")
           const existingPe = (await peRes.json()).data
 
           if (existingPe) {
-              setCreatedPeId(existingPe.id)
-              setSelectedSupplierId(existingPe.supplier_id || "")
-              setInvoiceNumber(existingPe.invoice_number || "")
-              if (existingPe.others !== undefined) setOthers(existingPe.others.toString())
-              if (existingPe.rounding_adjustment !== undefined && existingPe.rounding_adjustment !== null) {
-                setRoundingAdjustment(existingPe.rounding_adjustment.toString())
-              }
-              if (existingPe.ship_to_state) setShipToState(existingPe.ship_to_state)
-              if (existingPe.invoice_date) {
-                setInvoiceDate(existingPe.invoice_date.substring(0, 10))
-              }
-
-              // Load items from existing direct purchase entry
-              const mappedItems = (existingPe.items || []).map((peItem, index) => {
-                const isRM = !!peItem.raw_material_id
-                const itemName = isRM
-                  ? peItem.raw_material_name || peItem.raw_material?.name || "Raw Material"
-                  : peItem.product_name || peItem.product?.name || "Finished Product"
-
-                return {
-                  id: `direct-${index}-${Date.now()}`,
-                  raw_material_id: peItem.raw_material_id,
-                  product_id: peItem.product_id,
-                  name: itemName,
-                  unit_code: peItem.unit_code,
-                  po_quantity: null,
-                  po_unit_price: null,
-                  quantity_received: peItem.quantity_received.toString(),
-                  unit_price: peItem.unit_price.toString(),
-                  gst_percent: peItem.gst_percent !== undefined && peItem.gst_percent !== null ? peItem.gst_percent.toString() : "",
-                  gst_amount: peItem.gst_amount !== undefined && peItem.gst_amount !== null ? peItem.gst_amount.toString() : "",
-                  batch_number: peItem.batch_number || "",
-                  batch_date: peItem.batch_date ? peItem.batch_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
-                  expiry_date: peItem.expiry_date ? peItem.expiry_date.substring(0, 10) : new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
-                  _type: isRM ? "raw_material" : "product"
-                }
-              })
-              setItems(mappedItems)
-              setPreviewData(existingPe)
+            setCreatedPeId(existingPe.id)
+            setSelectedSupplierId(existingPe.supplier_id || "")
+            setInvoiceNumber(existingPe.invoice_number || "")
+            if (existingPe.others !== undefined) setOthers(existingPe.others.toString())
+            if (existingPe.rounding_adjustment !== undefined && existingPe.rounding_adjustment !== null) {
+              setRoundingAdjustment(existingPe.rounding_adjustment.toString())
             }
+            if (existingPe.ship_to_state) setShipToState(existingPe.ship_to_state)
+            if (existingPe.invoice_date) {
+              setInvoiceDate(existingPe.invoice_date.substring(0, 10))
+            }
+
+            const mappedItems = (existingPe.items || []).map((peItem, index) => {
+              const isRM = !!peItem.raw_material_id
+              const itemName = isRM
+                ? peItem.raw_material_name || peItem.raw_material?.name || "Raw Material"
+                : peItem.product_name || peItem.product?.name || "Finished Product"
+
+              return {
+                id: `direct-${index}-${Date.now()}`,
+                raw_material_id: peItem.raw_material_id,
+                product_id: peItem.product_id,
+                name: itemName,
+                unit_code: peItem.unit_code,
+                po_quantity: null,
+                po_unit_price: null,
+                quantity_received: peItem.quantity_received.toString(),
+                unit_price: peItem.unit_price.toString(),
+                gst_percent:
+                  peItem.gst_percent !== undefined && peItem.gst_percent !== null ? peItem.gst_percent.toString() : "",
+                gst_amount:
+                  peItem.gst_amount !== undefined && peItem.gst_amount !== null ? peItem.gst_amount.toString() : "",
+                batch_number: peItem.batch_number || "",
+                batch_date: peItem.batch_date
+                  ? peItem.batch_date.substring(0, 10)
+                  : new Date().toISOString().substring(0, 10),
+                expiry_date: peItem.expiry_date
+                  ? peItem.expiry_date.substring(0, 10)
+                  : new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
+                _type: isRM ? "raw_material" : "product",
+              }
+            })
+            setItems(mappedItems)
+            setPreviewData(existingPe)
+          }
         } else {
-          // New Direct Purchase
           setItems([])
         }
       }
@@ -292,11 +295,8 @@ function CreatePurchaseEntry() {
   }, [loadPOAndEntryData])
 
   const handleItemChange = (itemId, field, value) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item))
-    )
+    setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)))
     setValidationError("")
-    // If user changes quantities, discard current draft preview until they re-preview
     if (previewData) {
       setPreviewData(null)
     }
@@ -319,7 +319,7 @@ function CreatePurchaseEntry() {
       batch_number: "",
       batch_date: new Date().toISOString().substring(0, 10),
       expiry_date: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().substring(0, 10),
-      _type: "raw_material"
+      _type: "raw_material",
     }
     setItems((prev) => [...prev, newItem])
     if (previewData) setPreviewData(null)
@@ -344,7 +344,7 @@ function CreatePurchaseEntry() {
           name: "",
           unit_code: "",
           gst_percent: "",
-          gst_amount: ""
+          gst_amount: "",
         }
       })
     )
@@ -365,8 +365,12 @@ function CreatePurchaseEntry() {
             product_id: null,
             name: rm ? rm.name : "",
             unit_code: rm ? rm.unit_code : "",
-            gst_percent: rm ? (rm.gst_percent !== undefined && rm.gst_percent !== null ? rm.gst_percent.toString() : "") : "",
-            gst_amount: ""
+            gst_percent: rm
+              ? rm.gst_percent !== undefined && rm.gst_percent !== null
+                ? rm.gst_percent.toString()
+                : ""
+              : "",
+            gst_amount: "",
           }
         } else {
           const prod = productsList.find((p) => p.id === selectedId)
@@ -376,8 +380,12 @@ function CreatePurchaseEntry() {
             product_id: selectedId,
             name: prod ? prod.name : "",
             unit_code: prod ? prod.unit_code : "",
-            gst_percent: prod ? (prod.gst_percent !== undefined && prod.gst_percent !== null ? prod.gst_percent.toString() : "") : "",
-            gst_amount: ""
+            gst_percent: prod
+              ? prod.gst_percent !== undefined && prod.gst_percent !== null
+                ? prod.gst_percent.toString()
+                : ""
+              : "",
+            gst_amount: "",
           }
         }
       })
@@ -410,7 +418,6 @@ function CreatePurchaseEntry() {
       if (isNaN(price) || price < 0) {
         return `Unit price for "${displayName}" must be a positive number.`
       }
-      // Batch number is auto-generated by the backend, no validation required here
       if (!item.batch_date) {
         return `Batch date is required for "${displayName}".`
       }
@@ -475,7 +482,7 @@ function CreatePurchaseEntry() {
 
       setWarnings(previewResponse.warnings || [])
 
-      const peIdForPreview = (createdPeId && createdPeId !== "client-preview") ? createdPeId : "client-preview"
+      const peIdForPreview = createdPeId && createdPeId !== "client-preview" ? createdPeId : "client-preview"
 
       const apiPreview = {
         ...previewResponse,
@@ -500,7 +507,6 @@ function CreatePurchaseEntry() {
   }
 
   const submitDraftToBackend = async () => {
-    // If it's already created and we have a real ID
     if (createdPeId && createdPeId !== "client-preview") {
       return createdPeId
     }
@@ -588,7 +594,6 @@ function CreatePurchaseEntry() {
       return
     }
 
-
     try {
       const res = await authorizePurchaseEntry(draftPeId, {})
       if (!res.ok) {
@@ -602,7 +607,7 @@ function CreatePurchaseEntry() {
       const redirectUrl = `/purchase/entries/create?${poId ? `po_id=${poId}&` : ""}pe_id=${draftPeId}`
       navigate(redirectUrl, {
         replace: true,
-        state: { authError: errorMessage }
+        state: { authError: errorMessage },
       })
     } finally {
       setIsAuthorizing(false)
@@ -623,7 +628,8 @@ function CreatePurchaseEntry() {
 
     const ok = await confirm({
       title: "Force authorize purchase entry?",
-      message: "This will bypass tolerance thresholds, commit goods to warehouse stock, and record an audit justification.",
+      message:
+        "This will bypass tolerance thresholds, commit goods to warehouse stock, and record an audit justification.",
       confirmLabel: "Force Authorize",
       tone: "danger",
     })
@@ -636,7 +642,7 @@ function CreatePurchaseEntry() {
     try {
       const res = await authorizePurchaseEntry(targetId, {
         is_force_authorized: true,
-        authorization_reason: overrideReason.trim()
+        authorization_reason: overrideReason.trim(),
       })
       if (!res.ok) {
         const errorJson = await res.json().catch(() => ({}))
@@ -679,8 +685,6 @@ function CreatePurchaseEntry() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Page Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(peId ? "/purchase/entries" : "/purchase/orders")}
@@ -691,11 +695,12 @@ function CreatePurchaseEntry() {
         </button>
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Record Goods Receipt (GRN)</h2>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">Match invoice specs and confirm physical items arrival in stock catalog.</p>
+          <p className="text-sm font-medium text-slate-500 mt-0.5">
+            Match invoice specs and confirm physical items arrival in stock catalog.
+          </p>
         </div>
       </div>
 
-      {/* Authorization Error Warning Banner */}
       {authError && (
         <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3.5 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-semibold text-amber-950 animate-in slide-in-from-top-2 duration-200 shadow-sm">
           <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -704,7 +709,9 @@ function CreatePurchaseEntry() {
             <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{authError}</p>
           </div>
           <div className="flex items-center gap-2 mt-2 sm:mt-0 shrink-0">
-            {(authError.toLowerCase().includes("tolerance") || authError.toLowerCase().includes("exceed") || authError.toLowerCase().includes("deviation")) && (
+            {(authError.toLowerCase().includes("tolerance") ||
+              authError.toLowerCase().includes("exceed") ||
+              authError.toLowerCase().includes("deviation")) && (
               <button
                 onClick={() => {
                   setOverrideReason("")
@@ -727,26 +734,35 @@ function CreatePurchaseEntry() {
         </div>
       )}
 
-      {/* PO Context Header or Supplier Dropdown for Direct Purchase */}
       {poDetails ? (
         <div className="bg-slate-100/60 border border-slate-200/50 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ref Purchase Order</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Ref Purchase Order
+            </span>
             <span className="text-sm font-bold text-brand-700 tabular-nums mt-1 block">{poDetails.po_number}</span>
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Supplier</span>
-            <span className="text-sm font-bold text-slate-800 uppercase mt-1 block">{poDetails.supplier_name || poDetails.supplier?.name}</span>
+            <span className="text-sm font-bold text-slate-800 uppercase mt-1 block">
+              {poDetails.supplier_name || poDetails.supplier?.name}
+            </span>
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">PO Date</span>
             <span className="text-sm font-bold text-slate-800 mt-1 block">
-              {new Date(poDetails.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+              {new Date(poDetails.created_at).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
             </span>
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total PO Items</span>
-            <span className="text-sm font-bold text-slate-800 mt-1 block">{poDetails.items?.length || 0} items ordered</span>
+            <span className="text-sm font-bold text-slate-800 mt-1 block">
+              {poDetails.items?.length || 0} items ordered
+            </span>
           </div>
         </div>
       ) : (
@@ -774,20 +790,22 @@ function CreatePurchaseEntry() {
           </div>
           <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs font-semibold text-indigo-800 self-start md:self-center">
             <span>Direct Purchase Mode</span>
-            <p className="text-[10px] text-indigo-600 mt-0.5">Logging inventory receipt without linking a prior Purchase Order.</p>
+            <p className="text-[10px] text-indigo-600 mt-0.5">
+              Logging inventory receipt without linking a prior Purchase Order.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Cancelled PO Callout */}
       {poDetails?.status === "cancelled" && (
         <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800 animate-in fade-in duration-200">
           <XCircle className="w-5 h-5 text-error-500 shrink-0" />
-          <p className="flex-1">This Purchase Order is cancelled. Deliveries cannot be logged, modified, or authorized for cancelled POs.</p>
+          <p className="flex-1">
+            This Purchase Order is cancelled. Deliveries cannot be logged, modified, or authorized for cancelled POs.
+          </p>
         </div>
       )}
 
-      {/* Error Callout */}
       {validationError && (
         <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800 animate-in fade-in duration-200">
           <AlertCircle className="w-5 h-5 text-error-500 shrink-0" />
@@ -795,7 +813,6 @@ function CreatePurchaseEntry() {
         </div>
       )}
 
-      {/* Warning Banners (Discrepancy Alerts) */}
       {warnings && warnings.length > 0 && (
         <div className="flex flex-col gap-2 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs font-semibold text-amber-900 animate-in slide-in-from-top-2 duration-200 shadow-sm">
           <div className="flex items-center gap-2">
@@ -804,14 +821,15 @@ function CreatePurchaseEntry() {
           </div>
           <ul className="list-disc pl-5 space-y-1 mt-1 text-[11px] text-amber-800">
             {warnings.map((warn, wIdx) => (
-              <li key={wIdx} className="font-medium">{warn}</li>
+              <li key={wIdx} className="font-medium">
+                {warn}
+              </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Invoice Details & Receipt Inputs */}
-      <form onSubmit={handlePreviewTax} className="space-y-6">        {/* Invoice Metadata form */}
+      <form onSubmit={handlePreviewTax} className="space-y-6">
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -825,7 +843,7 @@ function CreatePurchaseEntry() {
                 value={invoiceNumber}
                 onChange={(e) => {
                   setInvoiceNumber(e.target.value)
-                  if (previewData) setPreviewData(null) // clear preview if invoice changes
+                  if (previewData) setPreviewData(null)
                   setWarnings([])
                 }}
                 placeholder="E.g., INV/2026/089"
@@ -835,9 +853,7 @@ function CreatePurchaseEntry() {
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Invoice Date
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Invoice Date</label>
             <div className="relative">
               <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
@@ -846,7 +862,7 @@ function CreatePurchaseEntry() {
                 value={invoiceDate}
                 onChange={(e) => {
                   setInvoiceDate(e.target.value)
-                  if (previewData) setPreviewData(null) // clear preview if date changes
+                  if (previewData) setPreviewData(null)
                   setWarnings([])
                 }}
                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -854,13 +870,14 @@ function CreatePurchaseEntry() {
             </div>
           </div>
 
-
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Others / Shipping Charges (INR)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">
+                ₹
+              </span>
               <input
                 type="number"
                 step="0.01"
@@ -877,7 +894,6 @@ function CreatePurchaseEntry() {
             </div>
           </div>
 
-          {/* Place of Supply (Ship to State) */}
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Place of Supply (Ship To State) <span className="text-error-500 font-bold">*</span>
@@ -901,7 +917,6 @@ function CreatePurchaseEntry() {
           </div>
         </div>
 
-        {/* Quantities Matcher Grid */}
         <div className="bg-white border border-slate-100 shadow-md rounded-2xl p-6 space-y-4">
           <h3 className="font-bold text-slate-900 text-sm tracking-tight border-b border-slate-100 pb-3 flex items-center gap-1.5">
             <ClipboardCheck className="w-4 h-4 text-slate-400" />
@@ -914,23 +929,32 @@ function CreatePurchaseEntry() {
               const uPrice = parseFloat(row.unit_price) || 0
               const isRM = !!row.raw_material_id
 
-              const isQtyWarning = poDetails && row.min_quantity != null ? (qtyRecv < row.min_quantity || qtyRecv > row.max_quantity) : false
-              const isPriceWarning = poDetails && row.min_unit_price != null ? (uPrice < row.min_unit_price || uPrice > row.max_unit_price) : false
+              const isQtyWarning =
+                poDetails && row.min_quantity != null ? qtyRecv < row.min_quantity || qtyRecv > row.max_quantity : false
+              const isPriceWarning =
+                poDetails && row.min_unit_price != null
+                  ? uPrice < row.min_unit_price || uPrice > row.max_unit_price
+                  : false
 
               const poQty = parseFloat(row.po_quantity) || 0
               const poPrice = parseFloat(row.po_unit_price) || 0
 
               return (
                 <div key={row.id} className="py-4">
-                  {/* Top Line */}
                   <div className="flex flex-wrap gap-3 items-start justify-between">
-                    {/* Left: Dot + Item Name + Type */}
                     <div className="flex items-center gap-2 min-w-0">
                       {poDetails ? (
                         <>
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRM ? "bg-amber-400" : "bg-blue-400"}`} />
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRM ? "bg-amber-400" : "bg-blue-400"}`}
+                          />
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 leading-snug truncate" title={row.name || "Unknown Item"}>{row.name || "Unknown Item"}</p>
+                            <p
+                              className="font-bold text-slate-900 leading-snug truncate"
+                              title={row.name || "Unknown Item"}
+                            >
+                              {row.name || "Unknown Item"}
+                            </p>
                             <p className="text-[9px] text-slate-400 font-bold mt-0.5 truncate">
                               Type: {isRM ? "Raw Material" : "Finished Product"}
                             </p>
@@ -994,7 +1018,6 @@ function CreatePurchaseEntry() {
                       )}
                     </div>
 
-                    {/* Middle: Ordered PO Terms & Allowed limits */}
                     {poDetails && (
                       <div className="flex flex-col">
                         <span className="text-xs text-slate-500">
@@ -1008,7 +1031,6 @@ function CreatePurchaseEntry() {
                       </div>
                     )}
 
-                    {/* Right: Est. Subtotal + Status chip */}
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-base font-bold tabular-nums text-slate-900">
@@ -1043,9 +1065,7 @@ function CreatePurchaseEntry() {
                     </div>
                   </div>
 
-                  {/* Field Grid */}
                   <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-                    {/* 1. Qty received */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         Qty Received
@@ -1057,8 +1077,11 @@ function CreatePurchaseEntry() {
                           disabled={poDetails?.status === "cancelled"}
                           value={row.quantity_received}
                           onChange={(e) => handleItemChange(row.id, "quantity_received", e.target.value)}
-                          className={`w-full pl-2.5 pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isQtyWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
-                            }`}
+                          className={`w-full pl-2.5 pr-9 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            isQtyWarning
+                              ? "border-error-100 bg-error-50/20 font-bold"
+                              : "border-slate-200 hover:border-slate-300"
+                          }`}
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
                           {row.unit_code}
@@ -1071,21 +1094,25 @@ function CreatePurchaseEntry() {
                       )}
                     </div>
 
-                    {/* 2. Unit price */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         Unit Price
                       </label>
                       <div className="relative w-full min-w-0">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">
+                          ₹
+                        </span>
                         <input
                           type="number"
                           step="0.01"
                           disabled={poDetails?.status === "cancelled"}
                           value={row.unit_price}
                           onChange={(e) => handleItemChange(row.id, "unit_price", e.target.value)}
-                          className={`w-full pl-5 pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isPriceWarning ? "border-error-100 bg-error-50/20 font-bold" : "border-slate-200 hover:border-slate-300"
-                            }`}
+                          className={`w-full pl-5 pr-2 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            isPriceWarning
+                              ? "border-error-100 bg-error-50/20 font-bold"
+                              : "border-slate-200 hover:border-slate-300"
+                          }`}
                         />
                       </div>
                       {uPrice > 0 && isPriceWarning && (
@@ -1095,7 +1122,6 @@ function CreatePurchaseEntry() {
                       )}
                     </div>
 
-                    {/* 3. GST % */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         GST %
@@ -1112,17 +1138,20 @@ function CreatePurchaseEntry() {
                           placeholder="GST %"
                           className="w-full pl-2 pr-5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">%</span>
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 select-none">
+                          %
+                        </span>
                       </div>
                     </div>
 
-                    {/* 4. GST Amt */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         GST Amt
                       </label>
                       <div className="relative w-full min-w-0">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold tabular-nums">₹</span>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold tabular-nums">
+                          ₹
+                        </span>
                         <input
                           type="number"
                           step="0.01"
@@ -1136,7 +1165,6 @@ function CreatePurchaseEntry() {
                       </div>
                     </div>
 
-                    {/* 5. Batch Date */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         Batch Date
@@ -1152,7 +1180,6 @@ function CreatePurchaseEntry() {
                       </div>
                     </div>
 
-                    {/* 6. Expiry Date */}
                     <div className="flex flex-col min-w-0">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                         Expiry Date
@@ -1173,7 +1200,6 @@ function CreatePurchaseEntry() {
             })}
           </div>
 
-          {/* Footer under the list */}
           <div className="border-t border-slate-100 pt-4 mt-2 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-500">{items.length} items</span>
@@ -1212,18 +1238,21 @@ function CreatePurchaseEntry() {
         </div>
       </form>
 
-      {/* Preview Billing & Authorized Commit Stock Block */}
       {previewData && (
         <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-6 space-y-6 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex justify-start">
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 w-full max-w-md space-y-3 shadow-sm">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1.5">Tax Summary Details</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1.5">
+                Tax Summary Details
+              </h4>
 
               <div className="space-y-1.5 text-xs font-semibold text-slate-600">
                 <div className="flex justify-between">
                   <span>Taxable Subtotal</span>
                   <span className="tabular-nums text-slate-800 font-bold">
-                    {previewData.taxable_subtotal != null ? `₹${Number(previewData.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                    {previewData.taxable_subtotal != null
+                      ? `₹${Number(previewData.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                      : "—"}
                   </span>
                 </div>
 
@@ -1231,7 +1260,9 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>IGST Amount</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      {previewData.igst_amount != null ? `₹${Number(previewData.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {previewData.igst_amount != null
+                        ? `₹${Number(previewData.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
                 ) : (
@@ -1239,13 +1270,17 @@ function CreatePurchaseEntry() {
                     <div className="flex justify-between">
                       <span>CGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {previewData.cgst_amount != null ? `₹${Number(previewData.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {previewData.cgst_amount != null
+                          ? `₹${Number(previewData.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>SGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {previewData.sgst_amount != null ? `₹${Number(previewData.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {previewData.sgst_amount != null
+                          ? `₹${Number(previewData.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                   </>
@@ -1255,7 +1290,9 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Cess Amount</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      {(previewData.total_cess ?? previewData.cess_amount) != null ? `₹${Number(previewData.total_cess ?? previewData.cess_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {(previewData.total_cess ?? previewData.cess_amount) != null
+                        ? `₹${Number(previewData.total_cess ?? previewData.cess_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
                 )}
@@ -1264,7 +1301,9 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Shipping / Other Charges</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      {previewData.others != null ? `₹${Number(previewData.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {previewData.others != null
+                        ? `₹${Number(previewData.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
                 )}
@@ -1273,7 +1312,9 @@ function CreatePurchaseEntry() {
                   <div className="flex justify-between">
                     <span>Rounding Adjustment</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      {previewData.rounding_adjustment != null ? `₹${Number(previewData.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {previewData.rounding_adjustment != null
+                        ? `₹${Number(previewData.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
                 )}
@@ -1281,14 +1322,15 @@ function CreatePurchaseEntry() {
                 <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-800">
                   <span>Grand Total</span>
                   <span className="tabular-nums text-brand-700 text-base">
-                    {previewData.total_amount != null ? `₹${Number(previewData.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                    {previewData.total_amount != null
+                      ? `₹${Number(previewData.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                      : "—"}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Action Toolbar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 pt-4 bg-slate-50/50 p-4 -m-6 rounded-b-2xl mt-4">
             <button
               onClick={() => setPreviewData(null)}
@@ -1331,7 +1373,6 @@ function CreatePurchaseEntry() {
         </div>
       )}
 
-      {/* Success Animation Modal Overlay */}
       {showSuccessModal && (
         <Modal onClose={handleSuccessConfirm} zIndex="z-[100]">
           <div className="bg-white border border-slate-100 shadow-2xl rounded-3xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden p-8 text-center items-center space-y-5">
@@ -1342,7 +1383,8 @@ function CreatePurchaseEntry() {
             <div className="space-y-2">
               <h3 className="text-lg font-bold text-slate-900 tracking-tight">Stock Authorized Successfully!</h3>
               <p className="text-xs font-semibold text-slate-500 leading-relaxed">
-                The Goods Receipt Note (GRN) has been locked. Received items have been successfully committed and added to warehouse balances.
+                The Goods Receipt Note (GRN) has been locked. Received items have been successfully committed and added
+                to warehouse balances.
               </p>
             </div>
 
@@ -1356,13 +1398,15 @@ function CreatePurchaseEntry() {
         </Modal>
       )}
 
-      {/* Manager Override Modal Overlay */}
       {showOverrideModal && (
-        <Modal onClose={() => {
-          setShowOverrideModal(false)
-          setOverrideReason("")
-          setOverrideError("")
-        }} zIndex="z-[100]">
+        <Modal
+          onClose={() => {
+            setShowOverrideModal(false)
+            setOverrideReason("")
+            setOverrideError("")
+          }}
+          zIndex="z-[100]"
+        >
           <div className="bg-white border border-slate-100 shadow-2xl rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center gap-3 border-b border-slate-100 p-6 pb-3 shrink-0">
               <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
@@ -1374,13 +1418,11 @@ function CreatePurchaseEntry() {
               </div>
             </div>
 
-            <form
-              onSubmit={handleOverrideSubmit}
-              className="p-6 pt-3 space-y-4 overflow-y-auto flex-1 flex flex-col"
-            >
+            <form onSubmit={handleOverrideSubmit} className="p-6 pt-3 space-y-4 overflow-y-auto flex-1 flex flex-col">
               <div className="p-3.5 bg-amber-50/50 border border-amber-100 rounded-2xl text-xs font-semibold text-amber-900 leading-relaxed">
-                ⚠️ <strong>Tolerance Limits Exceeded:</strong> The received quantities/prices in this Goods Receipt exceed the 5% threshold compared to the original PO.
-                To proceed, a manager must explicitly force-authorize this entry and record an audit justification.
+                ⚠️ <strong>Tolerance Limits Exceeded:</strong> The received quantities/prices in this Goods Receipt
+                exceed the 5% threshold compared to the original PO. To proceed, a manager must explicitly
+                force-authorize this entry and record an audit justification.
               </div>
 
               {overrideError && (
@@ -1443,7 +1485,6 @@ function CreatePurchaseEntry() {
         </Modal>
       )}
 
-      {/* Authorize & Commit Confirmation Overlay */}
       {showAuthorizeConfirmModal && (
         <Modal onClose={() => setShowAuthorizeConfirmModal(false)} zIndex="z-[60]">
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
@@ -1469,7 +1510,8 @@ function CreatePurchaseEntry() {
                 Are you sure you want to authorize and commit this Purchase Entry to warehouse stock?
               </p>
               <p className="text-xs text-slate-500 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
-                This will finalize inventory receipts, update batch numbers, and log ledger transactions across the warehouse.
+                This will finalize inventory receipts, update batch numbers, and log ledger transactions across the
+                warehouse.
               </p>
             </div>
 
@@ -1495,7 +1537,6 @@ function CreatePurchaseEntry() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

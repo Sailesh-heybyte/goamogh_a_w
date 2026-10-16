@@ -20,9 +20,7 @@ const fetchUserPermissions = async (userData) => {
     const rolesRes = await getRoles()
     if (rolesRes.ok) {
       const rolesJson = await rolesRes.json()
-      const foundRole = (rolesJson.data || []).find(
-        (role) => role.name === userData.role_name
-      )
+      const foundRole = (rolesJson.data || []).find((role) => role.name === userData.role_name)
       if (foundRole) {
         return foundRole.permissions || []
       }
@@ -35,18 +33,14 @@ const fetchUserPermissions = async (userData) => {
 
 export const hasPermission = (user, permissionName) => {
   if (!user) return false
-  // 1. Super Admin bypass
   if (user.role_name === "super_admin") return true
-  // 2. Extract permissions from user or user.role
   const perms = user.permissions || user.role?.permissions
   if (!perms) return false
-  // 3. Handle Object permissions (e.g. { all: true, sales_manage: true })
-  if (typeof perms === 'object' && !Array.isArray(perms)) {
+  if (typeof perms === "object" && !Array.isArray(perms)) {
     return perms.all === true || perms[permissionName] === true
   }
-  // 4. Handle Array permissions (e.g. ["all", "sales_manage"])
   if (Array.isArray(perms)) {
-    return perms.includes('all') || perms.includes(permissionName)
+    return perms.includes("all") || perms.includes(permissionName)
   }
   return false
 }
@@ -105,7 +99,12 @@ export function AuthProvider({ children }) {
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}))
-      const msg = errJson.detail || errJson.message || (res.status === 429 ? "Too many requests. Please wait 1 minute before trying again." : "Invalid email or password")
+      const msg =
+        errJson.detail ||
+        errJson.message ||
+        (res.status === 429
+          ? "Too many requests. Please wait 1 minute before trying again."
+          : "Invalid email or password")
       const err = new Error(msg)
       err.status = res.status
       err.isRateLimit = res.status === 429
@@ -137,26 +136,24 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const authContextValue = useMemo(() => ({
-    user,
-    isLoading,
-    sessionError,
-    retrySession,
-    login,
-    logout,
-    isAuthenticated: !!user,
-    isSuperAdmin: isSuperAdminRole(user),
-    hasPermission: (perm) => hasPermission(user, perm),
-  }), [user, isLoading, sessionError, retrySession, login, logout])
-
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {children}
-    </AuthContext.Provider>
+  const authContextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      sessionError,
+      retrySession,
+      login,
+      logout,
+      isAuthenticated: !!user,
+      isSuperAdmin: isSuperAdminRole(user),
+      hasPermission: (perm) => hasPermission(user, perm),
+    }),
+    [user, isLoading, sessionError, retrySession, login, logout]
   )
+
+  return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>
 }
 
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 }
-

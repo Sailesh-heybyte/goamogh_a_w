@@ -10,38 +10,51 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const addToast = useCallback(({ type = "error", title, message, duration = 5000 }) => {
-    const id = Date.now() + Math.random().toString(36).substring(2, 9)
-    // Rate limit toasts stay slightly longer (7s) so user reads retry timing
-    const effectiveDuration = type === "rate-limit" || type === "429" ? Math.max(duration, 7000) : duration
+  const addToast = useCallback(
+    ({ type = "error", title, message, duration = 5000 }) => {
+      const id = Date.now() + Math.random().toString(36).substring(2, 9)
+      const effectiveDuration = type === "rate-limit" || type === "429" ? Math.max(duration, 7000) : duration
 
-    setToasts((prev) => [...prev, { id, type, title, message }])
+      setToasts((prev) => [...prev, { id, type, title, message }])
 
-    if (effectiveDuration > 0) {
-      setTimeout(() => {
-        removeToast(id)
-      }, effectiveDuration)
-    }
-    return id
-  }, [removeToast])
+      if (effectiveDuration > 0) {
+        setTimeout(() => {
+          removeToast(id)
+        }, effectiveDuration)
+      }
+      return id
+    },
+    [removeToast]
+  )
 
-  const showRateLimitToast = useCallback((message = "Too many requests. Please wait 1 minute before requesting another code.", title = "Rate Limit Exceeded (HTTP 429)") => {
-    return addToast({
-      type: "rate-limit",
-      title,
-      message,
-    })
-  }, [addToast])
+  const showRateLimitToast = useCallback(
+    (
+      message = "Too many requests. Please wait 1 minute before requesting another code.",
+      title = "Rate Limit Exceeded (HTTP 429)"
+    ) => {
+      return addToast({
+        type: "rate-limit",
+        title,
+        message,
+      })
+    },
+    [addToast]
+  )
 
-  const showErrorToast = useCallback((message, title = "Error") => {
-    return addToast({ type: "error", title, message })
-  }, [addToast])
+  const showErrorToast = useCallback(
+    (message, title = "Error") => {
+      return addToast({ type: "error", title, message })
+    },
+    [addToast]
+  )
 
-  const showSuccessToast = useCallback((message, title = "Success") => {
-    return addToast({ type: "success", title, message })
-  }, [addToast])
+  const showSuccessToast = useCallback(
+    (message, title = "Success") => {
+      return addToast({ type: "success", title, message })
+    },
+    [addToast]
+  )
 
-  // Listen to global rate-limit API events emitted by customFetch
   useEffect(() => {
     const handleGlobalRateLimit = (event) => {
       const msg = event.detail?.message || "Too many OTP requests. Please wait 1 minute before requesting another code."
@@ -55,17 +68,11 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast, removeToast, showRateLimitToast, showErrorToast, showSuccessToast }}>
       {children}
-      {/* Toast Render Container */}
       {toasts.length > 0 && (
         <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none">
           {toasts.map((t) => (
             <div key={t.id} className="pointer-events-auto">
-              <Toast
-                type={t.type}
-                title={t.title}
-                message={t.message}
-                onClose={() => removeToast(t.id)}
-              />
+              <Toast type={t.type} title={t.title} message={t.message} onClose={() => removeToast(t.id)} />
             </div>
           ))}
         </div>

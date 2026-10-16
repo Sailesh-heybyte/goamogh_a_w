@@ -10,7 +10,7 @@ import {
   Calculator,
   User,
   MapPin,
-  Package
+  Package,
 } from "lucide-react"
 import { createDirectSale, previewDirectSale } from "@/api/sales"
 import { searchCustomerByPhone } from "@/api/customers"
@@ -33,29 +33,23 @@ function CreateSale() {
   const confirm = useConfirm()
   const navigate = useNavigate()
 
-  // Sale Type: "retail" | "wholesale"
   const [saleType, setSaleType] = useState("retail")
 
-  // Customer Profile Form Fields
   const [phone, setPhone] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [customerState, setCustomerState] = useState("")
   const [customerGstin, setCustomerGstin] = useState("")
   const [companyName, setCompanyName] = useState("")
-  const [billType, setBillType] = useState("cash") // "cash" | "credit"
+  const [billType, setBillType] = useState("cash")
   const [addressId, setAddressId] = useState("")
   const [notes, setNotes] = useState("")
 
-  // Item Lines
-  // Array of { variant_id, quantity, rate, discount_percent }
   const [items, setItems] = useState([])
   const [showPreview, setShowPreview] = useState(false)
 
-  // Selection Lookups
   const [variantsList, setVariantsList] = useState([])
   const [customerAddresses, setCustomerAddresses] = useState([])
 
-  // Lookup & UI Loaders
   const [isSearchingPhone, setIsSearchingPhone] = useState(false)
   const [phoneFoundMsg, setPhoneFoundMsg] = useState("")
   const [phoneErrorMsg, setPhoneErrorMsg] = useState("")
@@ -63,19 +57,14 @@ function CreateSale() {
   const [error, setError] = useState("")
   const [validationError, setValidationError] = useState("")
 
-  // Preview State
   const [preview, setPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState("")
   const previewRequestIdRef = useRef(0)
 
-  // Load catalog items and pricing panels to compile rich lookup catalog
   const loadCatalog = useCallback(async () => {
     try {
-      const [itemsRes, pricingRes] = await Promise.all([
-        getItems(),
-        getPricingPanel()
-      ])
+      const [itemsRes, pricingRes] = await Promise.all([getItems(), getPricingPanel()])
 
       let itemsData = []
       if (itemsRes.ok) {
@@ -94,7 +83,7 @@ function CreateSale() {
         itemsMap[itm.id] = {
           gst_percent: itm.gst_percent,
           cess_percent: itm.cess_percent,
-          hsn_code: itm.hsn_code || ""
+          hsn_code: itm.hsn_code || "",
         }
       })
 
@@ -113,7 +102,7 @@ function CreateSale() {
             b2b_price: v.b2b_price !== null && v.b2b_price !== undefined ? parseFloat(v.b2b_price) : null,
             gst_percent: itemMeta ? itemMeta.gst_percent : null,
             cess_percent: itemMeta ? itemMeta.cess_percent : null,
-            hsn_code: itemMeta ? itemMeta.hsn_code : ""
+            hsn_code: itemMeta ? itemMeta.hsn_code : "",
           })
         })
       })
@@ -128,7 +117,6 @@ function CreateSale() {
     loadCatalog()
   }, [loadCatalog])
 
-  // Phone search lookup
   const resolveCustomerPhone = useCallback(async (phoneVal) => {
     const cleanPhone = phoneVal.replace(/\D/g, "")
     if (!/^\d{10,15}$/.test(cleanPhone)) return
@@ -161,7 +149,6 @@ function CreateSale() {
         setSaleType("wholesale")
       }
 
-      // Consolidate addresses list ensuring default address is included
       let finalAddresses = [...addressList]
       if (defaultAddr && !finalAddresses.some((a) => a.id === defaultAddr.id)) {
         finalAddresses.unshift(defaultAddr)
@@ -184,7 +171,6 @@ function CreateSale() {
     }
   }, [])
 
-  // Debounced auto trigger lookup for 10-15 digits
   useEffect(() => {
     const handler = setTimeout(() => {
       if (phone.length >= 10 && phone.length <= 15) {
@@ -198,7 +184,6 @@ function CreateSale() {
     return () => clearTimeout(handler)
   }, [phone, resolveCustomerPhone])
 
-  // Trigger price update suggestions when sale type flips (Retail B2C / Wholesale B2B)
   useEffect(() => {
     setItems((prev) =>
       prev.map((item) => {
@@ -207,7 +192,7 @@ function CreateSale() {
         if (vObj) {
           return {
             ...item,
-            rate: saleType === "wholesale" ? vObj.b2b_price : vObj.b2c_price
+            rate: saleType === "wholesale" ? vObj.b2b_price : vObj.b2c_price,
           }
         }
         return item
@@ -220,10 +205,7 @@ function CreateSale() {
   }, [items, saleType, customerState])
 
   const handleAddItemRow = () => {
-    setItems((prev) => [
-      ...prev,
-      { variant_id: "", quantity: 1, rate: "", discount_percent: "" }
-    ])
+    setItems((prev) => [...prev, { variant_id: "", quantity: 1, rate: "", discount_percent: "" }])
   }
 
   const handleDeleteItemRow = (idx) => {
@@ -236,7 +218,6 @@ function CreateSale() {
         if (i === idx) {
           const updated = { ...item, [field]: val }
 
-          // Auto price suggestions
           if (field === "variant_id") {
             const vObj = variantsList.find((v) => v.variant_id === val)
             if (vObj) {
@@ -250,32 +231,30 @@ function CreateSale() {
     )
   }
 
-  const buildPayload = useCallback(() => ({
-    sale_type: saleType,
-    customer_phone: phone.trim(),
-    customer_name: customerName.trim() || null,
-    customer_state: customerState.trim() || null,
-    customer_gstin: customerGstin.trim() || null,
-    company_name: companyName.trim() || null,
-    is_b2b: !!customerGstin.trim(),
-    bill_type: billType,
-    address_id: addressId || null,
-    notes: notes.trim() || null,
-    items: items.map((itm) => ({
-      variant_id: itm.variant_id,
-      quantity: parseFloat(itm.quantity),
-      rate: parseFloat(itm.rate),
-      discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent)
-    }))
-  }), [saleType, phone, customerName, customerState, customerGstin, companyName, billType, addressId, notes, items])
+  const buildPayload = useCallback(
+    () => ({
+      sale_type: saleType,
+      customer_phone: phone.trim(),
+      customer_name: customerName.trim() || null,
+      customer_state: customerState.trim() || null,
+      customer_gstin: customerGstin.trim() || null,
+      company_name: companyName.trim() || null,
+      is_b2b: !!customerGstin.trim(),
+      bill_type: billType,
+      address_id: addressId || null,
+      notes: notes.trim() || null,
+      items: items.map((itm) => ({
+        variant_id: itm.variant_id,
+        quantity: parseFloat(itm.quantity),
+        rate: parseFloat(itm.rate),
+        discount_percent: itm.discount_percent === "" ? 0 : parseFloat(itm.discount_percent),
+      })),
+    }),
+    [saleType, phone, customerName, customerState, customerGstin, companyName, billType, addressId, notes, items]
+  )
 
   useEffect(() => {
-    if (
-      !items.length ||
-      items.some(
-        (itm) => !itm.variant_id || itm.quantity === "" || itm.rate === ""
-      )
-    ) {
+    if (!items.length || items.some((itm) => !itm.variant_id || itm.quantity === "" || itm.rate === "")) {
       setPreview(null)
       setPreviewError("")
       setPreviewLoading(false)
@@ -331,7 +310,6 @@ function CreateSale() {
       return false
     }
 
-    // Line items validators
     for (let i = 0; i < items.length; i++) {
       const itm = items[i]
       if (!itm.variant_id) {
@@ -361,7 +339,6 @@ function CreateSale() {
     }
   }
 
-  // Form submitter
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validateForm()) return
@@ -384,7 +361,9 @@ function CreateSale() {
         throw new Error(parseErrorDetail(errJson.detail, "Failed to record direct sale."))
       }
 
-      alert("Draft direct sale recorded successfully! It will proceed through confirmation, dispatch, and delivery notifications as the order lifecycle advances.")
+      alert(
+        "Draft direct sale recorded successfully! It will proceed through confirmation, dispatch, and delivery notifications as the order lifecycle advances."
+      )
       navigate("/sales")
     } catch (err) {
       setError(err.message)
@@ -395,8 +374,6 @@ function CreateSale() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Top Header */}
       <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
         <button
           onClick={() => navigate("/sales")}
@@ -426,7 +403,6 @@ function CreateSale() {
         </div>
       )}
 
-      {/* Sale Mode Selector */}
       <div className="flex items-center gap-6 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sale Invoice Classification:</span>
         <div className="flex items-center gap-4">
@@ -456,8 +432,6 @@ function CreateSale() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 text-xs font-semibold">
-
-        {/* Customer section */}
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 uppercase tracking-wider flex items-center gap-1.5">
             <User className="w-4.5 h-4.5 text-slate-400" />
@@ -466,7 +440,9 @@ function CreateSale() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-bold text-slate-700 mb-1">Customer Phone Number <span className="text-error-500">*</span></label>
+              <label className="text-xs font-bold text-slate-700 mb-1">
+                Customer Phone Number <span className="text-error-500">*</span>
+              </label>
               <div className="relative">
                 <input
                   type="text"
@@ -483,7 +459,9 @@ function CreateSale() {
                   }}
                 />
                 {isSearchingPhone && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2"><Spinner size="sm" /></span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Spinner size="sm" />
+                  </span>
                 )}
               </div>
               {phoneFoundMsg && <p className="text-[10px] text-emerald-700 mt-1 font-bold">{phoneFoundMsg}</p>}
@@ -566,7 +544,9 @@ function CreateSale() {
                       <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
                       <span>Autofetched Delivery Address</span>
                       {selectedAddr.is_default && (
-                        <span className="ml-1 px-1.5 py-0.2 text-[9px] font-extrabold bg-brand-100 text-brand-700 rounded uppercase">Default</span>
+                        <span className="ml-1 px-1.5 py-0.2 text-[9px] font-extrabold bg-brand-100 text-brand-700 rounded uppercase">
+                          Default
+                        </span>
                       )}
                     </div>
                     <p className="font-semibold text-slate-800">
@@ -592,7 +572,9 @@ function CreateSale() {
                   <option value={customerState}>{customerState}</option>
                 )}
                 {INDIAN_STATES.map((st) => (
-                  <option key={st} value={st}>{st}</option>
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
                 ))}
               </select>
             </div>
@@ -610,7 +592,6 @@ function CreateSale() {
           </div>
         </div>
 
-        {/* Line items Section */}
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -635,9 +616,10 @@ function CreateSale() {
                 const lineTotalVal = preview?.items?.[idx]?.line_total
 
                 return (
-                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 p-3.5 border border-slate-100 rounded-xl bg-slate-50/40 relative">
-
-                    {/* Product selector */}
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 p-3.5 border border-slate-100 rounded-xl bg-slate-50/40 relative"
+                  >
                     <div className="sm:col-span-4 flex flex-col">
                       <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Product Variant</label>
                       <select
@@ -649,13 +631,12 @@ function CreateSale() {
                         <option value="">Select Variant...</option>
                         {variantsList.map((v) => (
                           <option key={v.variant_id} value={v.variant_id}>
-                            {v.display_name} (MRP: {v.mrp !== null && v.mrp !== undefined ? `₹${v.mrp}` : 'Not Set'})
+                            {v.display_name} (MRP: {v.mrp !== null && v.mrp !== undefined ? `₹${v.mrp}` : "Not Set"})
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {/* Quantity */}
                     <div className="sm:col-span-2 flex flex-col">
                       <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Quantity</label>
                       <input
@@ -669,7 +650,6 @@ function CreateSale() {
                       />
                     </div>
 
-                    {/* Rate */}
                     <div className="sm:col-span-2 flex flex-col">
                       <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Rate (₹)</label>
                       <input
@@ -684,7 +664,6 @@ function CreateSale() {
                       />
                     </div>
 
-                    {/* Discount percent */}
                     <div className="sm:col-span-2 flex flex-col">
                       <label className="text-[10px] font-bold text-slate-400 uppercase mb-1">Discount %</label>
                       <input
@@ -700,7 +679,6 @@ function CreateSale() {
                       />
                     </div>
 
-                    {/* Total */}
                     <div className="sm:col-span-1.5 flex flex-col justify-center text-right pr-6 min-h-[45px]">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">Line Total</span>
                       <span className="tabular-nums font-bold text-slate-800">
@@ -708,7 +686,6 @@ function CreateSale() {
                       </span>
                     </div>
 
-                    {/* Delete row button */}
                     <button
                       type="button"
                       onClick={() => handleDeleteItemRow(idx)}
@@ -716,7 +693,6 @@ function CreateSale() {
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-
                   </div>
                 )
               })}
@@ -750,14 +726,15 @@ function CreateSale() {
               <span>Invoice Summary</span>
             </h3>
 
-            {/* Items Preview Table */}
             <div className="border border-slate-100 rounded-xl mb-4 bg-white shadow-sm w-full">
               <table className="w-full text-left border-collapse table-fixed text-xs">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-100/70 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                     <th className="px-3 py-2 w-[50%] md:w-[35%] lg:w-[28%] xl:w-[28%]">Item</th>
                     <th className="px-3 py-2 text-right w-[22%] md:w-[15%] lg:w-[12%] xl:w-[10%]">Qty</th>
-                    <th className="hidden md:table-cell px-3 py-2 text-right w-[16%] lg:w-[14%] xl:w-[14%]">Unit Price</th>
+                    <th className="hidden md:table-cell px-3 py-2 text-right w-[16%] lg:w-[14%] xl:w-[14%]">
+                      Unit Price
+                    </th>
                     <th className="hidden xl:table-cell px-3 py-2 text-right w-[14%]">Gross</th>
                     <th className="hidden lg:table-cell px-3 py-2 text-center w-[10%]">Discount</th>
                     <th className="hidden lg:table-cell px-3 py-2 text-center w-[10%]">GST %</th>
@@ -773,12 +750,15 @@ function CreateSale() {
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50">
                         <td className="px-3 py-2 font-bold text-slate-800">
-                          <div className="truncate" title={itemName}>{itemName}</div>
+                          <div className="truncate" title={itemName}>
+                            {itemName}
+                          </div>
                           <div className="md:hidden text-[10px] text-slate-400 font-normal truncate">
                             Rate: {item.rate != null && item.rate !== "" ? `₹${Number(item.rate).toFixed(2)}` : "—"}
                           </div>
                           <div className="lg:hidden text-[10px] text-slate-400 font-normal truncate">
-                            {pItem?.discount_percent != null ? `Disc: ${pItem.discount_percent}% • ` : ""}GST: {pItem?.gst_percent != null ? `${pItem.gst_percent}%` : "—"}
+                            {pItem?.discount_percent != null ? `Disc: ${pItem.discount_percent}% • ` : ""}GST:{" "}
+                            {pItem?.gst_percent != null ? `${pItem.gst_percent}%` : "—"}
                           </div>
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{item.quantity}</td>
@@ -814,7 +794,9 @@ function CreateSale() {
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Allowed Discount</span>
                 <p className="text-base font-extrabold text-rose-700 tabular-nums">
-                  {preview?.total_discount_amount != null ? `-₹${Number(preview.total_discount_amount).toFixed(2)}` : "—"}
+                  {preview?.total_discount_amount != null
+                    ? `-₹${Number(preview.total_discount_amount).toFixed(2)}`
+                    : "—"}
                 </p>
               </div>
               <div>
@@ -831,20 +813,43 @@ function CreateSale() {
               </div>
             </div>
 
-            {preview && (Number(preview.total_cgst_amount) > 0 || Number(preview.total_sgst_amount) > 0 || Number(preview.total_igst_amount) > 0) && (
-              <div className="flex flex-wrap gap-4 sm:gap-6 text-[11px] font-bold text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                {Number(preview.total_cgst_amount) > 0 && <span>CGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_cgst_amount).toFixed(2)}</span></span>}
-                {Number(preview.total_sgst_amount) > 0 && <span>SGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_sgst_amount).toFixed(2)}</span></span>}
-                {Number(preview.total_igst_amount) > 0 && <span>IGST: <span className="tabular-nums font-extrabold text-slate-800">₹{Number(preview.total_igst_amount).toFixed(2)}</span></span>}
-              </div>
-            )}
+            {preview &&
+              (Number(preview.total_cgst_amount) > 0 ||
+                Number(preview.total_sgst_amount) > 0 ||
+                Number(preview.total_igst_amount) > 0) && (
+                <div className="flex flex-wrap gap-4 sm:gap-6 text-[11px] font-bold text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                  {Number(preview.total_cgst_amount) > 0 && (
+                    <span>
+                      CGST:{" "}
+                      <span className="tabular-nums font-extrabold text-slate-800">
+                        ₹{Number(preview.total_cgst_amount).toFixed(2)}
+                      </span>
+                    </span>
+                  )}
+                  {Number(preview.total_sgst_amount) > 0 && (
+                    <span>
+                      SGST:{" "}
+                      <span className="tabular-nums font-extrabold text-slate-800">
+                        ₹{Number(preview.total_sgst_amount).toFixed(2)}
+                      </span>
+                    </span>
+                  )}
+                  {Number(preview.total_igst_amount) > 0 && (
+                    <span>
+                      IGST:{" "}
+                      <span className="tabular-nums font-extrabold text-slate-800">
+                        ₹{Number(preview.total_igst_amount).toFixed(2)}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
 
-            {previewError && (
-              <p className="text-xs text-error-800 font-semibold">{previewError}</p>
-            )}
+            {previewError && <p className="text-xs text-error-800 font-semibold">{previewError}</p>}
 
             <p className="text-[10px] text-slate-400 font-semibold leading-relaxed mt-2">
-              Note: Direct sales are created in **draft** status. Varied stock levels deduction occurs only upon manual order confirmation.
+              Note: Direct sales are created in **draft** status. Varied stock levels deduction occurs only upon manual
+              order confirmation.
             </p>
 
             <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-slate-100 pt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
@@ -866,7 +871,6 @@ function CreateSale() {
             </div>
           </div>
         )}
-
       </form>
     </div>
   )

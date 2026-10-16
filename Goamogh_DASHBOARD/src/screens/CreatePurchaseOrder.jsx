@@ -10,13 +10,13 @@ import {
   ChevronDown,
   Package,
   Wheat,
-  LayoutGrid
+  LayoutGrid,
 } from "lucide-react"
 import {
   createPurchaseOrder,
   getPurchaseOrderDetails,
   updatePurchaseOrder,
-  getPurchaseOrderFormData
+  getPurchaseOrderFormData,
 } from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import useConfirm from "@/hooks/useConfirm"
@@ -25,16 +25,13 @@ function CreatePurchaseOrder() {
   const confirm = useConfirm()
   const navigate = useNavigate()
 
-  // Search Params for Edit Mode
   const [searchParams] = useSearchParams()
   const poId = searchParams.get("po_id")
 
-  // API Data
   const [suppliers, setSuppliers] = useState([])
   const [rawMaterials, setRawMaterials] = useState([])
   const [products, setProducts] = useState([])
 
-  // Form State
   const [selectedSupplier, setSelectedSupplier] = useState(null)
   const [startDate, setStartDate] = useState(new Date().toISOString().substring(0, 10))
   const [endDate, setEndDate] = useState(
@@ -50,21 +47,19 @@ function CreatePurchaseOrder() {
   const [items, setItems] = useState(() => [
     {
       id: "row-" + Date.now(),
-      itemType: "raw_material", // "raw_material" | "product"
+      itemType: "raw_material",
       itemId: "",
       quantity: "",
       unitPrice: "",
       hsnCode: "",
-    }
+    },
   ])
 
-  // UI States
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState("")
   const [validationError, setValidationError] = useState("")
 
-  // Supplier Search Dropdown states
   const [supplierSearch, setSupplierSearch] = useState("")
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
   const supplierDropdownRef = useRef(null)
@@ -74,7 +69,6 @@ function CreatePurchaseOrder() {
       setIsLoading(true)
       setError("")
       try {
-        // Fetch baseline data
         const formRes = await getPurchaseOrderFormData()
         if (!formRes.ok) throw new Error("Failed to load purchase order form data")
         const formJson = await formRes.json()
@@ -84,7 +78,6 @@ function CreatePurchaseOrder() {
         setRawMaterials(bundle.raw_materials)
         setProducts(bundle.products)
 
-        // If in edit mode, fetch draft PO details
         if (poId) {
           const poRes = await getPurchaseOrderDetails(poId)
           if (!poRes.ok) throw new Error("Failed to load matching Purchase Order details")
@@ -98,7 +91,7 @@ function CreatePurchaseOrder() {
           setNotes(po.notes || "")
           setSelectedSupplier({
             id: po.supplier_id,
-            name: po.supplier_name || po.supplier?.name || po.supplier?.contact_name || ""
+            name: po.supplier_name || po.supplier?.name || po.supplier?.contact_name || "",
           })
           setSupplierSearch(po.supplier_name || po.supplier?.name || po.supplier?.contact_name || "")
           if (po.start_date) setStartDate(po.start_date.split("T")[0])
@@ -109,8 +102,6 @@ function CreatePurchaseOrder() {
           if (po.fob) setFob(po.fob)
           if (po.terms) setTerms(po.terms)
 
-
-          // Map items from backend to input row state
           if (po.items && po.items.length > 0) {
             const mappedItems = po.items.map((item) => ({
               id: item.id || "row-" + Date.now() + Math.random(),
@@ -132,7 +123,6 @@ function CreatePurchaseOrder() {
     loadData()
   }, [poId])
 
-  // Close supplier dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target)) {
@@ -153,7 +143,7 @@ function CreatePurchaseOrder() {
         quantity: "",
         unitPrice: "",
         hsnCode: "",
-      }
+      },
     ])
     setValidationError("")
   }
@@ -173,7 +163,7 @@ function CreatePurchaseOrder() {
         if (item.id === rowId) {
           const updated = { ...item, [field]: value }
           if (field === "itemType") {
-            updated.itemId = "" // reset selection if type toggles
+            updated.itemId = ""
             updated.hsnCode = ""
           } else if (field === "itemId") {
             const isRM = item.itemType === "raw_material"
@@ -252,11 +242,9 @@ function CreatePurchaseOrder() {
 
     setIsSaving(true)
     try {
-      // Map items to backend payload format
       const formattedItems = items.map((row) => {
         const isRM = row.itemType === "raw_material"
 
-        // Find unit code
         const selectedItemObj = isRM
           ? rawMaterials.find((rm) => rm.id === row.itemId)
           : products.find((p) => p.id === row.itemId)
@@ -275,7 +263,6 @@ function CreatePurchaseOrder() {
 
       let res
       if (poId) {
-        // PUT Update payload (does not include supplier_id)
         const payload = {
           start_date: `${startDate}T00:00:00Z`,
           end_date: `${endDate}T23:59:59Z`,
@@ -286,11 +273,9 @@ function CreatePurchaseOrder() {
           shipped_via: shippedVia.trim() || null,
           fob: fob.trim() || null,
           terms: terms.trim() || null,
-
         }
         res = await updatePurchaseOrder(poId, payload)
       } else {
-        // POST Create payload
         const payload = {
           supplier_id: selectedSupplier.id,
           start_date: `${startDate}T00:00:00Z`,
@@ -302,7 +287,6 @@ function CreatePurchaseOrder() {
           shipped_via: shippedVia.trim() || null,
           fob: fob.trim() || null,
           terms: terms.trim() || null,
-
         }
         res = await createPurchaseOrder(payload)
       }
@@ -320,7 +304,6 @@ function CreatePurchaseOrder() {
     }
   }
 
-  // Filter supplier list on keyboard input
   const filteredSuppliers = suppliers.filter((s) => {
     const term = supplierSearch.toLowerCase()
     const nameMatch = s.name?.toLowerCase().includes(term)
@@ -355,8 +338,6 @@ function CreatePurchaseOrder() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Header with Back button */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate("/purchase/orders")}
@@ -366,14 +347,18 @@ function CreatePurchaseOrder() {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{poId ? "Edit Purchase Order" : "Create Purchase Order"}</h2>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">{poId ? "Modify draft purchase order notes and line item quantities." : "Create a new purchase order with raw material or finished product line items, which will be automatically sent to the supplier."}</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {poId ? "Edit Purchase Order" : "Create Purchase Order"}
+          </h2>
+          <p className="text-sm font-medium text-slate-500 mt-0.5">
+            {poId
+              ? "Modify draft purchase order notes and line item quantities."
+              : "Create a new purchase order with raw material or finished product line items, which will be automatically sent to the supplier."}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-
-        {/* Error Callout */}
         {validationError && (
           <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800 animate-in fade-in duration-200">
             <AlertCircle className="w-5 h-5 text-error-500 shrink-0" />
@@ -381,10 +366,7 @@ function CreatePurchaseOrder() {
           </div>
         )}
 
-        {/* PO Form Fields */}
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* Supplier Search Dropdown Field */}
           <div className="flex flex-col relative" ref={supplierDropdownRef}>
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Supplier / Vendor <span className="text-error-500 font-bold">*</span>
@@ -398,16 +380,17 @@ function CreatePurchaseOrder() {
                 value={supplierSearch}
                 onChange={(e) => {
                   setSupplierSearch(e.target.value)
-                  setSelectedSupplier(null) // clear selected if editing search
+                  setSelectedSupplier(null)
                   setShowSupplierDropdown(true)
                 }}
                 onFocus={() => !poId && setShowSupplierDropdown(true)}
                 className="w-full pl-10 pr-10 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
               />
-              {!poId && <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />}
+              {!poId && (
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+              )}
             </div>
 
-            {/* Suggestions Overlay */}
             {showSupplierDropdown && (
               <div className="absolute top-[102%] left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-50 py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                 {filteredSuppliers.length === 0 ? (
@@ -436,7 +419,6 @@ function CreatePurchaseOrder() {
             )}
           </div>
 
-          {/* Payment Type */}
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Payment Terms <span className="text-error-500 font-bold">*</span>
@@ -451,11 +433,8 @@ function CreatePurchaseOrder() {
             </select>
           </div>
 
-          {/* Ordered By */}
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Ordered By
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ordered By</label>
             <input
               type="text"
               value={orderedBy}
@@ -465,11 +444,8 @@ function CreatePurchaseOrder() {
             />
           </div>
 
-          {/* Shipped Via */}
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Shipped Via
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Shipped Via</label>
             <select
               value={shippedVia}
               onChange={(e) => setShippedVia(e.target.value)}
@@ -484,30 +460,22 @@ function CreatePurchaseOrder() {
             </select>
           </div>
 
-          {/* FOB Point */}
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              F.O.B. Point
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">F.O.B. Point</label>
             <select
               value={fob}
               onChange={(e) => setFob(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all bg-white font-semibold text-slate-700"
             >
-              {!["Buyer", "Supplier", "Both (LS & DB)"].includes(fob) && fob && (
-                <option value={fob}>{fob}</option>
-              )}
+              {!["Buyer", "Supplier", "Both (LS & DB)"].includes(fob) && fob && <option value={fob}>{fob}</option>}
               <option value="Buyer">Buyer</option>
               <option value="Supplier">Supplier</option>
               <option value="Both (LS & DB)">Both (LS & DB)</option>
             </select>
           </div>
 
-          {/* Agreement Terms Details */}
           <div className="flex flex-col">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Agreement Terms
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Agreement Terms</label>
             <input
               type="text"
               value={terms}
@@ -517,9 +485,6 @@ function CreatePurchaseOrder() {
             />
           </div>
 
-
-
-          {/* Start Date */}
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               PO Start Date <span className="text-error-500 font-bold">*</span>
@@ -532,7 +497,6 @@ function CreatePurchaseOrder() {
             />
           </div>
 
-          {/* End Date */}
           <div className="flex flex-col">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               PO End Date <span className="text-error-500 font-bold">*</span>
@@ -545,7 +509,6 @@ function CreatePurchaseOrder() {
             />
           </div>
 
-          {/* Notes field */}
           <div className="flex flex-col md:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
               Remarks & Shipping Notes
@@ -560,7 +523,6 @@ function CreatePurchaseOrder() {
           </div>
         </div>
 
-        {/* Line Items Table Creator */}
         <div className="bg-white border border-slate-100 shadow-md rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 className="font-bold text-slate-900 text-sm tracking-tight flex items-center gap-1.5">
@@ -595,8 +557,6 @@ function CreatePurchaseOrder() {
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/20 align-top">
-
-                      {/* Item Type Selector */}
                       <td className="hidden md:table-cell px-3 py-3">
                         <select
                           value={row.itemType}
@@ -608,7 +568,6 @@ function CreatePurchaseOrder() {
                         </select>
                       </td>
 
-                      {/* Item Selector */}
                       <td className="px-2 sm:px-3 py-3">
                         <div className="md:hidden mb-1.5">
                           <select
@@ -641,7 +600,6 @@ function CreatePurchaseOrder() {
                         </div>
                       </td>
 
-                      {/* Quantity Input */}
                       <td className="px-2 sm:px-3 py-3">
                         <div className="relative">
                           <input
@@ -653,15 +611,16 @@ function CreatePurchaseOrder() {
                             className="w-full pl-2 pr-7 sm:pl-3 sm:pr-10 py-1.5 sm:py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold text-slate-400">
-                            {selectedOptions.find(opt => opt.id === row.itemId)?.unit_code || "UNIT"}
+                            {selectedOptions.find((opt) => opt.id === row.itemId)?.unit_code || "UNIT"}
                           </span>
                         </div>
                       </td>
 
-                      {/* Unit Price Input */}
                       <td className="px-2 sm:px-3 py-3">
                         <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">₹</span>
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold tabular-nums">
+                            ₹
+                          </span>
                           <input
                             type="number"
                             step="0.01"
@@ -673,7 +632,6 @@ function CreatePurchaseOrder() {
                         </div>
                       </td>
 
-                      {/* Remove Button */}
                       <td className="px-1 sm:px-3 py-3 text-right whitespace-nowrap">
                         <button
                           type="button"
@@ -692,7 +650,6 @@ function CreatePurchaseOrder() {
           </div>
         </div>
 
-        {/* Submit Toolbar */}
         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-4">
           <button
             type="button"
@@ -721,7 +678,6 @@ function CreatePurchaseOrder() {
             )}
           </button>
         </div>
-
       </form>
     </div>
   )

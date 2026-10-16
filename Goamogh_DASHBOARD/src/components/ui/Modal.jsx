@@ -21,7 +21,9 @@ function Modal({ onClose, children, zIndex = "z-50" }) {
   }, [])
 
   return createPortal(
-    <div className={`modal-overlay fixed inset-0 ${zIndex} flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm`}>
+    <div
+      className={`modal-overlay fixed inset-0 ${zIndex} flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm`}
+    >
       {children}
     </div>,
     document.body

@@ -1,6 +1,5 @@
 import { customFetch } from "./api"
 
-
 export const getContactEnquiries = async () => {
   const res = await customFetch("/api/v1/auth/contact/enquiries")
   if (!res.ok) {

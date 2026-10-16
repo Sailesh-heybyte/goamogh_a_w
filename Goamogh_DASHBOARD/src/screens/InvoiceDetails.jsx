@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import {
-  ArrowLeft,
-  Printer,
-  AlertCircle,
-  FileText,
-  CheckCircle,
-  ExternalLink
-} from "lucide-react"
+import { ArrowLeft, Printer, AlertCircle, FileText, CheckCircle, ExternalLink } from "lucide-react"
 import { getInvoiceDetails } from "@/api/invoices"
 import Spinner from "@/components/ui/Spinner"
 import "../styles/print.css"
@@ -19,7 +12,6 @@ function InvoiceDetails() {
   const [invoice, setInvoice] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
-
 
   const loadInvoice = useCallback(async () => {
     setIsLoading(true)
@@ -51,13 +43,15 @@ function InvoiceDetails() {
     return new Date(isoString).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
   if (isLoading) {
     return (
-      <div className="flex-grow flex items-center justify-center py-20"><Spinner size="lg" /></div>
+      <div className="flex-grow flex items-center justify-center py-20">
+        <Spinner size="lg" />
+      </div>
     )
   }
 
@@ -85,10 +79,6 @@ function InvoiceDetails() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
-
-
-
-      {/* Top Header Block: Hide in printing */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 no-print">
         <div className="flex items-center gap-3">
           <button
@@ -101,7 +91,9 @@ function InvoiceDetails() {
             <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
               <span>Sales & Accounts</span>
               <span>/</span>
-              <span className="cursor-pointer hover:text-brand-600" onClick={() => navigate("/invoices")}>Invoices</span>
+              <span className="cursor-pointer hover:text-brand-600" onClick={() => navigate("/invoices")}>
+                Invoices
+              </span>
               <span>/</span>
               <span className="text-slate-800 font-bold">{invoice.invoice_number}</span>
             </div>
@@ -130,10 +122,7 @@ function InvoiceDetails() {
         </div>
       </div>
 
-      {/* Invoice Page Layout */}
       <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-8 max-w-4xl mx-auto w-full print-card text-xs font-semibold text-slate-700 space-y-6">
-
-        {/* Invoice Top Heading Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-slate-200 pb-5 items-start">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
@@ -149,23 +138,39 @@ function InvoiceDetails() {
             <p className="text-slate-500 font-medium leading-relaxed max-w-sm">
               Door No: 3-11-8, Kandukuri Vari Street, Ramnagar, Nidadavole, East Godavari, Andhra Pradesh - 534301
             </p>
-            <p className="tabular-nums text-slate-900">GSTIN: <span className="font-bold text-slate-800">37AAMCG3553B1ZP</span></p>
-            <p className="tabular-nums">State: <span className="font-bold">Andhra Pradesh</span></p>
+            <p className="tabular-nums text-slate-900">
+              GSTIN: <span className="font-bold text-slate-800">37AAMCG3553B1ZP</span>
+            </p>
+            <p className="tabular-nums">
+              State: <span className="font-bold">Andhra Pradesh</span>
+            </p>
           </div>
 
           <div className="text-left sm:text-right space-y-1">
             <h2 className="text-xl font-extrabold text-brand-700 uppercase tracking-wide">Tax Invoice</h2>
-            <p className="tabular-nums">Invoice No: <span className="font-bold text-slate-900">{invoice.invoice_number}</span></p>
-            <p className="tabular-nums text-slate-400">Order Ref: <span className="font-bold text-slate-600">{sale.sale_number}</span></p>
-            <p className="tabular-nums mt-1">Invoice Date: <span className="font-bold text-slate-800">{formatShortDate(invoice.invoice_date || invoice.created_at)}</span></p>
-            <p className="tabular-nums">Due Date: <span className="text-slate-400 font-bold">{formatShortDate(invoice.due_date)}</span></p>
+            <p className="tabular-nums">
+              Invoice No: <span className="font-bold text-slate-900">{invoice.invoice_number}</span>
+            </p>
+            <p className="tabular-nums text-slate-400">
+              Order Ref: <span className="font-bold text-slate-600">{sale.sale_number}</span>
+            </p>
+            <p className="tabular-nums mt-1">
+              Invoice Date:{" "}
+              <span className="font-bold text-slate-800">
+                {formatShortDate(invoice.invoice_date || invoice.created_at)}
+              </span>
+            </p>
+            <p className="tabular-nums">
+              Due Date: <span className="text-slate-400 font-bold">{formatShortDate(invoice.due_date)}</span>
+            </p>
           </div>
         </div>
 
-        {/* Bill to section */}
         <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-6 leading-relaxed">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Bill To (Customer Details)</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Bill To (Customer Details)
+            </span>
             <p className="text-slate-900 font-extrabold text-sm">{sale.customer_name || "Walk-in Customer"}</p>
             {sale.company_name && <p className="font-bold text-slate-700">{sale.company_name}</p>}
             {sale.customer_phone && <p className="tabular-nums">Phone: {sale.customer_phone}</p>}
@@ -175,17 +180,22 @@ function InvoiceDetails() {
           </div>
 
           <div className="space-y-1 md:border-l md:border-slate-200 md:pl-6">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Shipping Destination / Delivery Address</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Shipping Destination / Delivery Address
+            </span>
             <p className="font-semibold text-slate-800 leading-normal">
               {sale.delivery_address || "No shipping destination specified (Physical Counter Sale)."}
             </p>
-            <p className="text-[10px] text-slate-400">Supply State: <span className="font-bold text-slate-600">{sale.customer_state || "Goa"}</span></p>
+            <p className="text-[10px] text-slate-400">
+              Supply State: <span className="font-bold text-slate-600">{sale.customer_state || "Goa"}</span>
+            </p>
           </div>
         </div>
 
-        {/* Items Table */}
         <div className="space-y-2">
-          <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Product Inventory Line Items</h3>
+          <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            Product Inventory Line Items
+          </h3>
           <div className="w-full border border-slate-100 rounded-xl bg-white">
             <table className="w-full text-left border-collapse table-fixed text-xs">
               <thead>
@@ -194,7 +204,9 @@ function InvoiceDetails() {
                   <th className="px-3 py-3 w-[48%] md:w-[32%] lg:w-[26%] xl:w-[23%]">Description of Goods</th>
                   <th className="px-2 py-3 tabular-nums text-center hidden xl:table-cell xl:w-[8%]">HSN</th>
                   <th className="px-2 py-3 text-right w-[24%] md:w-[12%] lg:w-[10%] xl:w-[8%]">Qty</th>
-                  <th className="px-2 py-3 text-right hidden md:table-cell md:w-[14%] lg:w-[11%] xl:w-[9%]">Rate (₹)</th>
+                  <th className="px-2 py-3 text-right hidden md:table-cell md:w-[14%] lg:w-[11%] xl:w-[9%]">
+                    Rate (₹)
+                  </th>
                   <th className="px-2 py-3 text-right hidden xl:table-cell xl:w-[7%]">Disc %</th>
                   <th className="px-2 py-3 text-right hidden lg:table-cell lg:w-[14%] xl:w-[11%]">Taxable Val</th>
                   <th className="px-2 py-3 text-right hidden lg:table-cell lg:w-[10%] xl:w-[7%]">GST %</th>
@@ -204,38 +216,63 @@ function InvoiceDetails() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {sale.items?.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/20 transition-colors">
-                      <td className="px-2 py-3 text-center text-slate-400 font-bold whitespace-nowrap hidden md:table-cell">{idx + 1}</td>
-                      <td className="px-3 py-3 min-w-0">
-                        <p className="font-bold text-slate-900 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
-                        <div className="text-[10px] text-slate-400 tabular-nums truncate">
-                          <span>HSN: {item.hsn_code || "—"}</span>
-                          <span className="md:hidden"> • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</span>
-                          <span className="lg:hidden"> • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-3 tabular-nums text-center text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.hsn_code || "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity != null ? item.quantity : "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">{item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap hidden lg:table-cell">{item.taxable_amount != null ? `₹${parseFloat(item.taxable_amount).toFixed(2)}` : "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">{item.gst_amount != null ? `₹${parseFloat(item.gst_amount).toFixed(2)}` : "—"}</td>
-                      <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">{item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}</td>
-                    </tr>
+                  <tr key={item.id} className="hover:bg-slate-50/20 transition-colors">
+                    <td className="px-2 py-3 text-center text-slate-400 font-bold whitespace-nowrap hidden md:table-cell">
+                      {idx + 1}
+                    </td>
+                    <td className="px-3 py-3 min-w-0">
+                      <p className="font-bold text-slate-900 truncate" title={item.variant_display_name}>
+                        {item.variant_display_name}
+                      </p>
+                      <div className="text-[10px] text-slate-400 tabular-nums truncate">
+                        <span>HSN: {item.hsn_code || "—"}</span>
+                        <span className="md:hidden">
+                          {" "}
+                          • Rate: {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}
+                        </span>
+                        <span className="lg:hidden">
+                          {" "}
+                          • GST: {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 tabular-nums text-center text-slate-500 whitespace-nowrap hidden xl:table-cell">
+                      {item.hsn_code || "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap">
+                      {item.quantity != null ? item.quantity : "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">
+                      {item.rate != null ? `₹${parseFloat(item.rate).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">
+                      {item.discount_percent != null ? `${parseFloat(item.discount_percent).toFixed(2)}%` : "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-900 whitespace-nowrap hidden lg:table-cell">
+                      {item.taxable_amount != null ? `₹${parseFloat(item.taxable_amount).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">
+                      {item.gst_percent != null ? `${parseFloat(item.gst_percent).toFixed(2)}%` : "—"}
+                    </td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-500 whitespace-nowrap hidden xl:table-cell">
+                      {item.gst_amount != null ? `₹${parseFloat(item.gst_amount).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                      {item.total_amount != null ? `₹${parseFloat(item.total_amount).toFixed(2)}` : "—"}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Breakdown split columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className="space-y-4">
-
-            {/* Payment Summary */}
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Receipt Settlement</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Receipt Settlement
+              </span>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold">Settlement Status:</span>
                 {invoice.payment_status === "paid" ? (
@@ -249,11 +286,17 @@ function InvoiceDetails() {
                   </span>
                 )}
               </div>
-              <p>Settled Amount: <span className="tabular-nums font-bold text-slate-900">{invoice.paid_amount != null ? `₹${parseFloat(invoice.paid_amount).toFixed(2)}` : "—"}</span></p>
-              {invoice.notes && <p className="text-[10px] text-slate-400 mt-1 leading-normal font-semibold">Memo: {invoice.notes}</p>}
+              <p>
+                Settled Amount:{" "}
+                <span className="tabular-nums font-bold text-slate-900">
+                  {invoice.paid_amount != null ? `₹${parseFloat(invoice.paid_amount).toFixed(2)}` : "—"}
+                </span>
+              </p>
+              {invoice.notes && (
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal font-semibold">Memo: {invoice.notes}</p>
+              )}
             </div>
 
-            {/* Print Disclaimer */}
             <div className="text-[9px] text-slate-400 leading-relaxed font-semibold">
               <p>Terms & Conditions:</p>
               <ul className="list-decimal pl-3 space-y-0.5">
@@ -261,52 +304,66 @@ function InvoiceDetails() {
                 <li>This document is a computer-generated Tax Invoice and requires no physical signature.</li>
               </ul>
             </div>
-
           </div>
 
-          {/* Right Calculations block */}
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5 text-slate-600 font-semibold">
             <div className="flex justify-between">
               <span>Gross Total:</span>
-              <span className="tabular-nums text-slate-900">{invoice.total_gross_amount != null ? `₹${parseFloat(invoice.total_gross_amount).toFixed(2)}` : "—"}</span>
+              <span className="tabular-nums text-slate-900">
+                {invoice.total_gross_amount != null ? `₹${parseFloat(invoice.total_gross_amount).toFixed(2)}` : "—"}
+              </span>
             </div>
 
             {invoice.total_discount_amount > 0 && (
               <div className="flex justify-between text-rose-700 text-[11px]">
                 <span>Total Discount Applied:</span>
-                <span className="tabular-nums">{invoice.total_discount_amount != null ? `-₹${parseFloat(invoice.total_discount_amount).toFixed(2)}` : "—"}</span>
+                <span className="tabular-nums">
+                  {invoice.total_discount_amount != null
+                    ? `-₹${parseFloat(invoice.total_discount_amount).toFixed(2)}`
+                    : "—"}
+                </span>
               </div>
             )}
 
             <div className="flex justify-between pt-1.5 border-t border-slate-200">
               <span>Taxable Value:</span>
-              <span className="tabular-nums text-slate-900 font-bold">{invoice.total_taxable_amount != null ? `₹${parseFloat(invoice.total_taxable_amount).toFixed(2)}` : "—"}</span>
+              <span className="tabular-nums text-slate-900 font-bold">
+                {invoice.total_taxable_amount != null ? `₹${parseFloat(invoice.total_taxable_amount).toFixed(2)}` : "—"}
+              </span>
             </div>
 
             {invoice.total_cgst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>CGST:</span>
-                <span className="tabular-nums">{invoice.total_cgst_amount != null ? `₹${parseFloat(invoice.total_cgst_amount).toFixed(2)}` : "—"}</span>
+                <span className="tabular-nums">
+                  {invoice.total_cgst_amount != null ? `₹${parseFloat(invoice.total_cgst_amount).toFixed(2)}` : "—"}
+                </span>
               </div>
             )}
 
             {invoice.total_sgst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>SGST:</span>
-                <span className="tabular-nums">{invoice.total_sgst_amount != null ? `₹${parseFloat(invoice.total_sgst_amount).toFixed(2)}` : "—"}</span>
+                <span className="tabular-nums">
+                  {invoice.total_sgst_amount != null ? `₹${parseFloat(invoice.total_sgst_amount).toFixed(2)}` : "—"}
+                </span>
               </div>
             )}
 
             {invoice.total_igst_amount > 0 && (
               <div className="flex justify-between text-[11px]">
                 <span>IGST:</span>
-                <span className="tabular-nums">{invoice.total_igst_amount != null ? `₹${parseFloat(invoice.total_igst_amount).toFixed(2)}` : "—"}</span>
+                <span className="tabular-nums">
+                  {invoice.total_igst_amount != null ? `₹${parseFloat(invoice.total_igst_amount).toFixed(2)}` : "—"}
+                </span>
               </div>
             )}
 
             <div className="border-t border-slate-200 pt-2.5 flex justify-between items-baseline text-slate-900 font-bold">
               <span className="text-xs uppercase">Grand Invoice Value:</span>
-              <span className="text-base font-extrabold tabular-nums text-brand-700">{invoice.total_amount != null ? `₹${parseFloat(invoice.total_amount).toFixed(2)}` : "—"}</span>
+              <span className="text-base font-extrabold tabular-nums text-brand-700">
+                {invoice.total_amount != null ? `₹${parseFloat(invoice.total_amount).toFixed(2)}` : "—"}
+              </span>
             </div>
 
             <div className="pt-4 border-t border-slate-200 flex flex-col items-end pr-1 gap-1 text-[10px] text-slate-400">
@@ -315,9 +372,7 @@ function InvoiceDetails() {
             </div>
           </div>
         </div>
-
       </div>
-
     </div>
   )
 }

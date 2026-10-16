@@ -1,6 +1,5 @@
 import { customFetch } from "./api"
 
-
 export const getPurchaseOrders = async (params = {}) => {
   const cleanParams = {}
   Object.entries(params).forEach(([key, val]) => {
@@ -12,11 +11,9 @@ export const getPurchaseOrders = async (params = {}) => {
   return customFetch(`/api/v1/purchase/purchase-orders?${query}`)
 }
 
-
 export const getPurchaseOrderDetails = async (poId) => {
   return customFetch(`/api/v1/purchase/purchase-orders/${poId}`)
 }
-
 
 export const createPurchaseOrder = async (poData) => {
   return customFetch("/api/v1/purchase/purchase-orders", {
@@ -25,9 +22,6 @@ export const createPurchaseOrder = async (poData) => {
   })
 }
 
-
-
-
 export const updatePurchaseOrderStatus = async (poId, action) => {
   return customFetch(`/api/v1/purchase/purchase-orders/${poId}/status`, {
     method: "POST",
@@ -35,14 +29,12 @@ export const updatePurchaseOrderStatus = async (poId, action) => {
   })
 }
 
-
 export const updatePurchaseOrder = async (poId, poData) => {
   return customFetch(`/api/v1/purchase/purchase-orders/${poId}`, {
     method: "PUT",
     body: JSON.stringify(poData),
   })
 }
-
 
 export const getPurchaseEntries = async (params = {}) => {
   const cleanParams = {}
@@ -54,7 +46,6 @@ export const getPurchaseEntries = async (params = {}) => {
   const query = new URLSearchParams(cleanParams).toString()
   return customFetch(`/api/v1/purchase/purchase-entries?${query}`)
 }
-
 
 export const createPurchaseEntry = async (peData) => {
   return customFetch("/api/v1/purchase/purchase-entries", {
@@ -70,17 +61,12 @@ export const previewPurchaseEntry = async (peData) => {
   })
 }
 
-
-
 export const authorizePurchaseEntry = async (peId, payload = {}) => {
   return customFetch(`/api/v1/purchase/purchase-entries/${peId}/authorize`, {
     method: "POST",
     body: JSON.stringify(payload),
   })
 }
-
-
-
 
 export const getPurchaseEntryDetails = async (peId) => {
   return customFetch(`/api/v1/purchase/purchase-entries/${peId}`)

@@ -26,7 +26,6 @@ export const customFetch = async (endpoint, options = {}) => {
 
   const accessToken = localStorage.getItem("access_token") || localStorage.getItem("admin_token")
 
-  // Ensure cookies are always sent with credentials
   options.headers = {
     "Content-Type": "application/json",
     ...options.headers,
@@ -42,7 +41,6 @@ export const customFetch = async (endpoint, options = {}) => {
 
   const response = await fetch(url, options)
 
-  // Check if the response is unauthorized
   if (
     response.status === 401 &&
     !options._isRetry &&
@@ -125,30 +123,30 @@ export const customFetch = async (endpoint, options = {}) => {
     return retryPromise
   }
 
-  // Check if the response is HTTP 429 (Too Many Requests / Rate Limited)
   if (response.status === 429) {
     try {
       const cloned = response.clone()
-      cloned.json().then((data) => {
-        const message =
-          data?.detail ||
-          data?.message ||
-          "Too many requests. Please wait 1 minute before requesting another code."
-        window.dispatchEvent(
-          new CustomEvent("api:rate-limit", {
-            detail: { message, status: 429, data },
-          })
-        )
-      }).catch(() => {
-        window.dispatchEvent(
-          new CustomEvent("api:rate-limit", {
-            detail: {
-              message: "Too many requests. Please wait 1 minute before requesting another code.",
-              status: 429,
-            },
-          })
-        )
-      })
+      cloned
+        .json()
+        .then((data) => {
+          const message =
+            data?.detail || data?.message || "Too many requests. Please wait 1 minute before requesting another code."
+          window.dispatchEvent(
+            new CustomEvent("api:rate-limit", {
+              detail: { message, status: 429, data },
+            })
+          )
+        })
+        .catch(() => {
+          window.dispatchEvent(
+            new CustomEvent("api:rate-limit", {
+              detail: {
+                message: "Too many requests. Please wait 1 minute before requesting another code.",
+                status: 429,
+              },
+            })
+          )
+        })
     } catch {
       // Fallback
     }
@@ -156,7 +154,3 @@ export const customFetch = async (endpoint, options = {}) => {
 
   return response
 }
-
-
-
-

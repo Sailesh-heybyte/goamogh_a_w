@@ -1,16 +1,13 @@
 import { customFetch } from "./api"
 
-
 export const getSuppliers = async (params = {}) => {
   const query = new URLSearchParams(params).toString()
   return customFetch(`/api/v1/suppliers?${query}`)
 }
 
-
 export const getSupplierDetails = async (supplierId) => {
   return customFetch(`/api/v1/suppliers/${supplierId}`)
 }
-
 
 export const createSupplier = async (supplierData) => {
   return customFetch("/api/v1/suppliers", {
@@ -25,7 +22,6 @@ export const updateSupplier = async (supplierId, supplierData) => {
     body: JSON.stringify(supplierData),
   })
 }
-
 
 export const deactivateSupplier = async (supplierId) => {
   return customFetch(`/api/v1/suppliers/${supplierId}`, {
@@ -44,7 +40,11 @@ export const uploadSupplierKyc = async (file, documentType) => {
   return customFetch("/api/v1/suppliers/upload-kyc", { method: "POST", body: formData })
 }
 
-export const getSupplierKycViewUrl = async (supplierId) => customFetch(`/api/v1/suppliers/${supplierId}/kyc-document-url`)
+export const getSupplierKycViewUrl = async (supplierId) =>
+  customFetch(`/api/v1/suppliers/${supplierId}/kyc-document-url`)
 
-export const verifySupplierKyc = async (supplierId, isVerified, remarks) => customFetch(`/api/v1/suppliers/${supplierId}/verify-kyc`, { method: "PATCH", body: JSON.stringify({ is_verified: isVerified, remarks: remarks || null }) })
-
+export const verifySupplierKyc = async (supplierId, isVerified, remarks) =>
+  customFetch(`/api/v1/suppliers/${supplierId}/verify-kyc`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_verified: isVerified, remarks: remarks || null }),
+  })

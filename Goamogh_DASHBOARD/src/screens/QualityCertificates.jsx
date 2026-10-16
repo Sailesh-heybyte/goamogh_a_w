@@ -1,16 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import {
-  Plus,
-  Search,
-  ExternalLink,
-  Edit2,
-  Trash2,
-  Eye,
-  EyeOff,
-  X,
-  AlertCircle,
-  FileCheck2,
-} from "lucide-react"
+import { Plus, Search, ExternalLink, Edit2, Trash2, Eye, EyeOff, X, AlertCircle, FileCheck2 } from "lucide-react"
 import {
   getCertificates,
   createCertificate,
@@ -32,14 +21,12 @@ export default function QualityCertificates() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Search & Pagination State
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
 
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [modalMode, setModalMode] = useState("add") // "add" | "edit"
+  const [modalMode, setModalMode] = useState("add")
   const [selectedCert, setSelectedCert] = useState(null)
   const [formTitle, setFormTitle] = useState("")
   const [formIssuedOn, setFormIssuedOn] = useState("")
@@ -48,7 +35,6 @@ export default function QualityCertificates() {
   const [isSaving, setIsSaving] = useState(false)
   const [modalError, setModalError] = useState("")
 
-  // Fetch certificates on mount with cancelled flag
   const loadCertificates = async () => {
     setIsLoading(true)
     setError("")
@@ -96,14 +82,12 @@ export default function QualityCertificates() {
     }
   }, [])
 
-  // Filter & Paginate
   const filteredCertificates = useMemo(() => {
     if (!searchQuery.trim()) return certificates
     const q = searchQuery.toLowerCase().trim()
     return certificates.filter((c) => (c.title || "").toLowerCase().includes(q))
   }, [certificates, searchQuery])
 
-  // Reset pagination when search changes
   useEffect(() => {
     setSkip(0)
   }, [searchQuery])
@@ -112,7 +96,6 @@ export default function QualityCertificates() {
     return filteredCertificates.slice(skip, skip + limit)
   }, [filteredCertificates, skip, limit])
 
-  // Format dates en-IN
   const formatIssuedDate = (dateStr) => {
     if (!dateStr) return "—"
     try {
@@ -143,7 +126,6 @@ export default function QualityCertificates() {
     }
   }
 
-  // Open Add Modal
   const handleOpenAdd = () => {
     setModalMode("add")
     setSelectedCert(null)
@@ -155,7 +137,6 @@ export default function QualityCertificates() {
     setIsModalOpen(true)
   }
 
-  // Open Edit Modal
   const handleOpenEdit = (cert) => {
     setModalMode("edit")
     setSelectedCert(cert)
@@ -167,7 +148,6 @@ export default function QualityCertificates() {
     setIsModalOpen(true)
   }
 
-  // Publish / Hide Toggle
   const handleToggleStatus = async (cert) => {
     const nextStatus = !cert.is_published
     try {
@@ -180,15 +160,12 @@ export default function QualityCertificates() {
       setCertificates((prev) =>
         prev.map((c) => (c.id === cert.id ? json?.data || { ...c, is_published: nextStatus } : c))
       )
-      showSuccessToast(
-        nextStatus ? "Certificate published on website" : "Certificate hidden from website"
-      )
+      showSuccessToast(nextStatus ? "Certificate published on website" : "Certificate hidden from website")
     } catch (err) {
       showErrorToast(err.message || "Failed to update certificate status")
     }
   }
 
-  // Delete Certificate
   const handleDelete = async (cert) => {
     const ok = await confirm({
       title: "Delete Certificate?",
@@ -212,7 +189,6 @@ export default function QualityCertificates() {
     }
   }
 
-  // Modal Submit (Add or Edit)
   const handleSubmit = async (e) => {
     e.preventDefault()
     setModalError("")
@@ -245,10 +221,7 @@ export default function QualityCertificates() {
 
     setIsSaving(true)
     try {
-      const res =
-        modalMode === "add"
-          ? await createCertificate(fd)
-          : await updateCertificate(selectedCert.id, fd)
+      const res = modalMode === "add" ? await createCertificate(fd) : await updateCertificate(selectedCert.id, fd)
 
       const json = await res.json().catch(() => null)
       if (!res.ok) {
@@ -265,9 +238,7 @@ export default function QualityCertificates() {
         showSuccessToast("Certificate added successfully")
       } else {
         if (json?.data) {
-          setCertificates((prev) =>
-            prev.map((c) => (c.id === selectedCert.id ? json.data : c))
-          )
+          setCertificates((prev) => prev.map((c) => (c.id === selectedCert.id ? json.data : c)))
         } else {
           await loadCertificates()
         }
@@ -284,15 +255,10 @@ export default function QualityCertificates() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Certificates of Analysis
-          </h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">
-            PDFs shown on the website
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Certificates of Analysis</h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">PDFs shown on the website</p>
         </div>
         <button
           type="button"
@@ -304,7 +270,6 @@ export default function QualityCertificates() {
         </button>
       </div>
 
-      {/* Main Content Area */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm">
           <Spinner size="lg" />
@@ -345,7 +310,6 @@ export default function QualityCertificates() {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Search Box */}
           <div className="bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -359,7 +323,6 @@ export default function QualityCertificates() {
             </div>
           </div>
 
-          {/* Table Container */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
             <div className="w-full">
               <table className="w-full text-left border-collapse table-fixed">
@@ -382,15 +345,16 @@ export default function QualityCertificates() {
                   ) : (
                     paginatedCertificates.map((cert) => (
                       <tr key={cert.id} className="hover:bg-slate-50/50 transition-colors">
-                        {/* Title column */}
                         <td className="px-4 py-3.5 min-w-0">
                           <div className="font-semibold text-slate-900 text-sm truncate" title={cert.title}>
                             {cert.title}
                           </div>
-                          <div className="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-xs" title={cert.file_name}>
+                          <div
+                            className="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-xs"
+                            title={cert.file_name}
+                          >
                             {cert.file_name || "—"}
                           </div>
-                          {/* Small screen metadata fallback */}
                           <div className="md:hidden text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-2">
                             <span>Issued: {formatIssuedDate(cert.issued_on)}</span>
                             <span>•</span>
@@ -398,12 +362,10 @@ export default function QualityCertificates() {
                           </div>
                         </td>
 
-                        {/* Issued on */}
                         <td className="hidden md:table-cell px-4 py-3.5 text-xs text-slate-600 font-medium whitespace-nowrap">
                           {formatIssuedDate(cert.issued_on)}
                         </td>
 
-                        {/* Status pill */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
@@ -416,15 +378,12 @@ export default function QualityCertificates() {
                           </span>
                         </td>
 
-                        {/* Uploaded */}
                         <td className="hidden md:table-cell px-4 py-3.5 text-xs text-slate-500 whitespace-nowrap">
                           {formatUploadedDate(cert.created_at)}
                         </td>
 
-                        {/* Actions */}
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
-                            {/* View PDF */}
                             <a
                               href={cert.file_url}
                               target="_blank"
@@ -435,7 +394,6 @@ export default function QualityCertificates() {
                               <ExternalLink className="w-4 h-4" />
                             </a>
 
-                            {/* Edit */}
                             <button
                               type="button"
                               onClick={() => handleOpenEdit(cert)}
@@ -445,7 +403,6 @@ export default function QualityCertificates() {
                               <Edit2 className="w-4 h-4" />
                             </button>
 
-                            {/* Publish / Hide */}
                             <button
                               type="button"
                               onClick={() => handleToggleStatus(cert)}
@@ -459,7 +416,6 @@ export default function QualityCertificates() {
                               )}
                             </button>
 
-                            {/* Delete */}
                             <button
                               type="button"
                               onClick={() => handleDelete(cert)}
@@ -477,7 +433,6 @@ export default function QualityCertificates() {
               </table>
             </div>
 
-            {/* Pagination */}
             <Pagination
               skip={skip}
               limit={limit}
@@ -488,7 +443,6 @@ export default function QualityCertificates() {
         </div>
       )}
 
-      {/* Add / Edit Modal */}
       {isModalOpen && (
         <Modal onClose={() => !isSaving && setIsModalOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -515,7 +469,6 @@ export default function QualityCertificates() {
                   </div>
                 )}
 
-                {/* Title */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Title <span className="text-error-500 font-bold">*</span>
@@ -531,7 +484,6 @@ export default function QualityCertificates() {
                   />
                 </div>
 
-                {/* Issued On */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Issued On <span className="text-slate-400 font-normal">(Optional)</span>
@@ -544,7 +496,6 @@ export default function QualityCertificates() {
                   />
                 </div>
 
-                {/* PDF File Input */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     {modalMode === "add" ? (
@@ -571,7 +522,6 @@ export default function QualityCertificates() {
                   <p className="text-[11px] text-slate-400 mt-1">PDF up to 10 MB</p>
                 </div>
 
-                {/* Publish Toggle */}
                 <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
                   <div>
                     <span className="text-xs font-bold text-slate-800 block">Publish on website</span>
@@ -591,7 +541,6 @@ export default function QualityCertificates() {
                 </div>
               </div>
 
-              {/* Actions Footer */}
               <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50/50">
                 <button
                   type="button"

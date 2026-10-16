@@ -1,6 +1,34 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Plus, Edit2, Trash2, ShieldAlert, X, Truck, Search, Phone, Mail, MapPin, FileSpreadsheet, AlertTriangle, Building, ShieldCheck, Landmark, BookOpen, FileText } from "lucide-react"
-import { getSuppliers, createSupplier, updateSupplier, deactivateSupplier, getSupplierDetails, getPincodeDetails, uploadSupplierKyc, getSupplierKycViewUrl, verifySupplierKyc } from "@/api/suppliers"
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  ShieldAlert,
+  X,
+  Truck,
+  Search,
+  Phone,
+  Mail,
+  MapPin,
+  FileSpreadsheet,
+  AlertTriangle,
+  Building,
+  ShieldCheck,
+  Landmark,
+  BookOpen,
+  FileText,
+} from "lucide-react"
+import {
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  deactivateSupplier,
+  getSupplierDetails,
+  getPincodeDetails,
+  uploadSupplierKyc,
+  getSupplierKycViewUrl,
+  verifySupplierKyc,
+} from "@/api/suppliers"
 import Spinner from "@/components/ui/Spinner"
 import { parseBackendUniqueError } from "@/utils/errorUtils"
 import Modal from "@/components/ui/Modal"
@@ -27,35 +55,35 @@ const GSTIN_STATE_MAP = {
   "07": "Delhi",
   "08": "Rajasthan",
   "09": "Uttar Pradesh",
-  "10": "Bihar",
-  "11": "Sikkim",
-  "12": "Arunachal Pradesh",
-  "13": "Nagaland",
-  "14": "Manipur",
-  "15": "Mizoram",
-  "16": "Tripura",
-  "17": "Meghalaya",
-  "18": "Assam",
-  "19": "West Bengal",
-  "20": "Jharkhand",
-  "21": "Odisha",
-  "22": "Chhattisgarh",
-  "23": "Madhya Pradesh",
-  "24": "Gujarat",
-  "26": "Dadra and Nagar Haveli and Daman and Diu",
-  "27": "Maharashtra",
-  "29": "Karnataka",
-  "30": "Goa",
-  "31": "Lakshadweep",
-  "32": "Kerala",
-  "33": "Tamil Nadu",
-  "34": "Puducherry",
-  "35": "Andaman and Nicobar Islands",
-  "36": "Telangana",
-  "37": "Andhra Pradesh",
-  "38": "Ladakh",
-  "97": "Other Territory",
-  "98": "Centre Jurisdiction"
+  10: "Bihar",
+  11: "Sikkim",
+  12: "Arunachal Pradesh",
+  13: "Nagaland",
+  14: "Manipur",
+  15: "Mizoram",
+  16: "Tripura",
+  17: "Meghalaya",
+  18: "Assam",
+  19: "West Bengal",
+  20: "Jharkhand",
+  21: "Odisha",
+  22: "Chhattisgarh",
+  23: "Madhya Pradesh",
+  24: "Gujarat",
+  26: "Dadra and Nagar Haveli and Daman and Diu",
+  27: "Maharashtra",
+  29: "Karnataka",
+  30: "Goa",
+  31: "Lakshadweep",
+  32: "Kerala",
+  33: "Tamil Nadu",
+  34: "Puducherry",
+  35: "Andaman and Nicobar Islands",
+  36: "Telangana",
+  37: "Andhra Pradesh",
+  38: "Ladakh",
+  97: "Other Territory",
+  98: "Centre Jurisdiction",
 }
 
 const VALID_GSTIN_STATE_CODES = new Set(Object.keys(GSTIN_STATE_MAP))
@@ -84,7 +112,6 @@ function SupplierDirectory() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -106,11 +133,9 @@ function SupplierDirectory() {
   const kycUploadReqRefCreate = useRef(0)
   const kycUploadReqRefEdit = useRef(0)
 
-  // Address copying state
   const [createSameAsBilling, setCreateSameAsBilling] = useState(false)
   const [editSameAsBilling, setEditSameAsBilling] = useState(false)
 
-  // Onboard form state
   const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
@@ -145,12 +170,11 @@ function SupplierDirectory() {
     kyc_document_name: "",
     contact_persons: [
       { name: "", email: "", mobile: "", desk_number: "", location: "" },
-      { name: "", email: "", mobile: "", desk_number: "", location: "" }
+      { name: "", email: "", mobile: "", desk_number: "", location: "" },
     ],
   })
   const [createErrors, setCreateErrors] = useState({})
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -186,7 +210,7 @@ function SupplierDirectory() {
     kyc_document_name: "",
     contact_persons: [
       { name: "", email: "", mobile: "", desk_number: "", location: "" },
-      { name: "", email: "", mobile: "", desk_number: "", location: "" }
+      { name: "", email: "", mobile: "", desk_number: "", location: "" },
     ],
   })
   const [editErrors, setEditErrors] = useState({})
@@ -220,7 +244,6 @@ function SupplierDirectory() {
   const [isPincodeLoadingEdit, setIsPincodeLoadingEdit] = useState(false)
   const [pincodeErrorEdit, setPincodeErrorEdit] = useState("")
 
-  // Pincode auto-lookup hook for Create Form
   useEffect(() => {
     const pincode = createForm.pincode ? createForm.pincode.trim() : ""
     if (pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
@@ -269,7 +292,6 @@ function SupplierDirectory() {
     }
   }, [createForm.pincode])
 
-  // Pincode auto-lookup hook for Edit Form
   useEffect(() => {
     const pincode = editForm.pincode ? editForm.pincode.trim() : ""
     if (pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
@@ -318,7 +340,6 @@ function SupplierDirectory() {
     }
   }, [editForm.pincode])
 
-  // GSTIN & Phone validations
   const validateGSTIN = (val) => {
     if (!val) return true
     const cleanGst = val.toUpperCase().trim()
@@ -366,14 +387,15 @@ function SupplierDirectory() {
     }
   }
 
-  // Handle nested contact_persons changes
   const handleContactPersonChange = (index, field, value, isEdit) => {
     if (isEdit) {
       setEditForm((prev) => {
-        const updatedPersons = [...(prev.contact_persons || [
-          { name: "", email: "", mobile: "", desk_number: "", location: "" },
-          { name: "", email: "", mobile: "", desk_number: "", location: "" }
-        ])]
+        const updatedPersons = [
+          ...(prev.contact_persons || [
+            { name: "", email: "", mobile: "", desk_number: "", location: "" },
+            { name: "", email: "", mobile: "", desk_number: "", location: "" },
+          ]),
+        ]
         updatedPersons[index] = { ...updatedPersons[index], [field]: value }
         return { ...prev, contact_persons: updatedPersons }
       })
@@ -390,10 +412,12 @@ function SupplierDirectory() {
       })
     } else {
       setCreateForm((prev) => {
-        const updatedPersons = [...(prev.contact_persons || [
-          { name: "", email: "", mobile: "", desk_number: "", location: "" },
-          { name: "", email: "", mobile: "", desk_number: "", location: "" }
-        ])]
+        const updatedPersons = [
+          ...(prev.contact_persons || [
+            { name: "", email: "", mobile: "", desk_number: "", location: "" },
+            { name: "", email: "", mobile: "", desk_number: "", location: "" },
+          ]),
+        ]
         updatedPersons[index] = { ...updatedPersons[index], [field]: value }
         return { ...prev, contact_persons: updatedPersons }
       })
@@ -421,7 +445,6 @@ function SupplierDirectory() {
     }
   }
 
-  // Real-time validation handlers
   const handleCreateChange = (field, value) => {
     setCreateForm((prev) => {
       const updated = { ...prev, [field]: value }
@@ -430,8 +453,6 @@ function SupplierDirectory() {
       }
       setCreateErrors((errs) => {
         const newErrs = { ...errs }
-
-
 
         if (field === "name") {
           if (value && (value.length < 2 || value.length > 150)) {
@@ -559,8 +580,6 @@ function SupplierDirectory() {
             delete newErrs.cin
           }
         }
-
-
 
         if (field === "address" && value.length > 500) {
           newErrs.address = "Address must not exceed 500 characters"
@@ -716,8 +735,6 @@ function SupplierDirectory() {
           }
         }
 
-
-
         if (field === "address" && value.length > 500) {
           newErrs.address = "Address must not exceed 500 characters"
         } else if (field === "address") {
@@ -736,10 +753,8 @@ function SupplierDirectory() {
     })
   }
 
-  // Submission validation
   const validateForm = (form) => {
     const errs = {}
-
 
     if (form.name && (form.name.length < 2 || form.name.length > 150)) {
       errs.name = "Business name must be between 2 and 150 characters long"
@@ -833,8 +848,6 @@ function SupplierDirectory() {
     if (form.fssai && !validateFSSAI(form.fssai)) {
       errs.fssai = "FSSAI registration number must be exactly 14 digits"
     }
-
-
 
     if (form.address && form.address.length > 500) {
       errs.address = "Address must not exceed 500 characters"
@@ -952,7 +965,11 @@ function SupplierDirectory() {
         }
       } else {
         win?.close()
-        setKycErrorEdit(res.status === 404 ? "No KYC document uploaded for this supplier." : (json.message || "Couldn't open document. Try again."))
+        setKycErrorEdit(
+          res.status === 404
+            ? "No KYC document uploaded for this supplier."
+            : json.message || "Couldn't open document. Try again."
+        )
       }
     } catch {
       win?.close()
@@ -1014,13 +1031,15 @@ function SupplierDirectory() {
         createForm.bank_branch_name.trim() ||
         createForm.bank_account_holder_name.trim()
 
-      const bank_details = hasBankDetails ? {
-        account_number: createForm.bank_account_number.trim() || null,
-        bank_name: createForm.bank_name.trim() || null,
-        ifsc_code: createForm.bank_ifsc_code.trim().toUpperCase() || null,
-        branch_name: createForm.bank_branch_name.trim() || null,
-        account_holder_name: createForm.bank_account_holder_name.trim() || null,
-      } : null
+      const bank_details = hasBankDetails
+        ? {
+            account_number: createForm.bank_account_number.trim() || null,
+            bank_name: createForm.bank_name.trim() || null,
+            ifsc_code: createForm.bank_ifsc_code.trim().toUpperCase() || null,
+            branch_name: createForm.bank_branch_name.trim() || null,
+            account_holder_name: createForm.bank_account_holder_name.trim() || null,
+          }
+        : null
 
       const firstPerson = createForm.contact_persons?.[0]
       const secondPerson = createForm.contact_persons?.[1]
@@ -1037,7 +1056,12 @@ function SupplierDirectory() {
       }
 
       if (secondPerson) {
-        const hasData = secondPerson.name.trim() || secondPerson.email.trim() || secondPerson.mobile.trim() || secondPerson.desk_number.trim() || secondPerson.location.trim()
+        const hasData =
+          secondPerson.name.trim() ||
+          secondPerson.email.trim() ||
+          secondPerson.mobile.trim() ||
+          secondPerson.desk_number.trim() ||
+          secondPerson.location.trim()
         if (hasData) {
           contactPersonsPayload.push({
             name: secondPerson.name.trim() || null,
@@ -1072,12 +1096,14 @@ function SupplierDirectory() {
         fssai: createForm.fssai.trim() || null,
         cin: createForm.cin.trim() || null,
         billing_address: createForm.billing_address.trim() || null,
-        shipping_address: createSameAsBilling ? (createForm.billing_address.trim() || null) : (createForm.shipping_address.trim() || null),
+        shipping_address: createSameAsBilling
+          ? createForm.billing_address.trim() || null
+          : createForm.shipping_address.trim() || null,
         kyc_document_type: createForm.kyc_document_type || null,
         kyc_document_number: createForm.kyc_document_number?.trim() || null,
         kyc_document_url: createForm.kyc_document_url || null,
         kyc_document_name: createForm.kyc_document_name || null,
-        contact_persons: contactPersonsPayload
+        contact_persons: contactPersonsPayload,
       }
 
       const res = await createSupplier(payload)
@@ -1129,7 +1155,7 @@ function SupplierDirectory() {
         kyc_document_name: "",
         contact_persons: [
           { name: "", email: "", mobile: "", desk_number: "", location: "" },
-          { name: "", email: "", mobile: "", desk_number: "", location: "" }
+          { name: "", email: "", mobile: "", desk_number: "", location: "" },
         ],
       })
       fetchSuppliers()
@@ -1208,11 +1234,11 @@ function SupplierDirectory() {
             mobile: details.contact_persons?.[1]?.mobile || "",
             desk_number: details.contact_persons?.[1]?.desk_number || "",
             location: details.contact_persons?.[1]?.location || "",
-          }
+          },
         ],
       })
       const hasAddresses = details.billing_address || details.shipping_address
-      const isSame = hasAddresses && (details.billing_address === details.shipping_address)
+      const isSame = hasAddresses && details.billing_address === details.shipping_address
       setEditSameAsBilling(!!isSame)
     } catch (err) {
       setEditErrors({ global: err.message })
@@ -1245,13 +1271,15 @@ function SupplierDirectory() {
         editForm.bank_branch_name.trim() ||
         editForm.bank_account_holder_name.trim()
 
-      const bank_details = hasBankDetails ? {
-        account_number: editForm.bank_account_number.trim() || null,
-        bank_name: editForm.bank_name.trim() || null,
-        ifsc_code: editForm.bank_ifsc_code.trim().toUpperCase() || null,
-        branch_name: editForm.bank_branch_name.trim() || null,
-        account_holder_name: editForm.bank_account_holder_name.trim() || null,
-      } : null
+      const bank_details = hasBankDetails
+        ? {
+            account_number: editForm.bank_account_number.trim() || null,
+            bank_name: editForm.bank_name.trim() || null,
+            ifsc_code: editForm.bank_ifsc_code.trim().toUpperCase() || null,
+            branch_name: editForm.bank_branch_name.trim() || null,
+            account_holder_name: editForm.bank_account_holder_name.trim() || null,
+          }
+        : null
 
       const firstPerson = editForm.contact_persons?.[0]
       const secondPerson = editForm.contact_persons?.[1]
@@ -1268,7 +1296,12 @@ function SupplierDirectory() {
       }
 
       if (secondPerson) {
-        const hasData = secondPerson.name.trim() || secondPerson.email.trim() || secondPerson.mobile.trim() || secondPerson.desk_number.trim() || secondPerson.location.trim()
+        const hasData =
+          secondPerson.name.trim() ||
+          secondPerson.email.trim() ||
+          secondPerson.mobile.trim() ||
+          secondPerson.desk_number.trim() ||
+          secondPerson.location.trim()
         if (hasData) {
           contactPersonsPayload.push({
             name: secondPerson.name.trim() || null,
@@ -1304,12 +1337,14 @@ function SupplierDirectory() {
         fssai: editForm.fssai.trim() || null,
         cin: editForm.cin.trim() || null,
         billing_address: editForm.billing_address.trim() || null,
-        shipping_address: editSameAsBilling ? (editForm.billing_address.trim() || null) : (editForm.shipping_address.trim() || null),
+        shipping_address: editSameAsBilling
+          ? editForm.billing_address.trim() || null
+          : editForm.shipping_address.trim() || null,
         kyc_document_type: editForm.kyc_document_type || null,
         kyc_document_number: editForm.kyc_document_number?.trim() || null,
         kyc_document_url: editForm.kyc_document_url || null,
         kyc_document_name: editForm.kyc_document_name || null,
-        contact_persons: contactPersonsPayload
+        contact_persons: contactPersonsPayload,
       }
 
       const res = await updateSupplier(selectedSupplier.id, payload)
@@ -1328,7 +1363,6 @@ function SupplierDirectory() {
 
       setIsEditOpen(false)
 
-      // Refresh selectedSupplier state so detail views update immediately
       try {
         const detailRes = await getSupplierDetails(selectedSupplier.id)
         if (detailRes.ok) {
@@ -1338,7 +1372,6 @@ function SupplierDirectory() {
           }
         }
       } catch {
-        // Fallback merge
         setSelectedSupplier((prev) => (prev ? { ...prev, ...payload } : prev))
       }
 
@@ -1371,13 +1404,15 @@ function SupplierDirectory() {
         editForm.bank_branch_name.trim() ||
         editForm.bank_account_holder_name.trim()
 
-      const bank_details = hasBankDetails ? {
-        account_number: editForm.bank_account_number.trim() || null,
-        bank_name: editForm.bank_name.trim() || null,
-        ifsc_code: editForm.bank_ifsc_code.trim().toUpperCase() || null,
-        branch_name: editForm.bank_branch_name.trim() || null,
-        account_holder_name: editForm.bank_account_holder_name.trim() || null,
-      } : null
+      const bank_details = hasBankDetails
+        ? {
+            account_number: editForm.bank_account_number.trim() || null,
+            bank_name: editForm.bank_name.trim() || null,
+            ifsc_code: editForm.bank_ifsc_code.trim().toUpperCase() || null,
+            branch_name: editForm.bank_branch_name.trim() || null,
+            account_holder_name: editForm.bank_account_holder_name.trim() || null,
+          }
+        : null
 
       const firstPerson = editForm.contact_persons?.[0]
       const secondPerson = editForm.contact_persons?.[1]
@@ -1394,7 +1429,12 @@ function SupplierDirectory() {
       }
 
       if (secondPerson) {
-        const hasData = secondPerson.name.trim() || secondPerson.email.trim() || secondPerson.mobile.trim() || secondPerson.desk_number.trim() || secondPerson.location.trim()
+        const hasData =
+          secondPerson.name.trim() ||
+          secondPerson.email.trim() ||
+          secondPerson.mobile.trim() ||
+          secondPerson.desk_number.trim() ||
+          secondPerson.location.trim()
         if (hasData) {
           contactPersonsPayload.push({
             name: secondPerson.name.trim() || null,
@@ -1430,8 +1470,10 @@ function SupplierDirectory() {
         fssai: editForm.fssai.trim() || null,
         cin: editForm.cin.trim() || null,
         billing_address: editForm.billing_address.trim() || null,
-        shipping_address: editSameAsBilling ? (editForm.billing_address.trim() || null) : (editForm.shipping_address.trim() || null),
-        contact_persons: contactPersonsPayload
+        shipping_address: editSameAsBilling
+          ? editForm.billing_address.trim() || null
+          : editForm.shipping_address.trim() || null,
+        contact_persons: contactPersonsPayload,
       }
 
       const res = await updateSupplier(selectedSupplier.id, payload)
@@ -1474,7 +1516,6 @@ function SupplierDirectory() {
     [suppliersList, showActiveOnly]
   )
 
-  // Client-side search filters
   const filteredSuppliers = useMemo(() => {
     const term = searchQuery.toLowerCase().trim()
     if (!term) return suppliers
@@ -1513,12 +1554,12 @@ function SupplierDirectory() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Page Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Suppliers Directory</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Onboard and manage coffee bean importers, packaging supplies, and utility vendors.</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Onboard and manage coffee bean importers, packaging supplies, and utility vendors.
+          </p>
         </div>
 
         <button
@@ -1566,7 +1607,6 @@ function SupplierDirectory() {
         </button>
       </div>
 
-      {/* Search and Filters toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1592,7 +1632,6 @@ function SupplierDirectory() {
         </div>
       </div>
 
-      {/* Directory Table */}
       {filteredSuppliers.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 font-semibold shadow-sm">
           No suppliers found in directory.
@@ -1613,21 +1652,27 @@ function SupplierDirectory() {
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {filteredSuppliers.map((vendor) => (
                   <tr key={vendor.id} className="hover:bg-slate-50/70 transition-colors group">
-                    {/* Column 1: Supplier Name & Code */}
                     <td className="px-3.5 py-3 min-w-0">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold shrink-0 border border-slate-200/60 shadow-2xs">
                           <Truck className="w-4 h-4 text-slate-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate" title={vendor.name || vendor.contact_name}>
+                          <p
+                            className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate"
+                            title={vendor.name || vendor.contact_name}
+                          >
                             {vendor.name || vendor.contact_name || "—"}
                           </p>
                           <span className="text-[10px] tabular-nums text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded inline-block mt-0.5 font-medium border border-slate-200/50">
                             {vendor.vendor_code}
                           </span>
-                          <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5" title={vendor.contact_name || vendor.phone || ""}>
-                            {vendor.contact_name ? `${vendor.contact_name} ` : ""}{vendor.phone ? `• ${vendor.phone}` : ""}
+                          <div
+                            className="text-[10px] text-slate-400 truncate md:hidden mt-0.5"
+                            title={vendor.contact_name || vendor.phone || ""}
+                          >
+                            {vendor.contact_name ? `${vendor.contact_name} ` : ""}
+                            {vendor.phone ? `• ${vendor.phone}` : ""}
                           </div>
                           {vendor.gstin && (
                             <div className="text-[10px] text-slate-400 truncate lg:hidden mt-0.5">
@@ -1638,7 +1683,6 @@ function SupplierDirectory() {
                       </div>
                     </td>
 
-                    {/* Column 2: Contact Person, Phone & Email */}
                     <td className="px-3.5 py-3 min-w-0 hidden md:table-cell">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 text-xs truncate" title={vendor.contact_name || "—"}>
@@ -1646,7 +1690,10 @@ function SupplierDirectory() {
                         </p>
                         <div className="space-y-0.5 mt-0.5">
                           {vendor.email && (
-                            <span className="flex items-center gap-1 text-[11px] text-slate-500 truncate" title={vendor.email}>
+                            <span
+                              className="flex items-center gap-1 text-[11px] text-slate-500 truncate"
+                              title={vendor.email}
+                            >
                               <Mail className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{vendor.email}</span>
                             </span>
@@ -1661,7 +1708,6 @@ function SupplierDirectory() {
                       </div>
                     </td>
 
-                    {/* Column 3: GSTIN */}
                     <td className="px-3 py-3 whitespace-nowrap hidden lg:table-cell">
                       <span
                         className="text-[11px] xl:text-xs tabular-nums font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 inline-block truncate max-w-full"
@@ -1671,7 +1717,6 @@ function SupplierDirectory() {
                       </span>
                     </td>
 
-                    {/* Column 4: Status Badge */}
                     <td className="px-3 py-3 whitespace-nowrap">
                       <div className="flex flex-col items-start">
                         {vendor.is_active ? (
@@ -1707,7 +1752,6 @@ function SupplierDirectory() {
                       </div>
                     </td>
 
-                    {/* Column 5: Action Tools */}
                     <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1.5">
                         <button
@@ -1736,7 +1780,6 @@ function SupplierDirectory() {
         </div>
       )}
 
-      {/* Onboard Supplier Modal Overlay */}
       {isCreateOpen && (
         <Modal onClose={() => setIsCreateOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -1750,7 +1793,10 @@ function SupplierDirectory() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col">
+            <form
+              onSubmit={handleCreateSubmit}
+              className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col"
+            >
               {createErrors.global && (
                 <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                   <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -1758,7 +1804,6 @@ function SupplierDirectory() {
                 </div>
               )}
 
-              {/* Section 1: Business Identity */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <Building className="w-5 h-5 text-brand-600" />
@@ -1816,7 +1861,9 @@ function SupplierDirectory() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                     />
                   </div>
-                  {createErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>}
+                  {createErrors.name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1831,7 +1878,9 @@ function SupplierDirectory() {
                       placeholder="E.g., ABCDE1234F"
                       className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                     />
-                    {createErrors.pan && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.pan}</p>}
+                    {createErrors.pan && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.pan}</p>
+                    )}
                   </div>
 
                   {createForm.supplier_type === "business" ? (
@@ -1849,7 +1898,9 @@ function SupplierDirectory() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                         />
                       </div>
-                      {createErrors.gstin && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.gstin}</p>}
+                      {createErrors.gstin && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.gstin}</p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col animate-in slide-in-from-top-2 duration-150">
@@ -1864,14 +1915,18 @@ function SupplierDirectory() {
                         placeholder="E.g., 9876"
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
-                      {createErrors.aadhaar_last_four && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.aadhaar_last_four}</p>}
+                      {createErrors.aadhaar_last_four && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.aadhaar_last_four}</p>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {createForm.supplier_type === "business" && createForm.gstin.trim() && (
                   <div className="flex flex-col animate-in fade-in duration-200">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing State</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Billing State
+                    </label>
                     <input
                       type="text"
                       readOnly
@@ -1882,7 +1937,6 @@ function SupplierDirectory() {
                 )}
               </div>
 
-              {/* Section 2: Contact Information */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <Mail className="w-5 h-5 text-brand-600" />
@@ -1892,7 +1946,8 @@ function SupplierDirectory() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      Email Address {createForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
+                      Email Address{" "}
+                      {createForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1904,11 +1959,15 @@ function SupplierDirectory() {
                         className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
-                    {createErrors.email && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.email}</p>}
+                    {createErrors.email && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.email}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Phone Number</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Phone Number
+                    </label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                       <input
@@ -1919,11 +1978,12 @@ function SupplierDirectory() {
                         className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                       />
                     </div>
-                    {createErrors.phone && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.phone}</p>}
+                    {createErrors.phone && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.phone}</p>
+                    )}
                   </div>
                 </div>
 
-                {/* Contact Person 1 */}
                 <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <span className="w-2 h-2 rounded-full bg-brand-500" />
@@ -1945,7 +2005,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Email Address
+                      </label>
                       <input
                         type="email"
                         value={createForm.contact_persons?.[0]?.email || ""}
@@ -1957,7 +2019,9 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Mobile Number
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.mobile || ""}
@@ -1967,7 +2031,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Desk Number
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.desk_number || ""}
@@ -1977,7 +2043,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Location
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[0]?.location || ""}
@@ -1992,7 +2060,6 @@ function SupplierDirectory() {
                   )}
                 </div>
 
-                {/* Contact Person 2 */}
                 <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <span className="w-2 h-2 rounded-full bg-slate-400" />
@@ -2002,7 +2069,9 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Full Name</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Full Name
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.name || ""}
@@ -2012,7 +2081,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Email Address
+                      </label>
                       <input
                         type="email"
                         value={createForm.contact_persons?.[1]?.email || ""}
@@ -2024,7 +2095,9 @@ function SupplierDirectory() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Mobile Number
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.mobile || ""}
@@ -2034,7 +2107,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Desk Number
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.desk_number || ""}
@@ -2044,7 +2119,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                        Location
+                      </label>
                       <input
                         type="text"
                         value={createForm.contact_persons?.[1]?.location || ""}
@@ -2057,7 +2134,6 @@ function SupplierDirectory() {
                 </div>
               </div>
 
-              {/* Section 3: Address Details */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <MapPin className="w-5 h-5 text-brand-600" />
@@ -2065,7 +2141,9 @@ function SupplierDirectory() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">General / Registered Address</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    General / Registered Address
+                  </label>
                   <div className="relative">
                     <MapPin className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
                     <textarea
@@ -2076,7 +2154,9 @@ function SupplierDirectory() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                     />
                   </div>
-                  {createErrors.address && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.address}</p>}
+                  {createErrors.address && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.address}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2100,7 +2180,9 @@ function SupplierDirectory() {
                     {pincodeErrorCreate && (
                       <p className="text-xs text-amber-600 font-semibold mt-1">{pincodeErrorCreate}</p>
                     )}
-                    {createErrors.pincode && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.pincode}</p>}
+                    {createErrors.pincode && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.pincode}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
@@ -2128,7 +2210,9 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing Address</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Billing Address
+                    </label>
                     <textarea
                       value={createForm.billing_address}
                       onChange={(e) => handleCreateChange("billing_address", e.target.value)}
@@ -2139,7 +2223,9 @@ function SupplierDirectory() {
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Shipping Address</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Shipping Address
+                      </label>
                       <label className="flex items-center gap-1.5 text-xs text-brand-600 font-bold cursor-pointer select-none">
                         <input
                           type="checkbox"
@@ -2154,7 +2240,9 @@ function SupplierDirectory() {
                       value={createForm.shipping_address}
                       onChange={(e) => handleCreateChange("shipping_address", e.target.value)}
                       disabled={createSameAsBilling}
-                      placeholder={createSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."}
+                      placeholder={
+                        createSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."
+                      }
                       rows="2"
                       className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${createSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
                     />
@@ -2162,18 +2250,21 @@ function SupplierDirectory() {
                 </div>
               </div>
 
-              {/* Section 4: Compliance Registrations */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <ShieldCheck className="w-5 h-5 text-brand-600" />
-                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">4. Compliance Registrations (Optional)</h4>
+                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                    4. Compliance Registrations (Optional)
+                  </h4>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {createForm.supplier_type === "business" && (
                     <>
                       <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">TAN Number</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          TAN Number
+                        </label>
                         <input
                           type="text"
                           placeholder="e.g., ABCD12345E"
@@ -2181,7 +2272,9 @@ function SupplierDirectory() {
                           onChange={(e) => handleCreateChange("tan_no", e.target.value)}
                           className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                         />
-                        {createErrors.tan_no && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.tan_no}</p>}
+                        {createErrors.tan_no && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.tan_no}</p>
+                        )}
                       </div>
                       <div className="flex flex-col">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -2194,12 +2287,16 @@ function SupplierDirectory() {
                           onChange={(e) => handleCreateChange("cin", e.target.value)}
                           className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                         />
-                        {createErrors.cin && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.cin}</p>}
+                        {createErrors.cin && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.cin}</p>
+                        )}
                       </div>
                     </>
                   )}
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">MSME Udyam No.</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      MSME Udyam No.
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g., UDYAM-AP-01-12345"
@@ -2209,7 +2306,9 @@ function SupplierDirectory() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">FSSAI Licence No.</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      FSSAI Licence No.
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g., 12345678901234"
@@ -2217,11 +2316,15 @@ function SupplierDirectory() {
                       onChange={(e) => handleCreateChange("fssai", e.target.value)}
                       className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                     />
-                    {createErrors.fssai && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.fssai}</p>}
+                    {createErrors.fssai && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.fssai}</p>
+                    )}
                   </div>
                   {createForm.supplier_type === "business" && (
                     <div className="flex flex-col md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Import Export Code (IEC)</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Import Export Code (IEC)
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g., 1234567890"
@@ -2229,22 +2332,27 @@ function SupplierDirectory() {
                         onChange={(e) => handleCreateChange("iec", e.target.value)}
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                       />
-                      {createErrors.iec && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.iec}</p>}
+                      {createErrors.iec && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.iec}</p>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Section 5: Bank Details */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <Landmark className="w-5 h-5 text-brand-600" />
-                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">5. Bank Details (Optional)</h4>
+                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                    5. Bank Details (Optional)
+                  </h4>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Holder Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Account Holder Name
+                    </label>
                     <input
                       type="text"
                       value={createForm.bank_account_holder_name}
@@ -2254,7 +2362,9 @@ function SupplierDirectory() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Bank Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Bank Name
+                    </label>
                     <input
                       type="text"
                       value={createForm.bank_name}
@@ -2267,7 +2377,9 @@ function SupplierDirectory() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Number</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Account Number
+                    </label>
                     <input
                       type="text"
                       value={createForm.bank_account_number}
@@ -2277,7 +2389,9 @@ function SupplierDirectory() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">IFSC Code</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      IFSC Code
+                    </label>
                     <input
                       type="text"
                       value={createForm.bank_ifsc_code}
@@ -2285,10 +2399,14 @@ function SupplierDirectory() {
                       placeholder="SBIN0001234"
                       className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                     />
-                    {createErrors.bank_ifsc_code && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.bank_ifsc_code}</p>}
+                    {createErrors.bank_ifsc_code && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.bank_ifsc_code}</p>
+                    )}
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Branch Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Branch Name
+                    </label>
                     <input
                       type="text"
                       value={createForm.bank_branch_name}
@@ -2300,7 +2418,6 @@ function SupplierDirectory() {
                 </div>
               </div>
 
-              {/* KYC Document Section */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <ShieldCheck className="w-5 h-5 text-brand-600" />
@@ -2314,7 +2431,6 @@ function SupplierDirectory() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Document Type */}
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Document Type
@@ -2333,7 +2449,6 @@ function SupplierDirectory() {
                     </select>
                   </div>
 
-                  {/* Document Number */}
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Document Number
@@ -2348,13 +2463,13 @@ function SupplierDirectory() {
                     />
                     {createForm.kyc_document_type === "aadhaar" && (
                       <p className="text-[11px] text-slate-400 mt-1 font-medium leading-tight">
-                        Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI guidelines.
+                        Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI
+                        guidelines.
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Document File Upload */}
                 <div className="flex flex-col">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                     Document File (.pdf, .jpg, .jpeg, .png, max 5 MB)
@@ -2378,7 +2493,9 @@ function SupplierDirectory() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingCreate ? "opacity-50 pointer-events-none" : ""}`}>
+                      <label
+                        className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingCreate ? "opacity-50 pointer-events-none" : ""}`}
+                      >
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
@@ -2403,7 +2520,6 @@ function SupplierDirectory() {
                 </div>
               </div>
 
-              {/* Section 6: Additional Notes */}
               <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                   <BookOpen className="w-5 h-5 text-brand-600" />
@@ -2419,7 +2535,9 @@ function SupplierDirectory() {
                     rows="2"
                     className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                   />
-                  {createErrors.notes && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.notes}</p>}
+                  {createErrors.notes && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.notes}</p>
+                  )}
                 </div>
               </div>
 
@@ -2445,7 +2563,6 @@ function SupplierDirectory() {
         </Modal>
       )}
 
-      {/* Edit Supplier Modal Overlay */}
       {isEditOpen && (
         <Modal onClose={() => setIsEditOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -2464,7 +2581,10 @@ function SupplierDirectory() {
                 <Spinner size="lg" />
               </div>
             ) : (
-              <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col">
+              <form
+                onSubmit={handleEditSubmit}
+                className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 flex flex-col"
+              >
                 {editErrors.global && (
                   <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
                     <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
@@ -2472,7 +2592,6 @@ function SupplierDirectory() {
                   </div>
                 )}
 
-                {/* Section 1: Business Identity */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <Building className="w-5 h-5 text-brand-600" />
@@ -2481,7 +2600,9 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Vendor Code</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        Vendor Code
+                      </label>
                       <input
                         type="text"
                         disabled
@@ -2573,7 +2694,9 @@ function SupplierDirectory() {
                             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent uppercase transition-all font-semibold text-slate-700"
                           />
                         </div>
-                        {editErrors.gstin && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.gstin}</p>}
+                        {editErrors.gstin && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.gstin}</p>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col animate-in slide-in-from-top-2 duration-150">
@@ -2588,14 +2711,18 @@ function SupplierDirectory() {
                           placeholder="E.g., 9876"
                           className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
-                        {editErrors.aadhaar_last_four && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.aadhaar_last_four}</p>}
+                        {editErrors.aadhaar_last_four && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.aadhaar_last_four}</p>
+                        )}
                       </div>
                     )}
                   </div>
 
                   {editForm.supplier_type === "business" && editForm.gstin.trim() && (
                     <div className="flex flex-col animate-in fade-in duration-200">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing State</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Billing State
+                      </label>
                       <input
                         type="text"
                         readOnly
@@ -2606,17 +2733,19 @@ function SupplierDirectory() {
                   )}
                 </div>
 
-                {/* Section 2: Contact Information */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <Mail className="w-5 h-5 text-brand-600" />
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">2. Contact Information</h4>
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                      2. Contact Information
+                    </h4>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                        Email Address {editForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
+                        Email Address{" "}
+                        {editForm.supplier_type === "business" && <span className="text-error-500 font-bold">*</span>}
                       </label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -2628,11 +2757,15 @@ function SupplierDirectory() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </div>
-                      {editErrors.email && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.email}</p>}
+                      {editErrors.email && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.email}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Phone Number</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Phone Number
+                      </label>
                       <div className="relative">
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                         <input
@@ -2643,11 +2776,12 @@ function SupplierDirectory() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all font-semibold text-slate-700"
                         />
                       </div>
-                      {editErrors.phone && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.phone}</p>}
+                      {editErrors.phone && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.phone}</p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Contact Person 1 */}
                   <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <span className="w-2 h-2 rounded-full bg-brand-500" />
@@ -2669,7 +2803,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Email Address
+                        </label>
                         <input
                           type="email"
                           value={editForm.contact_persons?.[0]?.email || ""}
@@ -2681,7 +2817,9 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Mobile Number
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.mobile || ""}
@@ -2691,7 +2829,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Desk Number
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.desk_number || ""}
@@ -2701,7 +2841,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Location
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[0]?.location || ""}
@@ -2716,7 +2858,6 @@ function SupplierDirectory() {
                     )}
                   </div>
 
-                  {/* Contact Person 2 */}
                   <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/40 space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <span className="w-2 h-2 rounded-full bg-slate-400" />
@@ -2726,7 +2867,9 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Full Name</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Full Name
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.name || ""}
@@ -2736,7 +2879,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Email Address</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Email Address
+                        </label>
                         <input
                           type="email"
                           value={editForm.contact_persons?.[1]?.email || ""}
@@ -2748,7 +2893,9 @@ function SupplierDirectory() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Mobile Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Mobile Number
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.mobile || ""}
@@ -2758,7 +2905,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Desk Number</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Desk Number
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.desk_number || ""}
@@ -2768,7 +2917,9 @@ function SupplierDirectory() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Location</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">
+                          Location
+                        </label>
                         <input
                           type="text"
                           value={editForm.contact_persons?.[1]?.location || ""}
@@ -2778,9 +2929,9 @@ function SupplierDirectory() {
                         />
                       </div>
                     </div>
-                  </div></div>
+                  </div>
+                </div>
 
-                {/* Section 3: Address Details */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <MapPin className="w-5 h-5 text-brand-600" />
@@ -2788,7 +2939,9 @@ function SupplierDirectory() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">General / Registered Address</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      General / Registered Address
+                    </label>
                     <div className="relative">
                       <MapPin className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
                       <textarea
@@ -2799,12 +2952,16 @@ function SupplierDirectory() {
                         className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                       />
                     </div>
-                    {editErrors.address && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.address}</p>}
+                    {editErrors.address && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.address}</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Pincode</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Pincode
+                      </label>
                       <div className="relative">
                         <input
                           type="text"
@@ -2823,7 +2980,9 @@ function SupplierDirectory() {
                       {pincodeErrorEdit && (
                         <p className="text-xs text-amber-600 font-semibold mt-1">{pincodeErrorEdit}</p>
                       )}
-                      {editErrors.pincode && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.pincode}</p>}
+                      {editErrors.pincode && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.pincode}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col">
@@ -2851,7 +3010,9 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Billing Address</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Billing Address
+                      </label>
                       <textarea
                         value={editForm.billing_address}
                         onChange={(e) => handleEditChange("billing_address", e.target.value)}
@@ -2862,7 +3023,9 @@ function SupplierDirectory() {
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Shipping Address</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Shipping Address
+                        </label>
                         <label className="flex items-center gap-1.5 text-xs text-brand-600 font-bold cursor-pointer select-none">
                           <input
                             type="checkbox"
@@ -2877,7 +3040,9 @@ function SupplierDirectory() {
                         value={editForm.shipping_address}
                         onChange={(e) => handleEditChange("shipping_address", e.target.value)}
                         disabled={editSameAsBilling}
-                        placeholder={editSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."}
+                        placeholder={
+                          editSameAsBilling ? "Same as Billing Address" : "Enter specific shipping address..."
+                        }
                         rows="2"
                         className={`w-full px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold ${editSameAsBilling ? "bg-slate-50 text-slate-500 cursor-not-allowed border-dashed animate-in fade-in duration-200" : "text-slate-700"}`}
                       />
@@ -2885,18 +3050,21 @@ function SupplierDirectory() {
                   </div>
                 </div>
 
-                {/* Section 4: Compliance Registrations */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <ShieldCheck className="w-5 h-5 text-brand-600" />
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">4. Compliance Registrations (Optional)</h4>
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                      4. Compliance Registrations (Optional)
+                    </h4>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {editForm.supplier_type === "business" && (
                       <>
                         <div className="flex flex-col">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">TAN Number</label>
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            TAN Number
+                          </label>
                           <input
                             type="text"
                             placeholder="e.g., ABCD12345E"
@@ -2904,7 +3072,9 @@ function SupplierDirectory() {
                             onChange={(e) => handleEditChange("tan_no", e.target.value)}
                             className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                           />
-                          {editErrors.tan_no && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.tan_no}</p>}
+                          {editErrors.tan_no && (
+                            <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.tan_no}</p>
+                          )}
                         </div>
                         <div className="flex flex-col">
                           <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -2917,12 +3087,16 @@ function SupplierDirectory() {
                             onChange={(e) => handleEditChange("cin", e.target.value)}
                             className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                           />
-                          {editErrors.cin && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.cin}</p>}
+                          {editErrors.cin && (
+                            <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.cin}</p>
+                          )}
                         </div>
                       </>
                     )}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">MSME Udyam No.</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        MSME Udyam No.
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g., UDYAM-AP-01-12345"
@@ -2932,7 +3106,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">FSSAI Licence No.</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        FSSAI Licence No.
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g., 12345678901234"
@@ -2940,11 +3116,15 @@ function SupplierDirectory() {
                         onChange={(e) => handleEditChange("fssai", e.target.value)}
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                       />
-                      {editErrors.fssai && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.fssai}</p>}
+                      {editErrors.fssai && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.fssai}</p>
+                      )}
                     </div>
                     {editForm.supplier_type === "business" && (
                       <div className="flex flex-col md:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Import Export Code (IEC)</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                          Import Export Code (IEC)
+                        </label>
                         <input
                           type="text"
                           placeholder="e.g., 1234567890"
@@ -2952,22 +3132,27 @@ function SupplierDirectory() {
                           onChange={(e) => handleEditChange("iec", e.target.value)}
                           className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white tabular-nums font-semibold text-slate-700"
                         />
-                        {editErrors.iec && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.iec}</p>}
+                        {editErrors.iec && (
+                          <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.iec}</p>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Section 5: Bank Details */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <Landmark className="w-5 h-5 text-brand-600" />
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">5. Bank Details (Optional)</h4>
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                      5. Bank Details (Optional)
+                    </h4>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Holder Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Account Holder Name
+                      </label>
                       <input
                         type="text"
                         value={editForm.bank_account_holder_name}
@@ -2977,7 +3162,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Bank Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Bank Name
+                      </label>
                       <input
                         type="text"
                         value={editForm.bank_name}
@@ -2990,7 +3177,9 @@ function SupplierDirectory() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Number</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Account Number
+                      </label>
                       <input
                         type="text"
                         value={editForm.bank_account_number}
@@ -3000,7 +3189,9 @@ function SupplierDirectory() {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">IFSC Code</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        IFSC Code
+                      </label>
                       <input
                         type="text"
                         value={editForm.bank_ifsc_code}
@@ -3008,10 +3199,14 @@ function SupplierDirectory() {
                         placeholder="SBIN0001234"
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white uppercase tabular-nums font-semibold text-slate-700"
                       />
-                      {editErrors.bank_ifsc_code && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.bank_ifsc_code}</p>}
+                      {editErrors.bank_ifsc_code && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.bank_ifsc_code}</p>
+                      )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Branch Name</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Branch Name
+                      </label>
                       <input
                         type="text"
                         value={editForm.bank_branch_name}
@@ -3023,12 +3218,13 @@ function SupplierDirectory() {
                   </div>
                 </div>
 
-                {/* KYC Document Section */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-1">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-brand-600" />
-                      <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">KYC Document (optional)</h4>
+                      <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                        KYC Document (optional)
+                      </h4>
                     </div>
                     {selectedSupplier?.kyc_document_url && (
                       <div className="flex flex-col items-end">
@@ -3046,9 +3242,7 @@ function SupplierDirectory() {
                           </span>
                         )}
                         {selectedSupplier.kyc_remarks && (
-                          <p className="text-xs text-slate-500 mt-1">
-                            Remarks: {selectedSupplier.kyc_remarks}
-                          </p>
+                          <p className="text-xs text-slate-500 mt-1">Remarks: {selectedSupplier.kyc_remarks}</p>
                         )}
                       </div>
                     )}
@@ -3061,7 +3255,6 @@ function SupplierDirectory() {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Document Type */}
                     <div className="flex flex-col">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Document Type
@@ -3080,7 +3273,6 @@ function SupplierDirectory() {
                       </select>
                     </div>
 
-                    {/* Document Number */}
                     <div className="flex flex-col">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Document Number
@@ -3095,13 +3287,13 @@ function SupplierDirectory() {
                       />
                       {editForm.kyc_document_type === "aadhaar" && (
                         <p className="text-[11px] text-slate-400 mt-1 font-medium leading-tight">
-                          Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI guidelines.
+                          Enter only the last 4 digits. Upload a masked Aadhaar (first 8 digits hidden) as per UIDAI
+                          guidelines.
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Document File Upload */}
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Document File (.pdf, .jpg, .jpeg, .png, max 5 MB)
@@ -3136,7 +3328,9 @@ function SupplierDirectory() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingEdit ? "opacity-50 pointer-events-none" : ""}`}>
+                        <label
+                          className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-all ${isKycUploadingEdit ? "opacity-50 pointer-events-none" : ""}`}
+                        >
                           <input
                             type="file"
                             accept=".pdf,.jpg,.jpeg,.png"
@@ -3160,7 +3354,6 @@ function SupplierDirectory() {
                     )}
                   </div>
 
-                  {/* Verification Actions (when selectedSupplier.kyc_document_url exists) */}
                   {selectedSupplier?.kyc_document_url && (
                     <div className="pt-3 border-t border-slate-100 space-y-3">
                       <div className="flex flex-col">
@@ -3212,7 +3405,6 @@ function SupplierDirectory() {
                   </p>
                 </div>
 
-                {/* Section 6: Additional Notes */}
                 <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-5 space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-1">
                     <BookOpen className="w-5 h-5 text-brand-600" />
@@ -3228,15 +3420,18 @@ function SupplierDirectory() {
                       rows="2"
                       className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-400 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none font-semibold text-slate-700"
                     />
-                    {editErrors.notes && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.notes}</p>}
+                    {editErrors.notes && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.notes}</p>
+                    )}
                   </div>
                 </div>
 
-                {/* Active Status Switch - Immediate trigger */}
                 <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-slate-800">Active Status</span>
-                    <span className="text-xs text-slate-500 mt-0.5">Toggle to activate or deactivate this supplier</span>
+                    <span className="text-xs text-slate-500 mt-0.5">
+                      Toggle to activate or deactivate this supplier
+                    </span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
                     <input
@@ -3272,7 +3467,6 @@ function SupplierDirectory() {
         </Modal>
       )}
 
-      {/* Deactivate/Delete Warning Confirmation Dialog */}
       {isDeleteOpen && (
         <Modal onClose={() => setIsDeleteOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
@@ -3282,7 +3476,8 @@ function SupplierDirectory() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Deactivate Supplier</h3>
               <p className="text-sm font-medium text-slate-500 mb-6 leading-relaxed">
-                Are you sure you want to deactivate this supplier? They will no longer be available for new Purchase Orders.
+                Are you sure you want to deactivate this supplier? They will no longer be available for new Purchase
+                Orders.
               </p>
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end w-full gap-2 shrink-0">

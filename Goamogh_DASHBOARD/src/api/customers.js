@@ -1,6 +1,5 @@
 import { customFetch } from "./api"
 
-
 export const getCustomers = async (params = {}) => {
   const cleanParams = {}
   Object.entries(params).forEach(([key, val]) => {
@@ -26,7 +25,6 @@ export const updateCustomer = async (userId, customerData) => {
   })
 }
 
-
 export const toggleCustomerStatus = async (userId, isActive) => {
   return customFetch(`/api/v1/sales/users/${userId}/status`, {
     method: "POST",
@@ -34,11 +32,9 @@ export const toggleCustomerStatus = async (userId, isActive) => {
   })
 }
 
-
 export const getCustomerAddresses = async (userId) => {
   return customFetch(`/api/v1/sales/users/${userId}/addresses`)
 }
-
 
 export const addCustomerAddress = async (userId, addressData) => {
   return customFetch(`/api/v1/sales/users/${userId}/addresses`, {
@@ -54,12 +50,10 @@ export const updateCustomerAddress = async (addressId, addressData) => {
   })
 }
 
-
 export const getCustomerOrders = async (userId, params = {}) => {
   const query = new URLSearchParams(params).toString()
   return customFetch(query ? `/api/v1/sales/users/${userId}/orders?${query}` : `/api/v1/sales/users/${userId}/orders`)
 }
-
 
 export const searchCustomerByPhone = async (phone) => {
   return customFetch(`/api/v1/sales/customers/search?phone=${encodeURIComponent(phone)}`)

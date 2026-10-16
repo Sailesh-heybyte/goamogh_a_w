@@ -1,6 +1,5 @@
 import { customFetch } from "./api"
 
-
 export const getCategories = async (activeOnly = true) => {
   return customFetch(`/api/v1/inventory/categories${activeOnly ? "" : "?active_only=false"}`)
 }
@@ -29,11 +28,9 @@ export const clearCategoriesCache = () => {
   delete categoriesCache.all
 }
 
-
 export const getCategoryDetails = async (catId) => {
   return customFetch(`/api/v1/inventory/categories/${catId}`)
 }
-
 
 export const createCategory = async (categoryData) => {
   return customFetch("/api/v1/inventory/categories", {
@@ -41,7 +38,6 @@ export const createCategory = async (categoryData) => {
     body: JSON.stringify(categoryData),
   })
 }
-
 
 export const updateCategory = async (catId, categoryData) => {
   return customFetch(`/api/v1/inventory/categories/${catId}`, {

@@ -1,33 +1,21 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  LayoutDashboard,
-  Search,
-  AlertCircle,
-  RefreshCw,
-  ExternalLink,
-  Package,
-  Wheat,
-  Layers
-} from "lucide-react"
+import { LayoutDashboard, Search, AlertCircle, RefreshCw, ExternalLink, Package, Wheat, Layers } from "lucide-react"
 import { getInventoryDashboard } from "@/api/ledgers"
 import Spinner from "@/components/ui/Spinner"
 
 function InventoryDashboard() {
   const navigate = useNavigate()
 
-  // Data State
   const [dashboardData, setDashboardData] = useState({
     counts: { raw_material: 0, finished_good: 0 },
     stock_summary: [],
-    recent_ledger_entries: []
+    recent_ledger_entries: [],
   })
 
-  // Filter States
-  const [itemTypeFilter, setItemTypeFilter] = useState("") // raw_material, finished_good
+  const [itemTypeFilter, setItemTypeFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  
-  // Loading & Error States
+
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -36,7 +24,7 @@ function InventoryDashboard() {
     setError("")
     try {
       const params = {
-        recent_ledger_count: 20
+        recent_ledger_count: 20,
       }
       if (itemTypeFilter) params.item_type = itemTypeFilter
       const res = await getInventoryDashboard(params)
@@ -44,11 +32,13 @@ function InventoryDashboard() {
         throw new Error(`Failed to load dashboard data (Status ${res.status})`)
       }
       const json = await res.json()
-      setDashboardData(json.data || {
-        counts: { raw_material: 0, finished_good: 0 },
-        stock_summary: [],
-        recent_ledger_entries: []
-      })
+      setDashboardData(
+        json.data || {
+          counts: { raw_material: 0, finished_good: 0 },
+          stock_summary: [],
+          recent_ledger_entries: [],
+        }
+      )
     } catch (err) {
       setError(err.message || "Something went wrong fetching the dashboard.")
     } finally {
@@ -60,7 +50,6 @@ function InventoryDashboard() {
     loadDashboard()
   }, [loadDashboard])
 
-  // Filter items in memory
   const getFilteredStock = (list) => {
     const q = searchQuery.toLowerCase().trim()
     if (!q) return list
@@ -69,8 +58,6 @@ function InventoryDashboard() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-      
-      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
@@ -102,22 +89,22 @@ function InventoryDashboard() {
           <AlertCircle className="w-5 h-5 text-error-500 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p>{error}</p>
-            <button 
-              onClick={loadDashboard}
-              className="text-xs text-error-800 underline font-bold mt-1.5 block"
-            >
+            <button onClick={loadDashboard} className="text-xs text-error-800 underline font-bold mt-1.5 block">
               Retry Loading
             </button>
           </div>
         </div>
       )}
 
-      {/* TOP COUNT CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Raw Materials Managed</span>
-            <span className="text-3xl font-extrabold text-slate-800 mt-1 block">{dashboardData.counts?.raw_material || 0} items</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              Raw Materials Managed
+            </span>
+            <span className="text-3xl font-extrabold text-slate-800 mt-1 block">
+              {dashboardData.counts?.raw_material || 0} items
+            </span>
           </div>
           <div className="p-3 bg-amber-50 text-amber-600 border border-amber-100 rounded-2xl">
             <Wheat className="w-6 h-6" />
@@ -126,8 +113,12 @@ function InventoryDashboard() {
 
         <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Finished Products Managed</span>
-            <span className="text-3xl font-extrabold text-slate-800 mt-1 block">{dashboardData.counts?.finished_good || 0} items</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              Finished Products Managed
+            </span>
+            <span className="text-3xl font-extrabold text-slate-800 mt-1 block">
+              {dashboardData.counts?.finished_good || 0} items
+            </span>
           </div>
           <div className="p-3 bg-brand-50 text-brand-600 border border-brand-100 rounded-2xl">
             <Package className="w-6 h-6" />
@@ -135,7 +126,6 @@ function InventoryDashboard() {
         </div>
       </div>
 
-      {/* FULL WIDTH SUMMARY */}
       <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
@@ -168,7 +158,9 @@ function InventoryDashboard() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12"><Spinner size="md" /></div>
+          <div className="flex justify-center items-center py-12">
+            <Spinner size="md" />
+          </div>
         ) : getFilteredStock(dashboardData.stock_summary).length === 0 ? (
           <p className="text-slate-400 text-xs font-semibold text-center py-8">No inventory items found.</p>
         ) : (
@@ -179,23 +171,31 @@ function InventoryDashboard() {
                   <th className="px-2 md:px-4 py-2.5 w-[50%] md:w-[45%] lg:w-[42%]">Item Name</th>
                   <th className="hidden md:table-cell px-2 md:px-4 py-2.5 w-[20%] lg:w-[18%]">Type</th>
                   <th className="px-2 md:px-4 py-2.5 w-[35%] md:w-[25%] lg:w-[25%] text-right">Available Stock</th>
-                  <th className="px-2 md:px-4 py-2.5 w-[15%] md:w-[10%] lg:w-[15%] text-center"><span className="hidden md:inline">Drill Down</span></th>
+                  <th className="px-2 md:px-4 py-2.5 w-[15%] md:w-[10%] lg:w-[15%] text-center">
+                    <span className="hidden md:inline">Drill Down</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {getFilteredStock(dashboardData.stock_summary).map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-2 md:px-4 py-3 font-bold text-slate-800">
-                      <div className="truncate" title={item.name}>{item.name}</div>
+                      <div className="truncate" title={item.name}>
+                        {item.name}
+                      </div>
                       <div className="md:hidden text-[10px] text-slate-400 font-normal truncate mt-0.5">
                         {item.item_type === "raw_material" ? "Raw Material" : "Finished Product"}
                       </div>
                     </td>
                     <td className="hidden md:table-cell px-2 md:px-4 py-3 uppercase text-[9px] whitespace-nowrap">
                       {item.item_type === "raw_material" ? (
-                        <span className="text-amber-700 bg-amber-50 px-1.5 md:px-2.5 py-0.5 rounded border border-amber-100 font-extrabold text-[10px] md:text-xs whitespace-nowrap">Raw</span>
+                        <span className="text-amber-700 bg-amber-50 px-1.5 md:px-2.5 py-0.5 rounded border border-amber-100 font-extrabold text-[10px] md:text-xs whitespace-nowrap">
+                          Raw
+                        </span>
                       ) : (
-                        <span className="text-brand-700 bg-brand-50 px-1.5 md:px-2.5 py-0.5 rounded border border-brand-100 font-extrabold text-[10px] md:text-xs whitespace-nowrap">Finished</span>
+                        <span className="text-brand-700 bg-brand-50 px-1.5 md:px-2.5 py-0.5 rounded border border-brand-100 font-extrabold text-[10px] md:text-xs whitespace-nowrap">
+                          Finished
+                        </span>
                       )}
                     </td>
                     <td className="px-2 md:px-4 py-3 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">

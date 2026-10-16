@@ -10,7 +10,7 @@ export function Toast({ type = "error", title, message, onClose }) {
       icon: <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />,
       defaultTitle: "Rate Limit Exceeded (HTTP 429)",
     },
-    "429": {
+    429: {
       container: "bg-amber-500/10 border-amber-500/30 text-amber-900 shadow-amber-500/10",
       badge: "bg-amber-500/20 text-amber-800",
       icon: <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />,
@@ -52,18 +52,12 @@ export function Toast({ type = "error", title, message, onClose }) {
       {config.icon}
       <div className="flex-1 pr-6">
         <div className="flex items-center gap-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider">
-            {title || config.defaultTitle}
-          </h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider">{title || config.defaultTitle}</h4>
           {isRateLimit && (
-            <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${config.badge}`}>
-              429
-            </span>
+            <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${config.badge}`}>429</span>
           )}
         </div>
-        <p className="text-sm font-medium mt-0.5 leading-relaxed opacity-90">
-          {message}
-        </p>
+        <p className="text-sm font-medium mt-0.5 leading-relaxed opacity-90">{message}</p>
       </div>
 
       {onClose && (

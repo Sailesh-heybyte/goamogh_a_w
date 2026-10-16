@@ -1,10 +1,8 @@
 import { customFetch } from "./api"
 
-
 export const getSettings = async () => {
   return customFetch("/api/v1/purchase/settings")
 }
-
 
 export const updateSetting = async (key, value) => {
   return customFetch(`/api/v1/purchase/settings/${key}`, {
@@ -12,4 +10,3 @@ export const updateSetting = async (key, value) => {
     body: JSON.stringify({ value }),
   })
 }
-

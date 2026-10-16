@@ -55,7 +55,6 @@ function Sidebar({ isOpen, onClose }) {
     }
   }, [isMenuOpen])
 
-  // Dynamic navigation links based on permissions
   const hasPermission = (permissionName) => {
     if (!user) return false
 
@@ -87,8 +86,18 @@ function Sidebar({ isOpen, onClose }) {
     {
       title: "Purchases",
       items: [
-        { name: "Purchase Orders", to: "/purchase/orders", icon: ClipboardList, show: hasPermission("purchase_order_manage") },
-        { name: "Purchase Entries", to: "/purchase/entries", icon: PackageCheck, show: hasPermission("goods_receipt_manage") },
+        {
+          name: "Purchase Orders",
+          to: "/purchase/orders",
+          icon: ClipboardList,
+          show: hasPermission("purchase_order_manage"),
+        },
+        {
+          name: "Purchase Entries",
+          to: "/purchase/entries",
+          icon: PackageCheck,
+          show: hasPermission("goods_receipt_manage"),
+        },
         { name: "Suppliers", to: "/suppliers", icon: Truck, show: hasPermission("supplier_manage") },
       ],
     },
@@ -96,7 +105,12 @@ function Sidebar({ isOpen, onClose }) {
       title: "Production & Stock",
       items: [
         { name: "Work Orders", to: "/work-orders", icon: Factory, show: hasPermission("work_order_manage") },
-        { name: "Inventory Dashboard", to: "/inventory-dashboard", icon: LayoutDashboard, show: hasPermission("stock_manage") },
+        {
+          name: "Inventory Dashboard",
+          to: "/inventory-dashboard",
+          icon: LayoutDashboard,
+          show: hasPermission("stock_manage"),
+        },
         { name: "Stock Ledger", to: "/stock-ledger", icon: History, show: hasPermission("stock_manage") },
       ],
     },
@@ -111,10 +125,25 @@ function Sidebar({ isOpen, onClose }) {
     {
       title: "Catalog",
       items: [
-        { name: "Item Catalog", to: "/products", icon: Package, show: hasPermission("catalog_manage") || hasPermission("catalog_authorize") },
+        {
+          name: "Item Catalog",
+          to: "/products",
+          icon: Package,
+          show: hasPermission("catalog_manage") || hasPermission("catalog_authorize"),
+        },
         { name: "Categories", to: "/categories", icon: Layers, show: hasPermission("catalog_manage") },
-        { name: "Pricing", to: "/pricing", icon: IndianRupee, show: hasPermission("price_view") || hasPermission("price_manage") },
-        { name: "Certificates", to: "/certificates", icon: FileCheck2, show: hasPermission("certificate_manage") || hasPermission("catalog_manage") },
+        {
+          name: "Pricing",
+          to: "/pricing",
+          icon: IndianRupee,
+          show: hasPermission("price_view") || hasPermission("price_manage"),
+        },
+        {
+          name: "Certificates",
+          to: "/certificates",
+          icon: FileCheck2,
+          show: hasPermission("certificate_manage") || hasPermission("catalog_manage"),
+        },
       ],
     },
     {
@@ -133,16 +162,21 @@ function Sidebar({ isOpen, onClose }) {
     .filter((section) => section.items.length > 0)
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-[280px] h-dvh bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0`}>
-      {/* Branding header block */}
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 w-[280px] h-dvh bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0`}
+    >
       <div className="h-16 flex items-center px-6 lg:px-8 border-b border-slate-100 gap-3 shrink-0">
         <img src="/brand/goamogh-golden.png" alt="Goamogh" className="h-7 w-auto object-contain" />
-        <button type="button" onClick={onClose} className="lg:hidden ml-auto p-2 -mr-2 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Close menu">
+        <button
+          type="button"
+          onClick={onClose}
+          className="lg:hidden ml-auto p-2 -mr-2 rounded-lg text-slate-500 hover:bg-slate-100"
+          aria-label="Close menu"
+        >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Scrollable Nav Link list */}
       <div className="flex-1 overflow-y-auto">
         <nav className="p-4 space-y-1">
           {sections.map((section, idx) => (
@@ -161,9 +195,10 @@ function Sidebar({ isOpen, onClose }) {
                     onClick={onClose}
                     end={item.to === "/"}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
-                        ? "bg-brand-50 text-brand-700 font-bold"
-                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                      `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                        isActive
+                          ? "bg-brand-50 text-brand-700 font-bold"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                       }`
                     }
                   >
@@ -177,7 +212,6 @@ function Sidebar({ isOpen, onClose }) {
         </nav>
       </div>
 
-      {/* Dynamic Profile Widget */}
       <div className="p-4 border-t border-slate-100 shrink-0">
         <div ref={menuRef} className="relative bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -186,7 +220,9 @@ function Sidebar({ isOpen, onClose }) {
             </div>
             <div className="min-w-0 truncate">
               <p className="text-sm font-bold text-slate-800 truncate">
-                {user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.email || "Admin User"}
+                {user?.first_name && user?.last_name
+                  ? `${user.first_name} ${user.last_name}`
+                  : user?.email || "Admin User"}
               </p>
               <p className="text-xs font-bold text-slate-400 capitalize">
                 {user?.role_name === "super_admin" ? "Super Admin" : (user?.role_name ?? "—")}

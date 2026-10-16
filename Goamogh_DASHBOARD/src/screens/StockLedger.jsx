@@ -1,24 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import {
-  Search,
-  AlertCircle,
-  Layers,
-  Package,
-  Wheat,
-  ClipboardList,
-  FileSpreadsheet,
-  Printer,
-  X
-} from "lucide-react"
-import {
-  getItemLedger,
-  getStockSummary
-} from "@/api/ledgers"
+import { Search, AlertCircle, Layers, Package, Wheat, ClipboardList, FileSpreadsheet, Printer, X } from "lucide-react"
+import { getItemLedger, getStockSummary } from "@/api/ledgers"
 import Spinner from "@/components/ui/Spinner"
 
-
-// Format date format: Tue Mar 3 03:29:58 2026
 const formatTimestamp = (isoString) => {
   if (!isoString) return "—"
   try {
@@ -70,47 +55,38 @@ function StockLedger() {
   const [searchParams, setSearchParams] = useSearchParams()
   const itemIdParam = searchParams.get("item_id")
 
-  // Navigation View State: "stock-summary", "ledger"
   const [currentView, setCurrentView] = useState("stock-summary")
 
-  // Data States
   const [summaryData, setSummaryData] = useState([])
   const [ledgerLogs, setLedgerLogs] = useState([])
-  const [ledgerSubView, setLedgerSubView] = useState("logs") // "logs" or "source-history"
+  const [ledgerSubView, setLedgerSubView] = useState("logs")
   const [purchaseHistory, setPurchaseHistory] = useState([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState("")
 
-  // Selection State
   const [selectedItem, setSelectedItem] = useState(null)
 
-  // Filters State (Stock Summary)
-  const [itemTypeFilter, setItemTypeFilter] = useState("") // raw_material, finished_good
+  const [itemTypeFilter, setItemTypeFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Date/Ledger Filters State (Stock Ledger View)
   const [fromDate, setFromDate] = useState(getTenDaysAgoStr())
   const [toDate, setToDate] = useState(getTodayStr())
   const [ledgerSearch, setLedgerSearch] = useState("")
   const [appliedLedgerFilters, setAppliedLedgerFilters] = useState({
     fromDate: getTenDaysAgoStr(),
     toDate: getTodayStr(),
-    search: ""
+    search: "",
   })
 
-  // Pagination States (Stock Summary)
   const [summaryPage, setSummaryPage] = useState(1)
   const [summaryLimit, setSummaryLimit] = useState(10)
 
-  // Pagination States (Ledger logs)
   const [ledgerPage, setLedgerPage] = useState(1)
   const [ledgerLimit, setLedgerLimit] = useState(10)
 
-  // Loading & Error States
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Load Stock Summary
   const loadStockSummary = useCallback(async () => {
     setIsLoading(true)
     setError("")
@@ -130,7 +106,6 @@ function StockLedger() {
     }
   }, [itemTypeFilter])
 
-  // Load Detailed Ledger
   const loadLedger = useCallback(async (item) => {
     if (!item) return
     setIsLoading(true)
@@ -174,7 +149,7 @@ function StockLedger() {
         invoice_number: entry.invoice_number,
         quantity_received: entry.quantity_change,
         batch_number: entry.batch_number,
-        expiry_date: entry.expiry_date
+        expiry_date: entry.expiry_date,
       }))
 
       resolvedRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -186,14 +161,12 @@ function StockLedger() {
     }
   }, [])
 
-  // Load stock summary on initial render
   useEffect(() => {
     if (currentView === "stock-summary") {
       loadStockSummary()
     }
   }, [currentView, loadStockSummary])
 
-  // Handle auto-drill down from query parameter
   useEffect(() => {
     if (itemIdParam && summaryData.length > 0) {
       const matched = summaryData.find((itm) => itm.id === itemIdParam)
@@ -208,7 +181,6 @@ function StockLedger() {
     }
   }, [itemIdParam, summaryData, loadLedger])
 
-  // Handle drill down selections
   const handleSelectItem = (item) => {
     setSelectedItem(item)
     setSearchParams({ item_id: item.id })
@@ -217,14 +189,13 @@ function StockLedger() {
     setPurchaseHistory([])
     setHistoryError("")
     loadLedger(item)
-    // Reset date range filters to default when opening a new ledger
     setFromDate(getTenDaysAgoStr())
     setToDate(getTodayStr())
     setLedgerSearch("")
     setAppliedLedgerFilters({
       fromDate: getTenDaysAgoStr(),
       toDate: getTodayStr(),
-      search: ""
+      search: "",
     })
     setLedgerPage(1)
   }
@@ -236,19 +207,14 @@ function StockLedger() {
     setSummaryPage(1)
   }
 
-
-
-  // Filter & Search Logic (Stock Summary)
   const getFilteredStock = () => {
     const q = searchQuery.toLowerCase().trim()
     if (!q) return summaryData
     return summaryData.filter((itm) => itm.name?.toLowerCase().includes(q))
   }
 
-  // Filter & Search Logic (Stock Ledger Logs)
   const getFilteredLedgerLogs = () => {
     const filtered = ledgerLogs.filter((row) => {
-      // 1. Date Filter
       const rowDate = new Date(row.created_at)
       if (appliedLedgerFilters.fromDate) {
         const start = new Date(appliedLedgerFilters.fromDate)
@@ -261,7 +227,6 @@ function StockLedger() {
         if (rowDate > end) return false
       }
 
-      // 2. Search query filter on narration
       if (appliedLedgerFilters.search) {
         const q = appliedLedgerFilters.search.toLowerCase().trim()
         const narrationMatch = row.narration?.toLowerCase().includes(q)
@@ -279,12 +244,11 @@ function StockLedger() {
     setAppliedLedgerFilters({
       fromDate,
       toDate,
-      search: ledgerSearch
+      search: ledgerSearch,
     })
     setLedgerPage(1)
   }
 
-  // Pagination lists
   const paginatedSummary = () => {
     const filtered = getFilteredStock()
     const startIndex = (summaryPage - 1) * summaryLimit
@@ -297,17 +261,23 @@ function StockLedger() {
     return filtered.slice(startIndex, startIndex + ledgerLimit)
   }
 
-  // Render Breadcrumbs
   const renderBreadcrumbs = () => {
     return (
       <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500 mb-2">
-        <span className="cursor-pointer hover:text-brand-600 transition-colors" onClick={() => navigate("/inventory-dashboard")}>Inventory</span>
+        <span
+          className="cursor-pointer hover:text-brand-600 transition-colors"
+          onClick={() => navigate("/inventory-dashboard")}
+        >
+          Inventory
+        </span>
         <span>/</span>
         {currentView === "stock-summary" ? (
           <span className="text-slate-800 font-bold">Stock Summary</span>
         ) : (
           <>
-            <span className="cursor-pointer hover:text-brand-600 transition-colors" onClick={handleGoBackToSummary}>Stock Summary</span>
+            <span className="cursor-pointer hover:text-brand-600 transition-colors" onClick={handleGoBackToSummary}>
+              Stock Summary
+            </span>
             <span>/</span>
             <span className="text-slate-800 font-bold">{selectedItem?.name}</span>
           </>
@@ -318,8 +288,6 @@ function StockLedger() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Top Header Block */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           {renderBreadcrumbs()}
@@ -339,15 +307,14 @@ function StockLedger() {
         <div className="p-4 bg-error-50 border border-error-100 rounded-2xl text-xs font-semibold text-error-800 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-error-500 shrink-0" />
           <p className="flex-1">{error}</p>
-          <button onClick={() => setError("")} className="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+          <button onClick={() => setError("")} className="text-slate-400 hover:text-slate-600 font-bold">
+            &times;
+          </button>
         </div>
       )}
 
-      {/* RENDER VIEW 1: STOCK SUMMARY */}
       {currentView === "stock-summary" && (
         <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4 animate-in fade-in duration-200">
-
-          {/* Summary Filters toolbar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <div className="flex flex-col w-full sm:w-auto">
@@ -383,13 +350,25 @@ function StockLedger() {
               </div>
 
               <div className="flex items-center gap-2 self-end sm:self-auto">
-                <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Export PDF">
+                <button
+                  type="button"
+                  className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                  title="Export PDF"
+                >
                   <FileSpreadsheet className="w-4 h-4 text-rose-600" />
                 </button>
-                <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Export Excel">
+                <button
+                  type="button"
+                  className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                  title="Export Excel"
+                >
                   <Layers className="w-4 h-4 text-emerald-600" />
                 </button>
-                <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Print List">
+                <button
+                  type="button"
+                  className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                  title="Print List"
+                >
                   <Printer className="w-4 h-4 text-slate-600" />
                 </button>
               </div>
@@ -397,9 +376,13 @@ function StockLedger() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center items-center py-20"><Spinner size="lg" /></div>
+            <div className="flex justify-center items-center py-20">
+              <Spinner size="lg" />
+            </div>
           ) : getFilteredStock().length === 0 ? (
-            <div className="text-center text-slate-400 font-bold py-16">No stock details found matching search filter.</div>
+            <div className="text-center text-slate-400 font-bold py-16">
+              No stock details found matching search filter.
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="w-full">
@@ -423,9 +406,13 @@ function StockLedger() {
                           onClick={() => handleSelectItem(item)}
                           className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                         >
-                          <td className="hidden md:table-cell px-6 py-3.5 text-slate-400 font-bold whitespace-nowrap">{absoluteIndex}</td>
+                          <td className="hidden md:table-cell px-6 py-3.5 text-slate-400 font-bold whitespace-nowrap">
+                            {absoluteIndex}
+                          </td>
                           <td className="px-6 py-3.5 font-bold text-slate-900 group-hover:text-brand-600">
-                            <div className="truncate" title={item.name}>{item.name}</div>
+                            <div className="truncate" title={item.name}>
+                              {item.name}
+                            </div>
                             <div className="md:hidden text-[10px] text-slate-400 truncate">
                               {item.item_type === "raw_material" ? "Raw Material" : "Finished Product"}
                             </div>
@@ -449,9 +436,16 @@ function StockLedger() {
                             )}
                           </td>
                           <td className="px-6 py-3.5 text-right tabular-nums font-extrabold text-sm text-slate-800 whitespace-nowrap">
-                            {item.stock_qty != null ? parseFloat(item.stock_qty).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
+                            {item.stock_qty != null
+                              ? parseFloat(item.stock_qty).toLocaleString("en-IN", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : "—"}
                           </td>
-                          <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-500 uppercase whitespace-nowrap">{item.unit_code}</td>
+                          <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-500 uppercase whitespace-nowrap">
+                            {item.unit_code}
+                          </td>
                           <td className="hidden lg:table-cell px-6 py-3.5 text-center text-slate-400 tabular-nums whitespace-nowrap">
                             {formatLastUpdated(item.updated_at)}
                           </td>
@@ -462,7 +456,6 @@ function StockLedger() {
                 </table>
               </div>
 
-              {/* Summary Pagination Footer */}
               <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
                 <div className="flex items-center gap-2">
                   <span>Show per page:</span>
@@ -482,7 +475,9 @@ function StockLedger() {
 
                 <div className="flex items-center gap-4">
                   <span>
-                    {(summaryPage - 1) * summaryLimit + 1} - {Math.min(summaryPage * summaryLimit, getFilteredStock().length)} of {getFilteredStock().length} Items
+                    {(summaryPage - 1) * summaryLimit + 1} -{" "}
+                    {Math.min(summaryPage * summaryLimit, getFilteredStock().length)} of {getFilteredStock().length}{" "}
+                    Items
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
@@ -494,22 +489,31 @@ function StockLedger() {
                     </button>
                     {Array.from({ length: Math.ceil(getFilteredStock().length / summaryLimit) }).map((_, pageIdx) => {
                       const pNum = pageIdx + 1
-                      if (pNum === 1 || pNum === Math.ceil(getFilteredStock().length / summaryLimit) || Math.abs(pNum - summaryPage) <= 1) {
+                      if (
+                        pNum === 1 ||
+                        pNum === Math.ceil(getFilteredStock().length / summaryLimit) ||
+                        Math.abs(pNum - summaryPage) <= 1
+                      ) {
                         return (
                           <button
                             key={pNum}
                             onClick={() => setSummaryPage(pNum)}
-                            className={`px-3 py-1 rounded-lg border tabular-nums ${summaryPage === pNum
+                            className={`px-3 py-1 rounded-lg border tabular-nums ${
+                              summaryPage === pNum
                                 ? "bg-brand-600 border-brand-600 text-white font-extrabold shadow-sm"
                                 : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                              } transition-all`}
+                            } transition-all`}
                           >
                             {pNum}
                           </button>
                         )
                       }
                       if (pNum === 2 || pNum === Math.ceil(getFilteredStock().length / summaryLimit) - 1) {
-                        return <span key={pNum} className="text-slate-400 px-1 font-bold">...</span>
+                        return (
+                          <span key={pNum} className="text-slate-400 px-1 font-bold">
+                            ...
+                          </span>
+                        )
                       }
                       return null
                     })}
@@ -528,14 +532,9 @@ function StockLedger() {
         </div>
       )}
 
-      {/* RENDER VIEW 2: PRODUCT/RAW MATERIAL LEDGER */}
       {currentView === "ledger" && selectedItem && (
         <div className="space-y-6 animate-in fade-in duration-200">
-
-          {/* Header Action toolbar */}
           <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 space-y-4">
-
-            {/* Title Block & Subtitle */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-100 pb-3.5">
               <div className="flex items-center">
                 <button
@@ -551,7 +550,9 @@ function StockLedger() {
                     ) : (
                       <Package className="w-5 h-5 text-brand-600" />
                     )}
-                    <span>{selectedItem.item_type === "raw_material" ? "Raw Material" : "Finished Product"} Ledger</span>
+                    <span>
+                      {selectedItem.item_type === "raw_material" ? "Raw Material" : "Finished Product"} Ledger
+                    </span>
                   </h3>
                   <p className="text-xs text-slate-500 font-bold mt-1 tabular-nums tracking-wide">
                     {selectedItem.name} &bull; HSN: {selectedItem.hsn_code || "—"} &bull; Unit: {selectedItem.unit_code}
@@ -560,15 +561,15 @@ function StockLedger() {
               </div>
             </div>
 
-            {/* Tab Selection Row */}
             <div className="flex border-b border-slate-100 pb-0.5">
               <button
                 type="button"
                 onClick={() => setLedgerSubView("logs")}
-                className={`pb-2.5 px-4 font-bold text-xs border-b-2 transition-all ${ledgerSubView === "logs"
+                className={`pb-2.5 px-4 font-bold text-xs border-b-2 transition-all ${
+                  ledgerSubView === "logs"
                     ? "border-brand-600 text-brand-700 font-extrabold"
                     : "border-transparent text-slate-400 hover:text-slate-700"
-                  }`}
+                }`}
               >
                 Detailed Transaction Logs
               </button>
@@ -578,16 +579,16 @@ function StockLedger() {
                   setLedgerSubView("source-history")
                   loadPurchaseHistory(selectedItem)
                 }}
-                className={`pb-2.5 px-4 font-bold text-xs border-b-2 transition-all ${ledgerSubView === "source-history"
+                className={`pb-2.5 px-4 font-bold text-xs border-b-2 transition-all ${
+                  ledgerSubView === "source-history"
                     ? "border-brand-600 text-brand-700 font-extrabold"
                     : "border-transparent text-slate-400 hover:text-slate-700"
-                  }`}
+                }`}
               >
                 Stock History
               </button>
             </div>
 
-            {/* Date Filters & Search Row */}
             {ledgerSubView === "logs" && (
               <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-end gap-3 w-full lg:w-auto">
@@ -633,28 +634,38 @@ function StockLedger() {
                     />
                   </div>
 
-                  {/* Actions export group */}
                   <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Export PDF">
+                    <button
+                      type="button"
+                      className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                      title="Export PDF"
+                    >
                       <FileSpreadsheet className="w-4 h-4 text-rose-600" />
                     </button>
-                    <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Export Excel">
+                    <button
+                      type="button"
+                      className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                      title="Export Excel"
+                    >
                       <Layers className="w-4 h-4 text-emerald-600" />
                     </button>
-                    <button type="button" className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95" title="Print Ledger">
+                    <button
+                      type="button"
+                      className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95"
+                      title="Print Ledger"
+                    >
                       <Printer className="w-4 h-4 text-slate-600" />
                     </button>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
-
-          {/* TABLE LOGS */}
-          {ledgerSubView === "logs" && (
-            isLoading ? (
-              <div className="flex justify-center items-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm"><Spinner size="lg" /></div>
+          {ledgerSubView === "logs" &&
+            (isLoading ? (
+              <div className="flex justify-center items-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                <Spinner size="lg" />
+              </div>
             ) : getFilteredLedgerLogs().length === 0 ? (
               <div className="text-center text-slate-400 font-bold py-16 bg-white border border-slate-100 rounded-2xl shadow-sm">
                 No transactions found within the selected date range.
@@ -669,8 +680,12 @@ function StockLedger() {
                         <th className="hidden md:table-cell px-4 py-4 w-[16%]">Date & Time</th>
                         <th className="px-4 py-4 w-[60%] md:w-[42%] lg:w-[38%] xl:w-[34%]">Narration Details</th>
                         <th className="hidden xl:table-cell px-4 py-4 w-[14%] text-right">Debit (Out)</th>
-                        <th className="hidden md:table-cell px-4 py-4 w-[18%] lg:w-[16%] xl:w-[14%] text-right">Credit (In)</th>
-                        <th className="px-4 py-4 w-[40%] md:w-[24%] lg:w-[24%] xl:w-[16%] text-right">Running Balance</th>
+                        <th className="hidden md:table-cell px-4 py-4 w-[18%] lg:w-[16%] xl:w-[14%] text-right">
+                          Credit (In)
+                        </th>
+                        <th className="px-4 py-4 w-[40%] md:w-[24%] lg:w-[24%] xl:w-[16%] text-right">
+                          Running Balance
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-700 bg-white">
@@ -679,30 +694,48 @@ function StockLedger() {
                         const changeVal = parseFloat(row.quantity_change)
                         const isNegative = changeVal < 0
 
-                        const debitStr = isNegative ? Math.abs(changeVal).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""
-                        const creditStr = !isNegative ? changeVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""
+                        const debitStr = isNegative
+                          ? Math.abs(changeVal).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : ""
+                        const creditStr = !isNegative
+                          ? changeVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : ""
 
                         return (
                           <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="hidden lg:table-cell px-4 py-3.5 text-slate-400 font-bold whitespace-nowrap">{absoluteIndex}</td>
+                            <td className="hidden lg:table-cell px-4 py-3.5 text-slate-400 font-bold whitespace-nowrap">
+                              {absoluteIndex}
+                            </td>
                             <td className="hidden md:table-cell px-4 py-3.5 tabular-nums text-[10px] text-slate-500 whitespace-nowrap">
                               {formatTimestamp(row.created_at)}
                             </td>
                             <td className="px-4 py-3.5 text-slate-800">
                               <div className="flex flex-wrap items-center gap-2">
                                 {row.direction === "in" ? (
-                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 whitespace-nowrap">In</span>
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 whitespace-nowrap">
+                                    In
+                                  </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold uppercase text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 whitespace-nowrap">Out</span>
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold uppercase text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 whitespace-nowrap">
+                                    Out
+                                  </span>
                                 )}
-                                <span className="font-bold text-slate-800 truncate" title={row.narration}>{row.narration}</span>
+                                <span className="font-bold text-slate-800 truncate" title={row.narration}>
+                                  {row.narration}
+                                </span>
                               </div>
                               <div className="md:hidden text-[10px] text-slate-400 mt-1 truncate">
-                                {formatTimestamp(row.created_at)} {debitStr ? `• Out: ${debitStr}` : ""} {creditStr ? `• In: ${creditStr}` : ""}
+                                {formatTimestamp(row.created_at)} {debitStr ? `• Out: ${debitStr}` : ""}{" "}
+                                {creditStr ? `• In: ${creditStr}` : ""}
                               </div>
                               {row.batch_number && (
                                 <div className="text-[10px] text-slate-400 mt-0.5 tabular-nums truncate">
-                                  FIFO Lot: {row.batch_number} {row.expiry_date && `| Expiry: ${new Date(row.expiry_date.replace(" ", "T")).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`}
+                                  FIFO Lot: {row.batch_number}{" "}
+                                  {row.expiry_date &&
+                                    `| Expiry: ${new Date(row.expiry_date.replace(" ", "T")).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`}
                                 </div>
                               )}
                             </td>
@@ -713,7 +746,9 @@ function StockLedger() {
                               {creditStr ? `${creditStr} ${selectedItem.unit_code}` : ""}
                             </td>
                             <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">
-                              {row.running_balance != null ? `${parseFloat(row.running_balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}` : "—"}
+                              {row.running_balance != null
+                                ? `${parseFloat(row.running_balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}`
+                                : "—"}
                             </td>
                           </tr>
                         )
@@ -722,7 +757,6 @@ function StockLedger() {
                   </table>
                 </div>
 
-                {/* Ledger pagination footer */}
                 <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
                   <div className="flex items-center gap-2">
                     <span>Show per page:</span>
@@ -742,7 +776,9 @@ function StockLedger() {
 
                   <div className="flex items-center gap-4">
                     <span>
-                      {(ledgerPage - 1) * ledgerLimit + 1} - {Math.min(ledgerPage * ledgerLimit, getFilteredLedgerLogs().length)} of {getFilteredLedgerLogs().length} Movements
+                      {(ledgerPage - 1) * ledgerLimit + 1} -{" "}
+                      {Math.min(ledgerPage * ledgerLimit, getFilteredLedgerLogs().length)} of{" "}
+                      {getFilteredLedgerLogs().length} Movements
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -752,27 +788,38 @@ function StockLedger() {
                       >
                         Prev
                       </button>
-                      {Array.from({ length: Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) }).map((_, pageIdx) => {
-                        const pNum = pageIdx + 1
-                        if (pNum === 1 || pNum === Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) || Math.abs(pNum - ledgerPage) <= 1) {
-                          return (
-                            <button
-                              key={pNum}
-                              onClick={() => setLedgerPage(pNum)}
-                              className={`px-3 py-1 rounded-lg border tabular-nums ${ledgerPage === pNum
-                                  ? "bg-brand-600 border-brand-600 text-white font-extrabold shadow-sm"
-                                  : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                      {Array.from({ length: Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) }).map(
+                        (_, pageIdx) => {
+                          const pNum = pageIdx + 1
+                          if (
+                            pNum === 1 ||
+                            pNum === Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) ||
+                            Math.abs(pNum - ledgerPage) <= 1
+                          ) {
+                            return (
+                              <button
+                                key={pNum}
+                                onClick={() => setLedgerPage(pNum)}
+                                className={`px-3 py-1 rounded-lg border tabular-nums ${
+                                  ledgerPage === pNum
+                                    ? "bg-brand-600 border-brand-600 text-white font-extrabold shadow-sm"
+                                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
                                 } transition-all`}
-                            >
-                              {pNum}
-                            </button>
-                          )
+                              >
+                                {pNum}
+                              </button>
+                            )
+                          }
+                          if (pNum === 2 || pNum === Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) - 1) {
+                            return (
+                              <span key={pNum} className="text-slate-400 px-1 font-bold">
+                                ...
+                              </span>
+                            )
+                          }
+                          return null
                         }
-                        if (pNum === 2 || pNum === Math.ceil(getFilteredLedgerLogs().length / ledgerLimit) - 1) {
-                          return <span key={pNum} className="text-slate-400 px-1 font-bold">...</span>
-                        }
-                        return null
-                      })}
+                      )}
                       <button
                         disabled={ledgerPage >= Math.ceil(getFilteredLedgerLogs().length / ledgerLimit)}
                         onClick={() => setLedgerPage((p) => p + 1)}
@@ -783,14 +830,10 @@ function StockLedger() {
                     </div>
                   </div>
                 </div>
-
               </div>
-            )
-          )}
-
-          {/* STOCK HISTORY */}
-          {ledgerSubView === "source-history" && (
-            isHistoryLoading ? (
+            ))}
+          {ledgerSubView === "source-history" &&
+            (isHistoryLoading ? (
               <div className="flex justify-center items-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm">
                 <Spinner size="lg" />
               </div>
@@ -814,52 +857,99 @@ function StockLedger() {
                   <table className="w-full text-left border-collapse table-fixed text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
-                        <th className="hidden lg:table-cell px-4 py-4 lg:w-[6%] xl:w-[5%] whitespace-normal leading-tight">S No</th>
-                        <th className="hidden md:table-cell px-4 py-4 md:w-[18%] lg:w-[14%] xl:w-[12%] whitespace-normal leading-tight">Date</th>
-                        <th className="px-4 py-4 w-[60%] md:w-[34%] lg:w-[26%] xl:w-[20%] whitespace-normal leading-tight">Supplier / Source</th>
-                        <th className="hidden xl:table-cell px-4 py-4 xl:w-[12%] whitespace-normal leading-tight">Source / Ref #</th>
-                        <th className="hidden lg:table-cell px-4 py-4 lg:w-[14%] xl:w-[11%] whitespace-normal leading-tight">Invoice #</th>
-                        <th className="px-4 py-4 w-[40%] md:w-[22%] lg:w-[17%] xl:w-[13%] text-right whitespace-normal leading-tight">Qty Received</th>
-                        <th className="hidden md:table-cell px-4 py-4 md:w-[26%] lg:w-[23%] xl:w-[16%] whitespace-normal leading-tight">Batch</th>
-                        <th className="hidden xl:table-cell px-4 py-4 xl:w-[11%] whitespace-normal leading-tight">Expiry</th>
+                        <th className="hidden lg:table-cell px-4 py-4 lg:w-[6%] xl:w-[5%] whitespace-normal leading-tight">
+                          S No
+                        </th>
+                        <th className="hidden md:table-cell px-4 py-4 md:w-[18%] lg:w-[14%] xl:w-[12%] whitespace-normal leading-tight">
+                          Date
+                        </th>
+                        <th className="px-4 py-4 w-[60%] md:w-[34%] lg:w-[26%] xl:w-[20%] whitespace-normal leading-tight">
+                          Supplier / Source
+                        </th>
+                        <th className="hidden xl:table-cell px-4 py-4 xl:w-[12%] whitespace-normal leading-tight">
+                          Source / Ref #
+                        </th>
+                        <th className="hidden lg:table-cell px-4 py-4 lg:w-[14%] xl:w-[11%] whitespace-normal leading-tight">
+                          Invoice #
+                        </th>
+                        <th className="px-4 py-4 w-[40%] md:w-[22%] lg:w-[17%] xl:w-[13%] text-right whitespace-normal leading-tight">
+                          Qty Received
+                        </th>
+                        <th className="hidden md:table-cell px-4 py-4 md:w-[26%] lg:w-[23%] xl:w-[16%] whitespace-normal leading-tight">
+                          Batch
+                        </th>
+                        <th className="hidden xl:table-cell px-4 py-4 xl:w-[11%] whitespace-normal leading-tight">
+                          Expiry
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-700 bg-white">
                       {purchaseHistory.map((row, idx) => {
                         return (
                           <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="hidden lg:table-cell px-4 py-3.5 text-slate-400 font-bold whitespace-nowrap">{idx + 1}</td>
+                            <td className="hidden lg:table-cell px-4 py-3.5 text-slate-400 font-bold whitespace-nowrap">
+                              {idx + 1}
+                            </td>
                             <td className="hidden md:table-cell px-4 py-3.5 tabular-nums">
                               <div className="text-xs text-slate-700">
-                                {new Date(row.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                {new Date(row.created_at).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
                               </div>
                               <div className="text-[10px] text-slate-400">
-                                {new Date(row.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                                {new Date(row.created_at).toLocaleTimeString("en-GB", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
                               </div>
                             </td>
                             <td className="px-4 py-3.5 text-slate-800 font-bold">
-                              <div className="truncate" title={row.supplier_name || "—"}>{row.supplier_name || "—"}</div>
+                              <div className="truncate" title={row.supplier_name || "—"}>
+                                {row.supplier_name || "—"}
+                              </div>
                               <div className="md:hidden text-[10px] text-slate-400 mt-1 truncate">
-                                {new Date(row.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} {row.batch_number ? `• Batch: ${row.batch_number}` : ""}
+                                {new Date(row.created_at).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}{" "}
+                                {row.batch_number ? `• Batch: ${row.batch_number}` : ""}
                               </div>
                               <div className="lg:hidden text-[10px] text-slate-400 truncate">
-                                {row.invoice_number ? `Inv: ${row.invoice_number}` : ""} {row.pe_number ? `• Ref: ${row.pe_number}` : ""}
+                                {row.invoice_number ? `Inv: ${row.invoice_number}` : ""}{" "}
+                                {row.pe_number ? `• Ref: ${row.pe_number}` : ""}
                               </div>
                             </td>
                             <td className="hidden xl:table-cell px-4 py-3.5 tabular-nums text-slate-600">
-                              <div className="truncate" title={row.pe_number || ""}>{row.pe_number || "—"}</div>
+                              <div className="truncate" title={row.pe_number || ""}>
+                                {row.pe_number || "—"}
+                              </div>
                             </td>
                             <td className="hidden lg:table-cell px-4 py-3.5 tabular-nums text-slate-500">
-                              <div className="truncate" title={row.invoice_number || ""}>{row.invoice_number || "—"}</div>
+                              <div className="truncate" title={row.invoice_number || ""}>
+                                {row.invoice_number || "—"}
+                              </div>
                             </td>
                             <td className="px-4 py-3.5 text-right tabular-nums font-bold text-emerald-600 whitespace-nowrap">
-                              {row.quantity_received != null ? `${Number(row.quantity_received).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}` : "—"}
+                              {row.quantity_received != null
+                                ? `${Number(row.quantity_received).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${selectedItem.unit_code}`
+                                : "—"}
                             </td>
                             <td className="hidden md:table-cell px-4 py-3.5 tabular-nums text-slate-600 text-[10px]">
-                              <div className="truncate" title={row.batch_number || ""}>{row.batch_number || "—"}</div>
+                              <div className="truncate" title={row.batch_number || ""}>
+                                {row.batch_number || "—"}
+                              </div>
                             </td>
                             <td className="hidden xl:table-cell px-4 py-3.5 tabular-nums text-slate-500 whitespace-nowrap">
-                              {row.expiry_date ? new Date(row.expiry_date.replace(" ", "T")).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                              {row.expiry_date
+                                ? new Date(row.expiry_date.replace(" ", "T")).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "—"}
                             </td>
                           </tr>
                         )
@@ -868,10 +958,9 @@ function StockLedger() {
                   </table>
                 </div>
               </div>
-            )
-          )}    </div>
+            ))}{" "}
+        </div>
       )}
-
     </div>
   )
 }

@@ -1,6 +1,33 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react"
-import { Plus, Search, ShieldAlert, X, Package, Tag, FileSpreadsheet, Percent, MoreVertical, Star, Scale, Edit3, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react"
-import { getItems, createItem, getItemDetails, updateItem, addItemVariant, updateItemVariant, authorizeItem, getSizeUnits, uploadCatalogImage } from "@/api/items"
+import {
+  Plus,
+  Search,
+  ShieldAlert,
+  X,
+  Package,
+  Tag,
+  FileSpreadsheet,
+  Percent,
+  MoreVertical,
+  Star,
+  Scale,
+  Edit3,
+  Upload,
+  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react"
+import {
+  getItems,
+  createItem,
+  getItemDetails,
+  updateItem,
+  addItemVariant,
+  updateItemVariant,
+  authorizeItem,
+  getSizeUnits,
+  uploadCatalogImage,
+} from "@/api/items"
 import { getCategoriesCached } from "@/api/categories"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
@@ -17,7 +44,14 @@ function parseErrorDetail(detail, defaultMsg) {
   return typeof detail === "string" ? detail : defaultMsg
 }
 
-function CatalogImageUploader({ images = [], onChange, kind = "product", disabled = false, onUploadingChange, helperText = "" }) {
+function CatalogImageUploader({
+  images = [],
+  onChange,
+  kind = "product",
+  disabled = false,
+  onUploadingChange,
+  helperText = "",
+}) {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
   const fileInputRef = useRef(null)
@@ -68,13 +102,7 @@ function CatalogImageUploader({ images = [], onChange, kind = "product", disable
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
+        <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleFileSelect} />
         <button
           type="button"
           disabled={disabled || isUploading}
@@ -93,14 +121,10 @@ function CatalogImageUploader({ images = [], onChange, kind = "product", disable
             </>
           )}
         </button>
-        {helperText && (
-          <span className="text-[11px] text-slate-400 font-medium">{helperText}</span>
-        )}
+        {helperText && <span className="text-[11px] text-slate-400 font-medium">{helperText}</span>}
       </div>
 
-      {uploadError && (
-        <p className="text-xs text-error-800 font-semibold">{uploadError}</p>
-      )}
+      {uploadError && <p className="text-xs text-error-800 font-semibold">{uploadError}</p>}
 
       {imageList.length > 0 && (
         <div className="flex flex-wrap gap-2.5 pt-1">
@@ -109,11 +133,7 @@ function CatalogImageUploader({ images = [], onChange, kind = "product", disable
               key={`${url}-${idx}`}
               className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 shadow-2xs"
             >
-              <img
-                src={url}
-                alt={`Image ${idx + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <img src={url} alt={`Image ${idx + 1}`} className="w-full h-full object-cover" />
               {idx === 0 ? (
                 <span className="absolute top-1 left-1 bg-brand-600 text-white text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm select-none">
                   Cover
@@ -160,10 +180,8 @@ function ProductCatalog() {
   const latestRequestRef = useRef(0)
   const editingProductIdRef = useRef(null)
 
-  // Product Details Popup state
   const [selectedProductDetails, setSelectedProductDetails] = useState(null)
 
-  // Product Variants Popup state
   const [isVariantsOpen, setIsVariantsOpen] = useState(false)
   const [activeProductId, setActiveProductId] = useState(null)
   const [activeProduct, setActiveProduct] = useState(null)
@@ -176,7 +194,6 @@ function ProductCatalog() {
 
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("")
 
-  // Product Edit Mode state
   const [isEditingProduct, setIsEditingProduct] = useState(false)
   const [editForm, setEditForm] = useState({
     item_type: "finished_good",
@@ -198,7 +215,6 @@ function ProductCatalog() {
   const [isEditUploading, setIsEditUploading] = useState(false)
   const [editImagesError, setEditImagesError] = useState("")
 
-  // Add Product Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState({
     item_type: "finished_good",
@@ -223,7 +239,6 @@ function ProductCatalog() {
   const [isCreating, setIsCreating] = useState(false)
   const [isCreateUploading, setIsCreateUploading] = useState(false)
 
-  // Variant Images state
   const [expandedVariantIds, setExpandedVariantIds] = useState({})
   const [savingVariantImageIds, setSavingVariantImageIds] = useState({})
   const [variantImageErrors, setVariantImageErrors] = useState({})
@@ -270,13 +285,11 @@ function ProductCatalog() {
     }
   }, [isCreateOpen, isEditingProduct, sizeUnitsMap, sizeUnitsLoading, sizeUnitsError, loadSizeUnits])
 
-  // Map category IDs to names for table display
   const categoryMap = categories.reduce((acc, cat) => {
     acc[cat.id] = cat.name
     return acc
   }, {})
 
-  // Load categories once on mount
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -315,12 +328,10 @@ function ProductCatalog() {
     }
   }, [])
 
-  // Run fetchData once on mount
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  // Debounce searchQuery by 300 ms
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
@@ -328,17 +339,18 @@ function ProductCatalog() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Reset skip to 0 when filters or search change
   useEffect(() => {
     setSkip(0)
   }, [debouncedSearch, selectedCategoryFilter, selectedTypeFilter])
 
   const filteredProducts = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase()
-    return productsList.filter((p) =>
-      (!q || [p.name, p.product_number, p.hsn_code].some((v) => typeof v === "string" && v.toLowerCase().includes(q))) &&
-      (!selectedCategoryFilter || p.category_id === selectedCategoryFilter) &&
-      (!selectedTypeFilter || p.item_type === selectedTypeFilter)
+    return productsList.filter(
+      (p) =>
+        (!q ||
+          [p.name, p.product_number, p.hsn_code].some((v) => typeof v === "string" && v.toLowerCase().includes(q))) &&
+        (!selectedCategoryFilter || p.category_id === selectedCategoryFilter) &&
+        (!selectedTypeFilter || p.item_type === selectedTypeFilter)
     )
   }, [productsList, debouncedSearch, selectedCategoryFilter, selectedTypeFilter])
   const pageRows = filteredProducts.slice(skip, skip + limit)
@@ -372,9 +384,9 @@ function ProductCatalog() {
     }
   }
 
-  // Disable body scroll when any modal is open to ensure isolated scroll focus
   useEffect(() => {
-    const isAnyModalOpen = isCreateOpen || isEditingProduct || isVariantsOpen || !!selectedProductDetails || !!authorizingProduct
+    const isAnyModalOpen =
+      isCreateOpen || isEditingProduct || isVariantsOpen || !!selectedProductDetails || !!authorizingProduct
     if (isAnyModalOpen) {
       document.body.style.overflow = "hidden"
     } else {
@@ -413,12 +425,12 @@ function ProductCatalog() {
       title: `${nextStatus} variant ${variant.size_label}?`,
       message: `Are you sure you want to ${nextStatus.toLowerCase()} this variant size?`,
       confirmLabel: nextStatus,
-      ...(variant.is_active ? { tone: "danger" } : {})
+      ...(variant.is_active ? { tone: "danger" } : {}),
     })
     if (!ok) return
 
     const variantId = variant.id
-    setUpdatingVariantIds(prev => ({ ...prev, [variantId]: true }))
+    setUpdatingVariantIds((prev) => ({ ...prev, [variantId]: true }))
     try {
       const res = await updateItemVariant(variantId, {
         size: variant.size,
@@ -431,7 +443,6 @@ function ProductCatalog() {
         throw new Error(parseErrorDetail(errJson.detail, "Failed to update variant status"))
       }
 
-      // Re-fetch details
       const detailRes = await getItemDetails(activeProductId)
       if (detailRes.ok) {
         const detailJson = await detailRes.json()
@@ -440,7 +451,7 @@ function ProductCatalog() {
     } catch (err) {
       alert(err.message || "Failed to update variant status")
     } finally {
-      setUpdatingVariantIds(prev => ({ ...prev, [variantId]: false }))
+      setUpdatingVariantIds((prev) => ({ ...prev, [variantId]: false }))
     }
   }
 
@@ -488,8 +499,11 @@ function ProductCatalog() {
       return
     }
 
-    // Check if variant with this size and unit already exists
-    if (activeProduct && activeProduct.variants && activeProduct.variants.some(v => Number(v.size) === sizeNum && v.size_unit === unit)) {
+    if (
+      activeProduct &&
+      activeProduct.variants &&
+      activeProduct.variants.some((v) => Number(v.size) === sizeNum && v.size_unit === unit)
+    ) {
       setVariantError(`A variant of ${trimmed} ${unit} already exists.`)
       return
     }
@@ -497,7 +511,7 @@ function ProductCatalog() {
     const ok = await confirm({
       title: `Add ${trimmed} ${unit} variant?`,
       message: `Are you sure you want to add this variant size to ${activeProduct?.name || "this product"}?`,
-      confirmLabel: "Add variant"
+      confirmLabel: "Add variant",
     })
     if (!ok) return
 
@@ -506,7 +520,7 @@ function ProductCatalog() {
       const res = await addItemVariant(activeProductId, {
         size: sizeNum,
         size_unit: unit,
-        images: []
+        images: [],
       })
 
       if (!res.ok) {
@@ -516,7 +530,6 @@ function ProductCatalog() {
 
       setVariantSize("")
       setVariantUnit("")
-      // Re-fetch details
       const detailRes = await getItemDetails(activeProductId)
       if (detailRes.ok) {
         const detailJson = await detailRes.json()
@@ -694,7 +707,6 @@ function ProductCatalog() {
     }
   }
 
-  // Real-time validations
   const handleCreateChange = (field, value) => {
     setCreateForm((prev) => {
       const updated = { ...prev, [field]: value }
@@ -756,7 +768,6 @@ function ProductCatalog() {
     })
   }
 
-  // Submission validation
   const validateForm = (form, isEdit = false) => {
     const errs = {}
     if (form.item_type === "finished_good" && !form.category_id) {
@@ -841,11 +852,9 @@ function ProductCatalog() {
       const json = await res.json()
       const createdItem = json.data
 
-      // Refresh item list and close the creation modal
       await fetchData()
       setIsCreateOpen(false)
 
-      // Automatically open the packaging variant modal for the newly created item
       if (createdItem && createdItem.id && createdItem.is_sellable) {
         handleManageVariantsOpen(createdItem)
       }
@@ -855,7 +864,6 @@ function ProductCatalog() {
       setIsCreating(false)
     }
   }
-
 
   const getStockPill = (qty, unit) => {
     const unitStr = unit
@@ -913,12 +921,12 @@ function ProductCatalog() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Title Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Item Catalog</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage unified catalog items (finished products and raw materials).</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Manage unified catalog items (finished products and raw materials).
+          </p>
         </div>
 
         <button
@@ -948,7 +956,6 @@ function ProductCatalog() {
         </button>
       </div>
 
-      {/* Toolbar Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -981,13 +988,14 @@ function ProductCatalog() {
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Items Catalog Table Layout */}
       {filteredProducts.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 font-medium shadow-sm">
           No items found in catalog.
@@ -1009,14 +1017,16 @@ function ProductCatalog() {
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
                 {pageRows.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors group">
-                    {/* Column 1: Item Image, Name, SKU & Type */}
                     <td className="px-3.5 py-3 min-w-0">
                       <div className="flex items-start gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-brand-50/80 border border-brand-100 flex items-center justify-center font-bold text-brand-700 shrink-0 shadow-2xs mt-0.5">
                           <Package className="w-4 h-4 text-brand-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate" title={prod.name}>
+                          <p
+                            className="text-slate-900 font-semibold text-xs leading-snug line-clamp-1 truncate"
+                            title={prod.name}
+                          >
                             {prod.name}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -1045,26 +1055,22 @@ function ProductCatalog() {
                       </div>
                     </td>
 
-                    {/* Column 2: Category Name */}
                     <td className="px-3 py-3 text-xs font-medium text-slate-600 min-w-0 whitespace-nowrap hidden md:table-cell">
                       <span className="block truncate" title={categoryMap[prod.category_id] || "Unassigned"}>
                         {categoryMap[prod.category_id] || "—"}
                       </span>
                     </td>
 
-                    {/* Column 3: HSN Code */}
                     <td className="px-3 py-3 whitespace-nowrap hidden lg:table-cell">
                       <span className="tabular-nums text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 inline-block">
                         {prod.hsn_code || "—"}
                       </span>
                     </td>
 
-                    {/* Column 4: Stock Qty Pill */}
                     <td className="px-3 py-3 text-xs font-medium text-slate-700 whitespace-nowrap">
                       {prod.stock_qty != null ? getStockPill(prod.stock_qty, prod.unit_code) : "—"}
                     </td>
 
-                    {/* Column 5: Variants Count Link */}
                     <td className="px-3 py-3 text-center whitespace-nowrap hidden xl:table-cell">
                       {prod.is_sellable ? (
                         <button
@@ -1075,13 +1081,10 @@ function ProductCatalog() {
                           <span>{prod.variants?.length || 0}</span>
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400 tabular-nums">
-                          —
-                        </span>
+                        <span className="text-xs text-slate-400 tabular-nums">—</span>
                       )}
                     </td>
 
-                    {/* Column 6: Combined Status & Quick Action */}
                     <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         {prod.status === "pending" ? (
@@ -1123,10 +1126,12 @@ function ProductCatalog() {
         </div>
       )}
 
-      {/* Create Item Modal Overlay */}
       {isCreateOpen && (
         <Modal onClose={() => setIsCreateOpen(false)}>
-          <form onSubmit={handleCreateSubmit} className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+          <form
+            onSubmit={handleCreateSubmit}
+            className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+          >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Create Item</h3>
               <button
@@ -1146,7 +1151,6 @@ function ProductCatalog() {
                 </div>
               )}
 
-              {/* SECTION 1: Item Type */}
               <div className="flex flex-col">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Item Type <span className="text-error-500 font-bold">*</span>
@@ -1162,7 +1166,6 @@ function ProductCatalog() {
                 </select>
               </div>
 
-              {/* SECTION 2: Basic Details & Name */}
               <div className="flex flex-col">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Item Name <span className="text-error-500 font-bold">*</span>
@@ -1180,10 +1183,14 @@ function ProductCatalog() {
                 {createErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>}
               </div>
 
-              {/* SECTION 3: Category */}
               <div className="flex flex-col">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Category {createForm.item_type === "finished_good" ? <span className="text-error-500 font-bold">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                  Category{" "}
+                  {createForm.item_type === "finished_good" ? (
+                    <span className="text-error-500 font-bold">*</span>
+                  ) : (
+                    <span className="text-slate-400 font-normal">(Optional)</span>
+                  )}
                 </label>
                 <select
                   value={createForm.category_id}
@@ -1192,10 +1199,14 @@ function ProductCatalog() {
                 >
                   <option value="">Select Category...</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
                   ))}
                 </select>
-                {createErrors.category_id && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.category_id}</p>}
+                {createErrors.category_id && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.category_id}</p>
+                )}
               </div>
 
               <div className="flex flex-col">
@@ -1209,7 +1220,6 @@ function ProductCatalog() {
                 />
               </div>
 
-              {/* Product Images */}
               <div className="flex flex-col">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Product Images
@@ -1238,7 +1248,9 @@ function ProductCatalog() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {createErrors.hsn_code && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.hsn_code}</p>}
+                  {createErrors.hsn_code && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.hsn_code}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col col-span-1">
@@ -1249,7 +1261,11 @@ function ProductCatalog() {
                     className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-800 font-semibold transition-all"
                   >
                     {sizeUnitsLoading && <option value="">Loading…</option>}
-                    {Object.keys(sizeUnitsMap ?? {}).map((u) => <option key={u} value={u}>{u}</option>)}
+                    {Object.keys(sizeUnitsMap ?? {}).map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -1283,7 +1299,9 @@ function ProductCatalog() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {createErrors.gst_percent && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.gst_percent}</p>}
+                  {createErrors.gst_percent && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.gst_percent}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col">
@@ -1301,21 +1319,21 @@ function ProductCatalog() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {createErrors.cess_percent && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.cess_percent}</p>}
+                  {createErrors.cess_percent && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.cess_percent}</p>
+                  )}
                 </div>
               </div>
 
-
-              {/* SECTION 5: Selling Options */}
               <div className="border-t border-slate-100 pt-4 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Selling Options
-                </h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Selling Options</h4>
 
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3">
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-slate-600">Sellable on website?</span>
-                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">Enables weight variants and pricing panel setup.</span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Enables weight variants and pricing panel setup.
+                    </span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
                     <input
@@ -1341,7 +1359,6 @@ function ProductCatalog() {
                 </div>
               </div>
 
-              {/* SECTION 6: Variants */}
               {createForm.is_sellable && (
                 <div className="border-t border-slate-100 pt-4 flex flex-col space-y-3">
                   <div>
@@ -1389,13 +1406,15 @@ function ProductCatalog() {
                           alert("Select a unit")
                           return
                         }
-                        if (createForm.variants.some((v) => Number(v.size) === sizeNum && v.size_unit === newVariantUnit)) {
+                        if (
+                          createForm.variants.some((v) => Number(v.size) === sizeNum && v.size_unit === newVariantUnit)
+                        ) {
                           alert(`A variant of ${val} ${newVariantUnit} already exists.`)
                           return
                         }
                         setCreateForm((prev) => ({
                           ...prev,
-                          variants: [...prev.variants, { size: sizeNum, size_unit: newVariantUnit }]
+                          variants: [...prev.variants, { size: sizeNum, size_unit: newVariantUnit }],
                         }))
                         input.value = ""
                       }}
@@ -1431,7 +1450,9 @@ function ProductCatalog() {
                             onClick={() => {
                               setCreateForm((prev) => ({
                                 ...prev,
-                                variants: prev.variants.filter((item) => !(Number(item.size) === Number(v.size) && item.size_unit === v.size_unit))
+                                variants: prev.variants.filter(
+                                  (item) => !(Number(item.size) === Number(v.size) && item.size_unit === v.size_unit)
+                                ),
                               }))
                             }}
                             className="w-3.5 h-3.5 hover:bg-slate-200 border border-transparent rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
@@ -1444,13 +1465,10 @@ function ProductCatalog() {
                   )}
 
                   {createErrors.variants && (
-                    <p className="text-xs text-error-800 font-semibold mt-1">
-                      {createErrors.variants}
-                    </p>
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.variants}</p>
                   )}
                 </div>
               )}
-
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0 bg-slate-50/50">
@@ -1475,18 +1493,19 @@ function ProductCatalog() {
           </form>
         </Modal>
       )}
-      {/* Item Details Popup Modal Overlay */}
       {selectedProductDetails && (
-        <Modal onClose={() => {
-          setSelectedProductDetails(null)
-          editingProductIdRef.current = null
-          setIsEditingProduct(false)
-        }}>
-          <div className={`bg-white border border-slate-100 shadow-2xl rounded-2xl w-full ${isEditingProduct ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] flex flex-col overflow-hidden`}>
+        <Modal
+          onClose={() => {
+            setSelectedProductDetails(null)
+            editingProductIdRef.current = null
+            setIsEditingProduct(false)
+          }}
+        >
+          <div
+            className={`bg-white border border-slate-100 shadow-2xl rounded-2xl w-full ${isEditingProduct ? "max-w-lg" : "max-w-2xl"} max-h-[90vh] flex flex-col overflow-hidden`}
+          >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <h3 className="font-bold text-slate-900 text-lg">
-                {isEditingProduct ? "Edit Item" : "Item Details"}
-              </h3>
+              <h3 className="font-bold text-slate-900 text-lg">{isEditingProduct ? "Edit Item" : "Item Details"}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -1574,16 +1593,17 @@ function ProductCatalog() {
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Unit Code
                         </span>
-                        <span className="text-xs font-bold text-slate-800">
-                          {selectedProductDetails.unit_code}
-                        </span>
+                        <span className="text-xs font-bold text-slate-800">{selectedProductDetails.unit_code}</span>
                       </div>
 
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Sourcing
                         </span>
-                        <span className="text-xs font-bold text-slate-800 truncate block" title={selectedProductDetails.sourcing_location}>
+                        <span
+                          className="text-xs font-bold text-slate-800 truncate block"
+                          title={selectedProductDetails.sourcing_location}
+                        >
                           {selectedProductDetails.sourcing_location || "—"}
                         </span>
                       </div>
@@ -1647,10 +1667,10 @@ function ProductCatalog() {
                     </div>
 
                     <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Bulk Stock
-                      </span>
-                      {selectedProductDetails.stock_qty != null ? getStockPill(selectedProductDetails.stock_qty, selectedProductDetails.unit_code) : "—"}
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bulk Stock</span>
+                      {selectedProductDetails.stock_qty != null
+                        ? getStockPill(selectedProductDetails.stock_qty, selectedProductDetails.unit_code)
+                        : "—"}
                     </div>
                   </div>
                 </div>
@@ -1669,10 +1689,11 @@ function ProductCatalog() {
                   <button
                     type="button"
                     onClick={handleStartEditing}
-                    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 ${selectedProductDetails.status === "pending"
-                      ? "border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 bg-white"
-                      : "bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/10"
-                      }`}
+                    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                      selectedProductDetails.status === "pending"
+                        ? "border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 bg-white"
+                        : "bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/10"
+                    }`}
                   >
                     <Edit3 className="w-4 h-4" />
                     <span>Edit Item</span>
@@ -1698,7 +1719,12 @@ function ProductCatalog() {
 
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      Category {editForm.item_type === "finished_good" ? <span className="text-error-500 font-bold">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                      Category{" "}
+                      {editForm.item_type === "finished_good" ? (
+                        <span className="text-error-500 font-bold">*</span>
+                      ) : (
+                        <span className="text-slate-400 font-normal">(Optional)</span>
+                      )}
                     </label>
                     <select
                       value={editForm.category_id}
@@ -1707,10 +1733,14 @@ function ProductCatalog() {
                     >
                       <option value="">Select Category...</option>
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
                       ))}
                     </select>
-                    {editErrors.category_id && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.category_id}</p>}
+                    {editErrors.category_id && (
+                      <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.category_id}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
@@ -1731,7 +1761,9 @@ function ProductCatalog() {
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Description</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Description
+                    </label>
                     <textarea
                       value={editForm.description || ""}
                       onChange={(e) => handleEditChange("description", e.target.value)}
@@ -1741,7 +1773,6 @@ function ProductCatalog() {
                     />
                   </div>
 
-                  {/* Product Images */}
                   <div className="flex flex-col">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Product Images
@@ -1790,18 +1821,26 @@ function ProductCatalog() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                         />
                       </div>
-                      {editErrors.hsn_code && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.hsn_code}</p>}
+                      {editErrors.hsn_code && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.hsn_code}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col col-span-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Unit Code</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Unit Code
+                      </label>
                       <select
                         value={editForm.unit_code}
                         onChange={(e) => handleEditChange("unit_code", e.target.value)}
                         className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-800 font-semibold transition-all"
                       >
                         {sizeUnitsLoading && <option value="">Loading…</option>}
-                        {Object.keys(sizeUnitsMap ?? {}).map((u) => <option key={u} value={u}>{u}</option>)}
+                        {Object.keys(sizeUnitsMap ?? {}).map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -1835,7 +1874,9 @@ function ProductCatalog() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                         />
                       </div>
-                      {editErrors.gst_percent && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.gst_percent}</p>}
+                      {editErrors.gst_percent && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.gst_percent}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col">
@@ -1853,16 +1894,18 @@ function ProductCatalog() {
                           className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                         />
                       </div>
-                      {editErrors.cess_percent && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.cess_percent}</p>}
+                      {editErrors.cess_percent && (
+                        <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.cess_percent}</p>
+                      )}
                     </div>
                   </div>
-
-
 
                   <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-3">
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-slate-600">Sellable on website?</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Enables weight variants and pricing panel setup.</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        Enables weight variants and pricing panel setup.
+                      </span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer select-none">
                       <input
@@ -1919,12 +1962,13 @@ function ProductCatalog() {
           </div>
         </Modal>
       )}
-      {/* Item Variants Management Popup Modal Overlay */}
       {isVariantsOpen && (
-        <Modal onClose={() => {
-          setIsVariantsOpen(false)
-          fetchData() // Refresh stock totals/etc. on close
-        }}>
+        <Modal
+          onClose={() => {
+            setIsVariantsOpen(false)
+            fetchData()
+          }}
+        >
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
@@ -1939,7 +1983,7 @@ function ProductCatalog() {
                 type="button"
                 onClick={() => {
                   setIsVariantsOpen(false)
-                  fetchData() // Refresh stock totals/etc. on close
+                  fetchData()
                 }}
                 className="p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
               >
@@ -1954,8 +1998,10 @@ function ProductCatalog() {
                 </div>
               ) : (
                 <>
-                  {/* Inline Add Form */}
-                  <form onSubmit={handleAddVariant} className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
+                  <form
+                    onSubmit={handleAddVariant}
+                    className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3"
+                  >
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Add Packaging Size</h4>
                     <div className="flex flex-col sm:flex-row items-stretch gap-3">
                       <div className="flex-1 flex gap-2">
@@ -1971,7 +2017,10 @@ function ProductCatalog() {
                           className="flex-1 px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white transition-all font-semibold"
                         />
                         <select
-                          value={variantUnit || (activeProduct?.allowed_size_units?.length === 1 ? activeProduct.allowed_size_units[0] : "")}
+                          value={
+                            variantUnit ||
+                            (activeProduct?.allowed_size_units?.length === 1 ? activeProduct.allowed_size_units[0] : "")
+                          }
                           onChange={(e) => {
                             setVariantUnit(e.target.value)
                             if (variantError) setVariantError("")
@@ -2004,7 +2053,6 @@ function ProductCatalog() {
                     )}
                   </form>
 
-                  {/* Variants Table List */}
                   {!activeProduct || !activeProduct.variants || activeProduct.variants.length === 0 ? (
                     <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center flex flex-col items-center justify-center gap-2">
                       <Scale className="w-6 h-6 text-slate-300" />
@@ -2018,8 +2066,12 @@ function ProductCatalog() {
                       <table className="w-full divide-y divide-slate-100 table-fixed">
                         <thead className="bg-slate-50">
                           <tr className="text-slate-500 text-xs font-bold uppercase tracking-wider text-left">
-                            <th scope="col" className="px-4 py-3.5 w-[65%]">Weight / Size</th>
-                            <th scope="col" className="px-4 py-3.5 text-center w-[35%]">Status</th>
+                            <th scope="col" className="px-4 py-3.5 w-[65%]">
+                              Weight / Size
+                            </th>
+                            <th scope="col" className="px-4 py-3.5 text-center w-[35%]">
+                              Status
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-50 text-sm font-semibold text-slate-800">
@@ -2039,19 +2091,26 @@ function ProductCatalog() {
                                           {variant.size_unit}
                                         </span>
                                         <div>
-                                          <span className="font-bold text-slate-800">
-                                            {variant.size_label}
-                                          </span>
+                                          <span className="font-bold text-slate-800">{variant.size_label}</span>
                                         </div>
                                       </div>
                                       <button
                                         type="button"
-                                        onClick={() => setExpandedVariantIds((prev) => ({ ...prev, [variant.id]: !prev[variant.id] }))}
+                                        onClick={() =>
+                                          setExpandedVariantIds((prev) => ({
+                                            ...prev,
+                                            [variant.id]: !prev[variant.id],
+                                          }))
+                                        }
                                         className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                                       >
                                         <ImageIcon className="w-3.5 h-3.5" />
                                         <span>Images ({imgCount})</span>
-                                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                        {isExpanded ? (
+                                          <ChevronUp className="w-3 h-3" />
+                                        ) : (
+                                          <ChevronDown className="w-3 h-3" />
+                                        )}
                                       </button>
                                     </div>
                                   </td>
@@ -2068,7 +2127,9 @@ function ProductCatalog() {
                                             onChange={() => handleToggleVariantStatus(variant)}
                                             className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
                                           />
-                                          <span className={`text-xs font-bold ${variant.is_active ? "text-success-700" : "text-slate-400"}`}>
+                                          <span
+                                            className={`text-xs font-bold ${variant.is_active ? "text-success-700" : "text-slate-400"}`}
+                                          >
                                             {variant.is_active ? "Active" : "Inactive"}
                                           </span>
                                         </label>
@@ -2081,7 +2142,9 @@ function ProductCatalog() {
                                     <td colSpan={2} className="px-4 py-3">
                                       <div className="space-y-2">
                                         {variantImageErrors[variant.id] && (
-                                          <p className="text-xs text-error-800 font-semibold">{variantImageErrors[variant.id]}</p>
+                                          <p className="text-xs text-error-800 font-semibold">
+                                            {variantImageErrors[variant.id]}
+                                          </p>
                                         )}
                                         <CatalogImageUploader
                                           images={variant.images || []}
@@ -2110,7 +2173,7 @@ function ProductCatalog() {
                 type="button"
                 onClick={() => {
                   setIsVariantsOpen(false)
-                  fetchData() // Refresh stock totals/etc. on close
+                  fetchData()
                 }}
                 className="w-full sm:w-auto border border-slate-200 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 transition-all active:scale-95"
               >
@@ -2121,7 +2184,6 @@ function ProductCatalog() {
         </Modal>
       )}
 
-      {/* Authorization Confirmation Modal Overlay */}
       {authorizingProduct && (
         <Modal onClose={() => setAuthorizingProduct(null)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
@@ -2144,11 +2206,13 @@ function ProductCatalog() {
 
             <div className="p-6 space-y-3">
               <p className="text-sm font-semibold text-slate-700 leading-relaxed">
-                Are you sure you want to authorize <span className="font-bold text-slate-900 uppercase">{authorizingProduct.name}</span>
+                Are you sure you want to authorize{" "}
+                <span className="font-bold text-slate-900 uppercase">{authorizingProduct.name}</span>
                 {authorizingProduct.product_number ? ` (${authorizingProduct.product_number})` : ""}?
               </p>
               <p className="text-xs text-slate-500 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
-                Authorizing this item activates it for inventory, purchase orders, work orders, and selling options across the system.
+                Authorizing this item activates it for inventory, purchase orders, work orders, and selling options
+                across the system.
               </p>
             </div>
 
@@ -2174,10 +2238,8 @@ function ProductCatalog() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }
 
 export default ProductCatalog
-

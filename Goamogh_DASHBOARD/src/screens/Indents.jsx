@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  Layers3,
-  Search,
-  Plus,
-  AlertCircle
-} from "lucide-react"
+import { Layers3, Search, Plus, AlertCircle } from "lucide-react"
 import { getIndents, updateIndentStatus } from "@/api/indents"
 import useAuth from "@/hooks/useAuth"
 import Spinner from "@/components/ui/Spinner"
@@ -27,25 +22,21 @@ function Indents() {
   const navigate = useNavigate()
   const { isSuperAdmin, hasPermission } = useAuth()
 
-  // State Lists
   const [indents, setIndents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Filter States
   const [statusFilter, setStatusFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
   const latestRequestRef = useRef(0)
 
-  // Details & Action Modal States
   const [selectedIndent, setSelectedIndent] = useState(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
   const hasIndentManagePermission = isSuperAdmin || hasPermission("indent_manage")
-
 
   const fetchIndents = useCallback(async () => {
     const requestId = ++latestRequestRef.current
@@ -74,17 +65,15 @@ function Indents() {
     fetchIndents()
   }, [fetchIndents])
 
-  // Reset skip when filters change
   useEffect(() => {
     setSkip(0)
   }, [searchQuery, statusFilter])
 
-  // Handle Confirm (Converts to Sale 100%)
   const handleConfirmIndent = async (indent) => {
     const ok = await confirm({
       title: `Confirm Indent ${indent.indent_number}?`,
       message: `Are you sure you want to confirm Indent ${indent.indent_number}? This will convert the entire indent into a sale.`,
-      confirmLabel: "Confirm Indent"
+      confirmLabel: "Confirm Indent",
     })
     if (!ok) return
 
@@ -105,13 +94,12 @@ function Indents() {
     }
   }
 
-  // Handle Cancel
   const handleCancelIndent = async (indent) => {
     const ok = await confirm({
       title: `Cancel Indent ${indent.indent_number}?`,
       message: `Are you sure you want to cancel Indent ${indent.indent_number}?`,
       confirmLabel: "Cancel Indent",
-      tone: "danger"
+      tone: "danger",
     })
     if (!ok) return
 
@@ -137,11 +125,10 @@ function Indents() {
     return new Date(isoString).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
-  // Filter list by customer name/phone and status in memory
   const filteredIndents = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     return indents.filter((ind) => {
@@ -158,8 +145,6 @@ function Indents() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-      
-      {/* Top Header Block */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1.5">
@@ -187,7 +172,6 @@ function Indents() {
         )}
       </div>
 
-      {/* Toolbar filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -222,9 +206,10 @@ function Indents() {
         </div>
       )}
 
-      {/* Main Listing Table */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Spinner size="lg" />
+        </div>
       ) : filteredIndents.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No indents found matching parameters.</p>
@@ -238,64 +223,90 @@ function Indents() {
                   <th className="px-3.5 py-3.5 w-[48%] md:w-[36%] lg:w-[30%]">Indent No & Customer</th>
                   <th className="px-3 py-3.5 hidden md:table-cell md:w-[16%] lg:w-[14%] text-center">Items</th>
                   <th className="px-3 py-3.5 hidden lg:table-cell lg:w-[16%]">Created Date</th>
-                  <th className="px-3 py-3.5 w-[24%] md:w-[18%] lg:w-[14%] text-center"><span className="hidden md:inline">Status</span></th>
+                  <th className="px-3 py-3.5 w-[24%] md:w-[18%] lg:w-[14%] text-center">
+                    <span className="hidden md:inline">Status</span>
+                  </th>
                   <th className="px-3 py-3.5 w-[28%] md:w-[30%] lg:w-[26%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {pageRows.map((ind) => (
                   <tr key={ind.id} className="hover:bg-slate-50/70 transition-colors group">
-                    {/* Column 1: Indent # & Customer Name */}
                     <td className="px-3.5 py-3 min-w-0">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="tabular-nums text-brand-700 font-bold text-xs truncate" title={ind.indent_number}>{ind.indent_number}</span>
+                          <span
+                            className="tabular-nums text-brand-700 font-bold text-xs truncate"
+                            title={ind.indent_number}
+                          >
+                            {ind.indent_number}
+                          </span>
                           {ind.is_b2b ? (
-                            <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-purple-200/60">B2B</span>
+                            <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-purple-200/60">
+                              B2B
+                            </span>
                           ) : (
-                            <span className="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200/50">B2C</span>
+                            <span className="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200/50">
+                              B2C
+                            </span>
                           )}
                         </div>
-                        <p className="font-semibold text-slate-900 text-xs truncate mt-0.5" title={ind.customer_name || "—"}>
+                        <p
+                          className="font-semibold text-slate-900 text-xs truncate mt-0.5"
+                          title={ind.customer_name || "—"}
+                        >
                           {ind.customer_name || "—"}
                         </p>
-                        {ind.customer_phone && <p className="text-[11px] tabular-nums text-slate-500 truncate" title={ind.customer_phone}>{ind.customer_phone}</p>}
+                        {ind.customer_phone && (
+                          <p className="text-[11px] tabular-nums text-slate-500 truncate" title={ind.customer_phone}>
+                            {ind.customer_phone}
+                          </p>
+                        )}
                         <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5">
                           {ind.items?.length || 0} items • {formatShortDate(ind.created_at)}
                         </div>
                       </div>
                     </td>
 
-                    {/* Column 2: Items count pill */}
                     <td className="px-3 py-3 text-center whitespace-nowrap hidden md:table-cell">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
                         {ind.items?.length || 0} items
                       </span>
                     </td>
 
-                    {/* Column 3: Created Date */}
                     <td className="px-3 py-3 text-slate-500 tabular-nums text-[11px] whitespace-nowrap hidden lg:table-cell">
                       {formatShortDate(ind.created_at)}
                     </td>
 
-                    {/* Column 4: Status Badge */}
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       {ind.status === "pending" && (
-                        <span title="Pending" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 whitespace-nowrap">
+                        <span
+                          title="Pending"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1 bg-amber-500 shrink-0" aria-hidden="true" />
                           <span className="sr-only md:hidden">Pending</span>
                           <span className="hidden md:inline">Pending</span>
                         </span>
                       )}
                       {ind.status === "confirmed" && (
-                        <span title="Confirmed" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 whitespace-nowrap">
-                          <span className="w-1.5 h-1.5 rounded-full md:mr-1 bg-emerald-500 shrink-0" aria-hidden="true" />
+                        <span
+                          title="Confirmed"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 whitespace-nowrap"
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full md:mr-1 bg-emerald-500 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span className="sr-only md:hidden">Confirmed</span>
                           <span className="hidden md:inline">Confirmed</span>
                         </span>
                       )}
                       {ind.status === "cancelled" && (
-                        <span title="Cancelled" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 whitespace-nowrap">
+                        <span
+                          title="Cancelled"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1 bg-rose-500 shrink-0" aria-hidden="true" />
                           <span className="sr-only md:hidden">Cancelled</span>
                           <span className="hidden md:inline">Cancelled</span>
@@ -303,7 +314,6 @@ function Indents() {
                       )}
                     </td>
 
-                    {/* Column 5: Actions */}
                     <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -345,7 +355,6 @@ function Indents() {
         </div>
       )}
 
-      {/* MODAL 1: INDENT DETAIL DIALOG */}
       {isDetailOpen && selectedIndent && (
         <Modal onClose={() => setIsDetailOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-2xl w-full shadow-2xl p-6 relative flex flex-col max-h-[90vh]">
@@ -356,32 +365,56 @@ function Indents() {
                   <span>Indent Details: {selectedIndent.indent_number}</span>
                 </h3>
               </div>
-              <button onClick={() => setIsDetailOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
+              <button
+                onClick={() => setIsDetailOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer"
+              >
+                &times;
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 my-4 space-y-5 text-xs font-semibold">
-              
-              {/* Customer details banner */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Customer</span>
-                  <span className="text-slate-800 font-bold block mt-0.5 truncate" title={selectedIndent.customer_name || "—"}>{selectedIndent.customer_name || "—"}</span>
+                  <span
+                    className="text-slate-800 font-bold block mt-0.5 truncate"
+                    title={selectedIndent.customer_name || "—"}
+                  >
+                    {selectedIndent.customer_name || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Phone</span>
-                  <span className="text-slate-800 font-bold block mt-0.5 tabular-nums" title={selectedIndent.customer_phone || ""}>{selectedIndent.customer_phone}</span>
+                  <span
+                    className="text-slate-800 font-bold block mt-0.5 tabular-nums"
+                    title={selectedIndent.customer_phone || ""}
+                  >
+                    {selectedIndent.customer_phone}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">GSTIN / Company</span>
-                  <span className="text-slate-800 font-bold block mt-0.5 tabular-nums truncate" title={`${selectedIndent.customer_gstin || "—"} ${selectedIndent.company_name && `(${selectedIndent.company_name})`}`}>{selectedIndent.customer_gstin || "—"} {selectedIndent.company_name && `(${selectedIndent.company_name})`}</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    GSTIN / Company
+                  </span>
+                  <span
+                    className="text-slate-800 font-bold block mt-0.5 tabular-nums truncate"
+                    title={`${selectedIndent.customer_gstin || "—"} ${selectedIndent.company_name && `(${selectedIndent.company_name})`}`}
+                  >
+                    {selectedIndent.customer_gstin || "—"}{" "}
+                    {selectedIndent.company_name && `(${selectedIndent.company_name})`}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Current Status</span>
-                  <span className="text-slate-800 font-bold block mt-0.5 uppercase text-[10px]">{selectedIndent.status}</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    Current Status
+                  </span>
+                  <span className="text-slate-800 font-bold block mt-0.5 uppercase text-[10px]">
+                    {selectedIndent.status}
+                  </span>
                 </div>
               </div>
 
-              {/* Items List */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Ordered Product Variants</h4>
                 <div className="w-full border border-slate-100 rounded-xl">
@@ -397,18 +430,28 @@ function Indents() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                       {selectedIndent.items?.map((item) => (
-                          <tr key={item.id}>
-                            <td className="px-3 py-2.5 min-w-0">
-                              <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>{item.variant_display_name}</p>
-                              <div className="text-[10px] text-slate-400 tabular-nums truncate md:hidden">
-                                Rate: ₹{parseFloat(item.rate).toFixed(2)}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">{item.quantity}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">₹{parseFloat(item.rate).toFixed(2)}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">{parseFloat(item.discount_percent || 0).toFixed(2)}%</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">{item.line_total != null ? `₹${parseFloat(item.line_total).toFixed(2)}` : "—"}</td>
-                          </tr>
+                        <tr key={item.id}>
+                          <td className="px-3 py-2.5 min-w-0">
+                            <p className="font-bold text-slate-800 truncate" title={item.variant_display_name}>
+                              {item.variant_display_name}
+                            </p>
+                            <div className="text-[10px] text-slate-400 tabular-nums truncate md:hidden">
+                              Rate: ₹{parseFloat(item.rate).toFixed(2)}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-900 whitespace-nowrap">
+                            {item.quantity}
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden md:table-cell">
+                            ₹{parseFloat(item.rate).toFixed(2)}
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap hidden lg:table-cell">
+                            {parseFloat(item.discount_percent || 0).toFixed(2)}%
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-slate-900 font-bold whitespace-nowrap">
+                            {item.line_total != null ? `₹${parseFloat(item.line_total).toFixed(2)}` : "—"}
+                          </td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>
@@ -454,7 +497,6 @@ function Indents() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

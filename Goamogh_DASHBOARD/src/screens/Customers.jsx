@@ -10,7 +10,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
-  X
+  X,
 } from "lucide-react"
 import {
   getCustomers,
@@ -22,7 +22,7 @@ import {
   updateCustomerAddress,
   deleteCustomerAddress,
   searchCustomerByPhone,
-  getCustomerOrders
+  getCustomerOrders,
 } from "@/api/customers"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
@@ -47,7 +47,6 @@ function Customers() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Filter & Pagination States
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -55,16 +54,13 @@ function Customers() {
   const limit = 50
   const latestRequestRef = useRef(0)
 
-  // Current Operations
   const [selectedCustomer, setSelectedCustomer] = useState(null)
 
-  // Modals Visibility
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isAddressesOpen, setIsAddressesOpen] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
-  // Modals Form States
   const [createForm, setCreateForm] = useState({
     first_name: "",
     last_name: "",
@@ -77,12 +73,12 @@ function Customers() {
     city: "",
     state: "",
     postal_code: "",
-    landmark: ""
+    landmark: "",
   })
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
-    email: ""
+    email: "",
   })
   const [addressForm, setAddressForm] = useState({
     address_line_1: "",
@@ -92,10 +88,9 @@ function Customers() {
     postal_code: "",
     landmark: "",
     phone: "",
-    is_default: false
+    is_default: false,
   })
 
-  // Detailed Modal Data
   const [addresses, setAddresses] = useState([])
   const [editingAddressId, setEditingAddressId] = useState(null)
   const [orderHistory, setOrderHistory] = useState([])
@@ -148,8 +143,8 @@ function Customers() {
         return false
       }
       if (search) {
-        const matches = [c.first_name, c.last_name, c.company_name, c.email, c.phone].some(
-          (field) => (field || "").toLowerCase().includes(search)
+        const matches = [c.first_name, c.last_name, c.company_name, c.email, c.phone].some((field) =>
+          (field || "").toLowerCase().includes(search)
         )
         if (!matches) return false
       }
@@ -159,19 +154,16 @@ function Customers() {
 
   const pageRows = filtered.slice(skip, skip + limit)
 
-  // Handle manual customer creation
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
     setFormErrors({})
     setModalError("")
 
-    // Validate and normalize phone input to standard 10-digits
-    let cleanPhone = (createForm.phone || "").trim().replace(/\D/g, '')
-    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+    let cleanPhone = (createForm.phone || "").trim().replace(/\D/g, "")
+    if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
       cleanPhone = cleanPhone.substring(2)
     }
 
-    // Validate inputs
     const errors = {}
     if (!(createForm.first_name || "").trim()) errors.first_name = "First name is required"
     if (!(createForm.last_name || "").trim()) errors.last_name = "Last name is required"
@@ -190,7 +182,7 @@ function Customers() {
     const fullName = `${(createForm.first_name || "").trim()} ${(createForm.last_name || "").trim()}`.trim()
     const ok = await confirm({
       title: `Create customer ${fullName}?`,
-      confirmLabel: "Create"
+      confirmLabel: "Create",
     })
     if (!ok) return
 
@@ -202,7 +194,7 @@ function Customers() {
         last_name: (createForm.last_name || "").trim(),
         email: (createForm.email || "").trim() || null,
         gstin: (createForm.gstin || "").trim() || null,
-        company_name: (createForm.company_name || "").trim() || null
+        company_name: (createForm.company_name || "").trim() || null,
       }
       const res = await createCustomer(payload)
       const resJson = await res.json().catch(() => ({}))
@@ -210,7 +202,6 @@ function Customers() {
         throw new Error(parseErrorDetail(resJson.detail, "Failed to create customer."))
       }
 
-      // Ensure initial address is explicitly saved to the addresses database table
       const createdUser = resJson.data?.user || resJson.data || resJson
       const createdUserId = createdUser?.id || createdUser?.user_id
       if (createdUserId && (createForm.address_line_1 || "").trim() && (createForm.city || "").trim()) {
@@ -222,9 +213,10 @@ function Customers() {
           postal_code: (createForm.postal_code || "").trim() || null,
           landmark: (createForm.landmark || "").trim() || null,
           phone: cleanPhone,
-          is_default: true
+          is_default: true,
         })
-        if (!addrRes.ok) showErrorToast("Customer created, but the address was not saved. Add it from the customer's Addresses.")
+        if (!addrRes.ok)
+          showErrorToast("Customer created, but the address was not saved. Add it from the customer's Addresses.")
       }
 
       setIsCreateOpen(false)
@@ -240,7 +232,7 @@ function Customers() {
         city: "",
         state: "",
         postal_code: "",
-        landmark: ""
+        landmark: "",
       })
       fetchCustomers()
     } catch (err) {
@@ -250,7 +242,6 @@ function Customers() {
     }
   }
 
-  // Handle Customer Profile update
   const handleEditSubmit = async (e) => {
     e.preventDefault()
     setFormErrors({})
@@ -268,7 +259,7 @@ function Customers() {
     const fullName = `${(editForm.first_name || "").trim()} ${(editForm.last_name || "").trim()}`.trim()
     const ok = await confirm({
       title: `Save changes to customer ${fullName}?`,
-      confirmLabel: "Save changes"
+      confirmLabel: "Save changes",
     })
     if (!ok) return
 
@@ -277,7 +268,7 @@ function Customers() {
       const res = await updateCustomer(selectedCustomer.id, {
         first_name: (editForm.first_name || "").trim(),
         last_name: (editForm.last_name || "").trim(),
-        email: (editForm.email || "").trim() || null
+        email: (editForm.email || "").trim() || null,
       })
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
@@ -292,14 +283,13 @@ function Customers() {
     }
   }
 
-  // Toggle activation status
   const handleToggleStatus = async (customer) => {
     const custName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || customer.phone || "customer"
     const newStatus = !customer.is_active
     const ok = await confirm({
       title: newStatus ? `Activate customer ${custName}?` : `Deactivate customer ${custName}?`,
       confirmLabel: newStatus ? "Activate" : "Deactivate",
-      ...(newStatus ? {} : { tone: "danger" })
+      ...(newStatus ? {} : { tone: "danger" }),
     })
     if (!ok) return
 
@@ -314,7 +304,6 @@ function Customers() {
     }
   }
 
-  // Load Customer addresses using GET /api/v1/auth/customers/{user_id}/addresses
   const loadAddresses = async (customer) => {
     setSelectedCustomer(customer)
     setAddresses([])
@@ -330,7 +319,7 @@ function Customers() {
       postal_code: "",
       landmark: "",
       phone: customer.phone || "",
-      is_default: false
+      is_default: false,
     })
     try {
       const custId = customer.id || customer.user_id || customer.user?.id
@@ -353,8 +342,12 @@ function Customers() {
         }
       }
 
-      // Fallback: check embedded customer properties or searchCustomerByPhone
-      if (addrList.length === 0 && customer.addresses && Array.isArray(customer.addresses) && customer.addresses.length > 0) {
+      if (
+        addrList.length === 0 &&
+        customer.addresses &&
+        Array.isArray(customer.addresses) &&
+        customer.addresses.length > 0
+      ) {
         addrList = customer.addresses
       } else if (addrList.length === 0 && customer.default_address) {
         addrList = [customer.default_address]
@@ -378,7 +371,6 @@ function Customers() {
     }
   }
 
-  // Add or Edit customer address
   const handleAddressSubmit = async (e) => {
     e.preventDefault()
     setModalError("")
@@ -394,10 +386,12 @@ function Customers() {
       return
     }
 
-    const custName = selectedCustomer?.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim() : "customer"
+    const custName = selectedCustomer?.first_name
+      ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim()
+      : "customer"
     const ok = await confirm({
       title: editingAddressId ? `Update address for ${custName}?` : `Add address for ${custName}?`,
-      confirmLabel: editingAddressId ? "Save changes" : "Add address"
+      confirmLabel: editingAddressId ? "Save changes" : "Add address",
     })
     if (!ok) return
 
@@ -413,7 +407,7 @@ function Customers() {
           postal_code: (addressForm.postal_code || "").trim() || null,
           landmark: (addressForm.landmark || "").trim() || null,
           phone: (addressForm.phone || "").trim() || selectedCustomer?.phone || "",
-          is_default: addressForm.is_default
+          is_default: addressForm.is_default,
         })
       } else {
         res = await addCustomerAddress(targetId, {
@@ -424,7 +418,7 @@ function Customers() {
           postal_code: (addressForm.postal_code || "").trim() || null,
           landmark: (addressForm.landmark || "").trim() || null,
           phone: (addressForm.phone || "").trim() || selectedCustomer?.phone || "",
-          is_default: addressForm.is_default
+          is_default: addressForm.is_default,
         })
       }
 
@@ -433,7 +427,6 @@ function Customers() {
         throw new Error(parseErrorDetail(resJson.detail, "Failed to save address."))
       }
 
-      // Optimistically append/update saved address object in UI state
       const savedAddress = resJson.data || resJson
       if (savedAddress && (savedAddress.id || savedAddress.address_line_1)) {
         setAddresses((prev) => {
@@ -442,11 +435,10 @@ function Customers() {
         })
       }
 
-      // Reload fresh addresses from getCustomerAddresses
       const freshRes = await getCustomerAddresses(targetId)
       if (freshRes.ok) {
         const freshJson = await freshRes.json()
-        const freshList = Array.isArray(freshJson.data) ? freshJson.data : (freshJson.data?.addresses || [])
+        const freshList = Array.isArray(freshJson.data) ? freshJson.data : freshJson.data?.addresses || []
         if (freshList.length > 0) setAddresses(freshList)
       } else if (selectedCustomer?.phone) {
         const sRes = await searchCustomerByPhone(selectedCustomer.phone)
@@ -472,7 +464,7 @@ function Customers() {
         postal_code: "",
         landmark: "",
         phone: selectedCustomer?.phone || "",
-        is_default: false
+        is_default: false,
       })
     } catch (err) {
       setModalError(err.message)
@@ -481,14 +473,15 @@ function Customers() {
     }
   }
 
-  // Delete customer address
   const handleDeleteAddress = async (addressId) => {
-    const custName = selectedCustomer?.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim() : "customer"
+    const custName = selectedCustomer?.first_name
+      ? `${selectedCustomer.first_name} ${selectedCustomer.last_name || ""}`.trim()
+      : "customer"
     const ok = await confirm({
       title: `Delete address for ${custName}?`,
       message: "Are you sure you want to delete this address?",
       confirmLabel: "Delete",
-      tone: "danger"
+      tone: "danger",
     })
     if (!ok) return
     setModalError("")
@@ -500,12 +493,11 @@ function Customers() {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(parseErrorDetail(errJson.detail, "Failed to delete address."))
       }
-      // Reload fresh addresses
       if (targetId) {
         const freshRes = await getCustomerAddresses(targetId)
         if (freshRes.ok) {
           const freshJson = await freshRes.json()
-          const freshList = Array.isArray(freshJson.data) ? freshJson.data : (freshJson.data?.addresses || [])
+          const freshList = Array.isArray(freshJson.data) ? freshJson.data : freshJson.data?.addresses || []
           setAddresses(freshList)
         }
       }
@@ -517,7 +509,6 @@ function Customers() {
     }
   }
 
-  // Load Customer order history logs
   const loadOrderHistory = async (customer) => {
     setSelectedCustomer(customer)
     setOrderHistory([])
@@ -541,14 +532,12 @@ function Customers() {
     return new Date(isoString).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1.5">
@@ -579,7 +568,6 @@ function Customers() {
         </button>
       </div>
 
-      {/* Toolbar Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -609,7 +597,9 @@ function Customers() {
       </div>
 
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Spinner size="lg" />
+        </div>
       ) : error ? (
         <div className="bg-white border border-error-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-sm font-semibold text-error-800">{error}</p>
@@ -639,147 +629,154 @@ function Customers() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
                 {pageRows.map((c) => {
-                    const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Customer"
-                    const initial = (c.first_name || "C")[0].toUpperCase()
-                    return (
-                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors group">
-                        {/* Column 1: Customer Avatar, Name & Business info */}
-                        <td className="px-3.5 py-3 min-w-0">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-brand-50/80 border border-brand-100 flex items-center justify-center font-bold text-brand-700 shrink-0 text-xs shadow-2xs mt-0.5">
-                              {initial}
+                  const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Customer"
+                  const initial = (c.first_name || "C")[0].toUpperCase()
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors group">
+                      <td className="px-3.5 py-3 min-w-0">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-brand-50/80 border border-brand-100 flex items-center justify-center font-bold text-brand-700 shrink-0 text-xs shadow-2xs mt-0.5">
+                            {initial}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-slate-900 font-semibold text-xs leading-snug truncate" title={fullName}>
+                              {fullName}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {c.company_name && (
+                                <span
+                                  className="text-[10px] text-slate-500 font-medium truncate max-w-[140px]"
+                                  title={c.company_name}
+                                >
+                                  {c.company_name}
+                                </span>
+                              )}
+                              {c.gstin && (
+                                <span className="tabular-nums text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60 font-medium">
+                                  GST: {c.gstin}
+                                </span>
+                              )}
+                              {!c.company_name && !c.gstin && (
+                                <span className="text-[10px] text-slate-400 font-medium">Individual Account</span>
+                              )}
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-slate-900 font-semibold text-xs leading-snug truncate" title={fullName}>
-                                {fullName}
-                              </p>
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {c.company_name && (
-                                  <span className="text-[10px] text-slate-500 font-medium truncate max-w-[140px]" title={c.company_name}>
-                                    {c.company_name}
-                                  </span>
-                                )}
-                                {c.gstin && (
-                                  <span className="tabular-nums text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60 font-medium">
-                                    GST: {c.gstin}
-                                  </span>
-                                )}
-                                {!c.company_name && !c.gstin && (
-                                  <span className="text-[10px] text-slate-400 font-medium">
-                                    Individual Account
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-400 truncate md:hidden mt-0.5" title={c.phone || c.email || ""}>
-                                {c.phone ? `${c.phone} ` : ""}{c.email ? `• ${c.email}` : ""}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1 lg:hidden">
-                                <button
-                                  onClick={() => loadAddresses(c)}
-                                  className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
-                                >
-                                  <MapPin className="w-2.5 h-2.5" />
-                                  <span>Addresses</span>
-                                </button>
-                                <span className="text-slate-300">•</span>
-                                <button
-                                  onClick={() => loadOrderHistory(c)}
-                                  className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
-                                >
-                                  <History className="w-2.5 h-2.5" />
-                                  <span>Orders</span>
-                                </button>
-                              </div>
+                            <div
+                              className="text-[10px] text-slate-400 truncate md:hidden mt-0.5"
+                              title={c.phone || c.email || ""}
+                            >
+                              {c.phone ? `${c.phone} ` : ""}
+                              {c.email ? `• ${c.email}` : ""}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 lg:hidden">
+                              <button
+                                onClick={() => loadAddresses(c)}
+                                className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                              >
+                                <MapPin className="w-2.5 h-2.5" />
+                                <span>Addresses</span>
+                              </button>
+                              <span className="text-slate-300">•</span>
+                              <button
+                                onClick={() => loadOrderHistory(c)}
+                                className="text-[10px] text-brand-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                              >
+                                <History className="w-2.5 h-2.5" />
+                                <span>Orders</span>
+                              </button>
                             </div>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* Column 2: Phone & Email */}
-                        <td className="px-3 py-3 min-w-0 hidden md:table-cell">
-                          <p className="tabular-nums text-xs font-semibold text-slate-800 leading-snug truncate" title={c.phone || ""}>
-                            {c.phone || "—"}
-                          </p>
-                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5" title={c.email || ""}>
-                            {c.email || "No email attached"}
-                          </p>
-                        </td>
+                      <td className="px-3 py-3 min-w-0 hidden md:table-cell">
+                        <p
+                          className="tabular-nums text-xs font-semibold text-slate-800 leading-snug truncate"
+                          title={c.phone || ""}
+                        >
+                          {c.phone || "—"}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5" title={c.email || ""}>
+                          {c.email || "No email attached"}
+                        </p>
+                      </td>
 
-                        {/* Column 3: Quick Access Links (Addresses & Orders) */}
-                        <td className="px-3 py-3 hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              onClick={() => loadAddresses(c)}
-                              className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
-                              title="View Addresses"
-                            >
-                              <MapPin className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
-                              <span>Addresses</span>
-                            </button>
-                            <button
-                              onClick={() => loadOrderHistory(c)}
-                              className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
-                              title="Order History"
-                            >
-                              <History className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
-                              <span>Orders</span>
-                            </button>
-                          </div>
-                        </td>
+                      <td className="px-3 py-3 hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => loadAddresses(c)}
+                            className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
+                            title="View Addresses"
+                          >
+                            <MapPin className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
+                            <span>Addresses</span>
+                          </button>
+                          <button
+                            onClick={() => loadOrderHistory(c)}
+                            className="px-2 py-1 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/50 rounded-lg text-[11px] font-semibold text-slate-700 hover:text-brand-700 transition-all inline-flex items-center gap-1 bg-white shadow-2xs group/btn cursor-pointer"
+                            title="Order History"
+                          >
+                            <History className="w-3 h-3 text-slate-400 group-hover/btn:text-brand-600 transition-colors" />
+                            <span>Orders</span>
+                          </button>
+                        </div>
+                      </td>
 
-                        {/* Column 4: Status */}
-                        <td className="px-3 py-3 text-center whitespace-nowrap">
-                          {c.is_active ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                              Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">
-                              Inactive
-                            </span>
-                          )}
-                        </td>
+                      <td className="px-3 py-3 text-center whitespace-nowrap">
+                        {c.is_active ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
 
-                        {/* Column 5: Actions */}
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => {
-                                setSelectedCustomer(c)
-                                setEditForm({ first_name: c.first_name, last_name: c.last_name, email: c.email || "" })
-                                setFormErrors({})
-                                setModalError("")
-                                setIsEditOpen(true)
-                              }}
-                              className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg border border-slate-200/60 shadow-2xs transition-all cursor-pointer"
-                              title="Edit Profile"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleToggleStatus(c)}
-                              className={`p-1.5 rounded-lg border shadow-2xs transition-all cursor-pointer ${c.is_active
+                      <td className="px-3 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedCustomer(c)
+                              setEditForm({ first_name: c.first_name, last_name: c.last_name, email: c.email || "" })
+                              setFormErrors({})
+                              setModalError("")
+                              setIsEditOpen(true)
+                            }}
+                            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg border border-slate-200/60 shadow-2xs transition-all cursor-pointer"
+                            title="Edit Profile"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(c)}
+                            className={`p-1.5 rounded-lg border shadow-2xs transition-all cursor-pointer ${
+                              c.is_active
                                 ? "border-rose-200/60 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                                 : "border-emerald-200/60 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
-                                }`}
-                              title={c.is_active ? "Deactivate Customer" : "Activate Customer"}
-                            >
-                              {c.is_active ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                            }`}
+                            title={c.is_active ? "Deactivate Customer" : "Activate Customer"}
+                          >
+                            {c.is_active ? (
+                              <ToggleRight className="w-3.5 h-3.5" />
+                            ) : (
+                              <ToggleLeft className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
           <Pagination skip={skip} limit={limit} total={filtered.length} onChange={setSkip} />
         </div>
-      )}      {/* MODAL 1: ADD CUSTOMER */}
+      )}
       {isCreateOpen && (
         <Modal onClose={() => setIsCreateOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            {/* Header (Fixed, Non-scrolling) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Users className="w-5 h-5 text-brand-600" />
@@ -793,9 +790,7 @@ function Customers() {
               </button>
             </div>
 
-            {/* Form wrapping scrollable body and fixed footer */}
             <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0">
-              {/* Body (Scrollable) */}
               <div className="p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 {modalError && (
                   <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
@@ -805,11 +800,15 @@ function Customers() {
                 )}
 
                 <div className="space-y-3.5">
-                  <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Customer Profile Information</h4>
+                  <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
+                    Customer Profile Information
+                  </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-slate-600 mb-1">First Name <span className="text-error-500">*</span></label>
+                      <label className="text-xs font-bold text-slate-600 mb-1">
+                        First Name <span className="text-error-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -817,10 +816,14 @@ function Customers() {
                         onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none"
                       />
-                      {formErrors.first_name && <p className="text-[10px] text-error-800 mt-1">{formErrors.first_name}</p>}
+                      {formErrors.first_name && (
+                        <p className="text-[10px] text-error-800 mt-1">{formErrors.first_name}</p>
+                      )}
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-slate-600 mb-1">Last Name <span className="text-error-500">*</span></label>
+                      <label className="text-xs font-bold text-slate-600 mb-1">
+                        Last Name <span className="text-error-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -828,13 +831,17 @@ function Customers() {
                         onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none"
                       />
-                      {formErrors.last_name && <p className="text-[10px] text-error-800 mt-1">{formErrors.last_name}</p>}
+                      {formErrors.last_name && (
+                        <p className="text-[10px] text-error-800 mt-1">{formErrors.last_name}</p>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-slate-600 mb-1">Phone Number <span className="text-error-500">*</span></label>
+                      <label className="text-xs font-bold text-slate-600 mb-1">
+                        Phone Number <span className="text-error-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -881,7 +888,6 @@ function Customers() {
                   </div>
                 </div>
 
-                {/* Initial Shipping Address Section */}
                 <div className="border-t border-slate-100 pt-3.5 space-y-3.5">
                   <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-brand-600" />
@@ -931,7 +937,9 @@ function Customers() {
                       >
                         <option value="">Select state</option>
                         {INDIAN_STATES.map((st) => (
-                          <option key={st} value={st}>{st}</option>
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
                         ))}
                       </select>
                       {formErrors.state && <p className="text-[10px] text-error-800 mt-1">{formErrors.state}</p>}
@@ -964,7 +972,6 @@ function Customers() {
                 </div>
               </div>
 
-              {/* Footer Bar (Fixed, Non-scrolling) */}
               <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
                 <button
                   type="button"
@@ -986,11 +993,9 @@ function Customers() {
         </Modal>
       )}
 
-      {/* MODAL 2: EDIT CUSTOMER */}
       {isEditOpen && selectedCustomer && (
         <Modal onClose={() => setIsEditOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-brand-600" />
@@ -1004,9 +1009,7 @@ function Customers() {
               </button>
             </div>
 
-            {/* Form wrapping scrollable body & fixed footer */}
             <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0">
-              {/* Body (Scrollable) */}
               <div className="p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 {modalError && (
                   <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
@@ -1017,7 +1020,9 @@ function Customers() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-slate-600 mb-1">First Name <span className="text-error-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-600 mb-1">
+                      First Name <span className="text-error-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -1025,10 +1030,14 @@ function Customers() {
                       onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-1 focus:ring-brand-500 focus:outline-none"
                     />
-                    {formErrors.first_name && <p className="text-[10px] text-error-800 mt-1">{formErrors.first_name}</p>}
+                    {formErrors.first_name && (
+                      <p className="text-[10px] text-error-800 mt-1">{formErrors.first_name}</p>
+                    )}
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-slate-600 mb-1">Last Name <span className="text-error-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-600 mb-1">
+                      Last Name <span className="text-error-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -1051,7 +1060,6 @@ function Customers() {
                 </div>
               </div>
 
-              {/* Footer Bar (Fixed) */}
               <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
                 <button
                   type="button"
@@ -1073,18 +1081,18 @@ function Customers() {
         </Modal>
       )}
 
-      {/* MODAL 3: ADDRESSES MANAGER */}
       {isAddressesOpen && selectedCustomer && (
         <Modal onClose={() => setIsAddressesOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-brand-600" />
                   <span>Configure Shipping Addresses</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                  Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}
+                </p>
               </div>
               <button
                 onClick={() => setIsAddressesOpen(false)}
@@ -1094,7 +1102,6 @@ function Customers() {
               </button>
             </div>
 
-            {/* Body (Scrollable) */}
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               {modalError && (
                 <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2">
@@ -1103,27 +1110,41 @@ function Customers() {
                 </div>
               )}
 
-              {/* Existing Address Grid */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Registered Destinations</h4>
                 {modalLoading && addresses.length === 0 ? (
-                  <div className="flex justify-center py-6"><Spinner size="md" /></div>
+                  <div className="flex justify-center py-6">
+                    <Spinner size="md" />
+                  </div>
                 ) : addresses.length === 0 ? (
-                  <p className="text-slate-400 text-xs italic font-semibold">No addresses registered for this customer yet.</p>
+                  <p className="text-slate-400 text-xs italic font-semibold">
+                    No addresses registered for this customer yet.
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {addresses.map((addr) => (
-                      <div key={addr.id || addr.address_line_1} className={`p-3.5 border rounded-xl relative ${addr.is_default ? "border-brand-500 bg-brand-50/10" : "border-slate-200 bg-slate-50/30"}`}>
+                      <div
+                        key={addr.id || addr.address_line_1}
+                        className={`p-3.5 border rounded-xl relative ${addr.is_default ? "border-brand-500 bg-brand-50/10" : "border-slate-200 bg-slate-50/30"}`}
+                      >
                         <div className="pr-16 text-xs text-slate-700 font-semibold leading-relaxed">
                           <p className="font-bold text-slate-900">{addr.address_line_1}</p>
                           {addr.address_line_2 && <p>{addr.address_line_2}</p>}
-                          <p>{addr.city}, {addr.state} - {addr.postal_code || "—"}</p>
-                          {addr.landmark && <p className="text-[10px] text-slate-400 mt-0.5">Landmark: {addr.landmark}</p>}
-                          {addr.phone && <p className="text-slate-900 tabular-nums text-[10px] mt-1">Mobile: {addr.phone}</p>}
+                          <p>
+                            {addr.city}, {addr.state} - {addr.postal_code || "—"}
+                          </p>
+                          {addr.landmark && (
+                            <p className="text-[10px] text-slate-400 mt-0.5">Landmark: {addr.landmark}</p>
+                          )}
+                          {addr.phone && (
+                            <p className="text-slate-900 tabular-nums text-[10px] mt-1">Mobile: {addr.phone}</p>
+                          )}
                         </div>
                         <div className="absolute top-3 right-3 flex items-center gap-1.5">
                           {addr.is_default && (
-                            <span className="text-[10px] font-extrabold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded uppercase">Default</span>
+                            <span className="text-[10px] font-extrabold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded uppercase">
+                              Default
+                            </span>
                           )}
                           {addr.id && (
                             <>
@@ -1139,7 +1160,7 @@ function Customers() {
                                     postal_code: addr.postal_code || "",
                                     landmark: addr.landmark || "",
                                     phone: addr.phone || selectedCustomer.phone || "",
-                                    is_default: !!addr.is_default
+                                    is_default: !!addr.is_default,
                                   })
                                 }}
                                 className="p-1 hover:bg-slate-200/60 rounded text-slate-500 hover:text-slate-800 transition-colors"
@@ -1164,12 +1185,16 @@ function Customers() {
                 )}
               </div>
 
-              {/* Add Address Form */}
-              <form onSubmit={handleAddressSubmit} className="border-t border-slate-100 pt-4 space-y-3.5 text-xs font-semibold">
+              <form
+                onSubmit={handleAddressSubmit}
+                className="border-t border-slate-100 pt-4 space-y-3.5 text-xs font-semibold"
+              >
                 <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Add Shipping Destination</h4>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-slate-600 mb-1">Address Line 1 <span className="text-error-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-600 mb-1">
+                    Address Line 1 <span className="text-error-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -1191,7 +1216,9 @@ function Customers() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-slate-600 mb-1">City <span className="text-error-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-600 mb-1">
+                      City <span className="text-error-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -1201,7 +1228,9 @@ function Customers() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-slate-600 mb-1">State <span className="text-error-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-600 mb-1">
+                      State <span className="text-error-500">*</span>
+                    </label>
                     <select
                       required
                       value={addressForm.state}
@@ -1210,7 +1239,9 @@ function Customers() {
                     >
                       <option value="">Select state</option>
                       {INDIAN_STATES.map((st) => (
-                        <option key={st} value={st}>{st}</option>
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1227,7 +1258,9 @@ function Customers() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-slate-600 mb-1">Mobile Phone <span className="text-error-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-600 mb-1">
+                      Mobile Phone <span className="text-error-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -1256,7 +1289,9 @@ function Customers() {
                     onChange={(e) => setAddressForm({ ...addressForm, is_default: e.target.checked })}
                     className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
                   />
-                  <label htmlFor="is_default" className="text-xs font-bold text-slate-700 cursor-pointer">Set as default shipping address</label>
+                  <label htmlFor="is_default" className="text-xs font-bold text-slate-700 cursor-pointer">
+                    Set as default shipping address
+                  </label>
                 </div>
 
                 <div className="flex justify-end pt-3">
@@ -1271,7 +1306,6 @@ function Customers() {
               </form>
             </div>
 
-            {/* Footer Bar (Fixed) */}
             <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 type="button"
@@ -1285,18 +1319,18 @@ function Customers() {
         </Modal>
       )}
 
-      {/* MODAL 4: ORDER HISTORY */}
       {isHistoryOpen && selectedCustomer && (
         <Modal onClose={() => setIsHistoryOpen(false)}>
           <div className="bg-white border border-slate-100 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            {/* Header (Fixed) */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <History className="w-5 h-5 text-brand-600" />
                   <span>Customer Orders History</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                  Customer: {selectedCustomer.first_name} {selectedCustomer.last_name}
+                </p>
               </div>
               <button
                 onClick={() => setIsHistoryOpen(false)}
@@ -1306,7 +1340,6 @@ function Customers() {
               </button>
             </div>
 
-            {/* Body (Scrollable) */}
             <div className="p-6 overflow-y-auto flex-1">
               {modalError && (
                 <div className="p-3 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-center gap-2 mb-4">
@@ -1316,7 +1349,9 @@ function Customers() {
               )}
 
               {modalLoading && orderHistory.length === 0 ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <div className="flex justify-center py-12">
+                  <Spinner size="lg" />
+                </div>
               ) : orderHistory.length === 0 ? (
                 <p className="text-center text-slate-400 font-bold py-12">No orders recorded for this customer.</p>
               ) : (
@@ -1336,16 +1371,28 @@ function Customers() {
                       {orderHistory.map((order) => (
                         <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-3 py-2.5 min-w-0">
-                            <div className="tabular-nums font-bold text-brand-700 truncate" title={order.sale_number}>{order.sale_number}</div>
+                            <div className="tabular-nums font-bold text-brand-700 truncate" title={order.sale_number}>
+                              {order.sale_number}
+                            </div>
                             <div className="text-[10px] text-slate-400 truncate md:hidden">
                               {order.sale_type} • {formatShortDate(order.created_at)}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden md:table-cell">{order.sale_type}</td>
-                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap">{order.status}</td>
-                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden lg:table-cell">{order.payment_status}</td>
-                          <td className="px-3 py-2.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">{order.total_amount != null ? `₹${parseFloat(order.total_amount).toFixed(2)}` : "—"}</td>
-                          <td className="px-3 py-2.5 text-slate-400 tabular-nums whitespace-nowrap hidden md:table-cell">{formatShortDate(order.created_at)}</td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden md:table-cell">
+                            {order.sale_type}
+                          </td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap">
+                            {order.status}
+                          </td>
+                          <td className="px-3 py-2.5 uppercase text-[10px] font-extrabold whitespace-nowrap hidden lg:table-cell">
+                            {order.payment_status}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums font-extrabold text-slate-900 whitespace-nowrap">
+                            {order.total_amount != null ? `₹${parseFloat(order.total_amount).toFixed(2)}` : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-400 tabular-nums whitespace-nowrap hidden md:table-cell">
+                            {formatShortDate(order.created_at)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1354,7 +1401,6 @@ function Customers() {
               )}
             </div>
 
-            {/* Footer Bar (Fixed) */}
             <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 type="button"
@@ -1367,7 +1413,6 @@ function Customers() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

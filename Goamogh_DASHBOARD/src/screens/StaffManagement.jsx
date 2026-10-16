@@ -28,12 +28,10 @@ function StaffManagement() {
   const [error, setError] = useState("")
   const [successBanner, setSuccessBanner] = useState("")
 
-  // Modals state
   const [isOnboardOpen, setIsOnboardOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState(null)
 
-  // Onboard form state
   const [onboardForm, setOnboardForm] = useState({
     email: "",
     password: "",
@@ -46,7 +44,6 @@ function StaffManagement() {
   const [onboardErrors, setOnboardErrors] = useState({})
   const [isOnboarding, setIsOnboarding] = useState(false)
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -58,7 +55,6 @@ function StaffManagement() {
   const [editErrors, setEditErrors] = useState({})
   const [isEditing, setIsEditing] = useState(false)
 
-  // Security check: redirect non-super_admins
   useEffect(() => {
     if (!isAuthLoading && !isSuperAdmin) {
       navigate("/", { replace: true })
@@ -69,10 +65,7 @@ function StaffManagement() {
     setIsLoading(true)
     setError("")
     try {
-      const [staffRes, rolesRes] = await Promise.all([
-        getStaff(),
-        getRoles(),
-      ])
+      const [staffRes, rolesRes] = await Promise.all([getStaff(), getRoles()])
 
       if (!staffRes.ok || !rolesRes.ok) {
         throw new Error("Failed to load staff directory or roles list")
@@ -99,7 +92,6 @@ function StaffManagement() {
     }
   }, [isSuperAdmin])
 
-  // Onboard real-time change validation
   const handleOnboardChange = (field, value) => {
     setOnboardForm((prev) => {
       const updated = { ...prev, [field]: value }
@@ -176,7 +168,6 @@ function StaffManagement() {
     })
   }
 
-  // Edit real-time change validation
   const handleEditChange = (field, value) => {
     setEditForm((prev) => {
       const updated = { ...prev, [field]: value }
@@ -227,7 +218,6 @@ function StaffManagement() {
     })
   }
 
-  // Onboard validation
   const validateOnboard = () => {
     const errs = {}
     if (!onboardForm.email) {
@@ -304,7 +294,6 @@ function StaffManagement() {
     }
   }
 
-  // Edit validation
   const validateEdit = () => {
     const errs = {}
     if (!editForm.first_name) errs.first_name = "First name is required"
@@ -392,9 +381,7 @@ function StaffManagement() {
     if (!ok) return
 
     try {
-      const res = staff.is_active
-        ? await deactivateStaff(staff.id)
-        : await activateStaff(staff.id)
+      const res = staff.is_active ? await deactivateStaff(staff.id) : await activateStaff(staff.id)
 
       const actionName = staff.is_active ? "deactivate" : "activate"
       if (!res.ok) {
@@ -433,12 +420,12 @@ function StaffManagement() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Title Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Staff Directory</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage platform administrators and access privileges.</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Manage platform administrators and access privileges.
+          </p>
         </div>
 
         <button
@@ -459,13 +446,15 @@ function StaffManagement() {
             <UserCheck className="w-5 h-5 text-success-500 shrink-0" />
             <p className="flex-1">{successBanner}</p>
           </div>
-          <button onClick={() => setSuccessBanner("")} className="text-success-500 hover:text-success-700 transition-colors">
+          <button
+            onClick={() => setSuccessBanner("")}
+            className="text-success-500 hover:text-success-700 transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Directory Table Grid Card */}
       <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl overflow-hidden w-full">
         <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed text-xs">
@@ -490,7 +479,10 @@ function StaffManagement() {
                   <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="pl-4 pr-2 py-3.5 min-w-0">
                       <div className="min-w-0">
-                        <p className="text-slate-800 font-semibold truncate" title={`${staff.first_name} ${staff.last_name}`}>
+                        <p
+                          className="text-slate-800 font-semibold truncate"
+                          title={`${staff.first_name} ${staff.last_name}`}
+                        >
                           {staff.first_name} {staff.last_name}
                           {staff.id === currentUser?.id && (
                             <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-brand-50 text-brand-700 rounded-md font-bold inline-block font-sans">
@@ -558,13 +550,18 @@ function StaffManagement() {
                         <button
                           onClick={() => handleToggleStatus(staff)}
                           disabled={staff.id === currentUser?.id}
-                          className={`p-2 border rounded-xl transition-all active:scale-95 inline-flex items-center ${staff.is_active
-                            ? "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-transparent"
-                            : "border-success-100 bg-success-50 hover:bg-success-100 text-success-700"
-                            }`}
+                          className={`p-2 border rounded-xl transition-all active:scale-95 inline-flex items-center ${
+                            staff.is_active
+                              ? "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-transparent"
+                              : "border-success-100 bg-success-50 hover:bg-success-100 text-success-700"
+                          }`}
                           title={staff.is_active ? "Deactivate Staff" : "Activate Staff"}
                         >
-                          {staff.is_active ? <UserMinus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                          {staff.is_active ? (
+                            <UserMinus className="w-3.5 h-3.5" />
+                          ) : (
+                            <UserCheck className="w-3.5 h-3.5" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -576,7 +573,6 @@ function StaffManagement() {
         </div>
       </div>
 
-      {/* Onboard Modal Overlay */}
       {isOnboardOpen && (
         <Modal onClose={() => setIsOnboardOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -613,7 +609,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {onboardErrors.first_name && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.first_name}</p>}
+                  {onboardErrors.first_name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.first_name}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col">
@@ -630,7 +628,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {onboardErrors.last_name && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.last_name}</p>}
+                  {onboardErrors.last_name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.last_name}</p>
+                  )}
                 </div>
               </div>
 
@@ -648,7 +648,9 @@ function StaffManagement() {
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {onboardErrors.email && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.email}</p>}
+                {onboardErrors.email && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.email}</p>
+                )}
               </div>
 
               <div className="flex flex-col">
@@ -665,7 +667,9 @@ function StaffManagement() {
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {onboardErrors.phone && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.phone}</p>}
+                {onboardErrors.phone && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.phone}</p>
+                )}
               </div>
 
               <div className="flex flex-col">
@@ -679,10 +683,14 @@ function StaffManagement() {
                 >
                   <option value="">Select an access role...</option>
                   {roles.map((role) => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
                   ))}
                 </select>
-                {onboardErrors.role_id && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.role_id}</p>}
+                {onboardErrors.role_id && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.role_id}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -700,7 +708,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {onboardErrors.password && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.password}</p>}
+                  {onboardErrors.password && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.password}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col">
@@ -717,7 +727,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {onboardErrors.confirm_password && <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.confirm_password}</p>}
+                  {onboardErrors.confirm_password && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{onboardErrors.confirm_password}</p>
+                  )}
                 </div>
               </div>
 
@@ -743,7 +755,6 @@ function StaffManagement() {
         </Modal>
       )}
 
-      {/* Edit Modal Overlay */}
       {isEditOpen && (
         <Modal onClose={() => setIsEditOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -780,7 +791,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {editErrors.first_name && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.first_name}</p>}
+                  {editErrors.first_name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.first_name}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col">
@@ -797,7 +810,9 @@ function StaffManagement() {
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  {editErrors.last_name && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.last_name}</p>}
+                  {editErrors.last_name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.last_name}</p>
+                  )}
                 </div>
               </div>
 
@@ -828,14 +843,20 @@ function StaffManagement() {
                   className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-slate-800 font-semibold transition-all"
                 >
                   {roles.map((role) => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
                   ))}
                 </select>
-                {editErrors.role_id && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.role_id}</p>}
+                {editErrors.role_id && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.role_id}</p>
+                )}
               </div>
 
               <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Reset Password (Optional)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Reset Password (Optional)
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
@@ -846,7 +867,9 @@ function StaffManagement() {
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {editErrors.password && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.password}</p>}
+                {editErrors.password && (
+                  <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.password}</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 mt-2">
@@ -883,7 +906,6 @@ function StaffManagement() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

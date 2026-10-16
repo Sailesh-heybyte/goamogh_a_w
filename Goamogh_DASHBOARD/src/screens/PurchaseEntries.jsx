@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom"
-import { 
-  Plus, 
-  Search, 
-  Eye, 
-  ArrowRight,
-  AlertTriangle, 
-  Calendar,
-  XCircle,
-  Receipt,
-  Sparkles
-} from "lucide-react"
+import { Plus, Search, Eye, ArrowRight, AlertTriangle, Calendar, XCircle, Receipt, Sparkles } from "lucide-react"
 import { getPurchaseEntries, getPurchaseOrders } from "@/api/purchases"
 import Spinner from "@/components/ui/Spinner"
 import Modal from "@/components/ui/Modal"
@@ -25,11 +15,9 @@ function PurchaseEntries() {
   const [receivableOrders, setReceivableOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
-  
-  // Search & Filter
+
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Modal States
   const [isSelectPOOpen, setIsSelectPOOpen] = useState(false)
   const [isLoadingPOs, setIsLoadingPOs] = useState(false)
   const [viewingEntry, setViewingEntry] = useState(null)
@@ -62,7 +50,6 @@ function PurchaseEntries() {
     }
   }, [peId, entries])
 
-  // Open modal and load active receivable POs
   const handleOpenPOSelection = async () => {
     setIsSelectPOOpen(true)
     setIsLoadingPOs(true)
@@ -78,13 +65,11 @@ function PurchaseEntries() {
     }
   }
 
-  // Handle PO selection and redirect
   const handleSelectPO = (poId) => {
     setIsSelectPOOpen(false)
     navigate(`/purchase/entries/create?po_id=${poId}`)
   }
 
-  // Helper to format comma-separated product/item names
   const getProductNamesString = (entry) => {
     if (!entry.items || entry.items.length === 0) return "—"
     const names = entry.items
@@ -98,14 +83,19 @@ function PurchaseEntries() {
     return names.join(", ")
   }
 
-  // Client-side filtering
   const filteredEntries = entries.filter((entry) => {
     const searchLower = searchQuery.toLowerCase().trim()
     if (!searchLower) return true
-    
+
     const peNumMatch = entry.pe_number?.toLowerCase().includes(searchLower)
     const invNumMatch = entry.invoice_number?.toLowerCase().includes(searchLower)
-    const supplierName = entry.supplier_name || entry.po?.supplier_name || entry.supplier?.name || entry.supplier?.contact_name || entry.po?.supplier?.name || entry.po?.supplier?.contact_name
+    const supplierName =
+      entry.supplier_name ||
+      entry.po?.supplier_name ||
+      entry.supplier?.name ||
+      entry.supplier?.contact_name ||
+      entry.po?.supplier?.name ||
+      entry.po?.supplier?.contact_name
     const supplierMatch = supplierName?.toLowerCase().includes(searchLower)
     const productMatch = entry.items?.some((item) => {
       const name = item.raw_material_id ? item.raw_material_name : item.product_name
@@ -115,14 +105,13 @@ function PurchaseEntries() {
     return peNumMatch || invNumMatch || supplierMatch || productMatch
   })
 
-  // Format Helper
   const formatDate = (dateStr) => {
     if (!dateStr) return "—"
     const d = new Date(dateStr)
     return d.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
@@ -152,13 +141,12 @@ function PurchaseEntries() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-      
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Purchase Entries (GRN)</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Match received deliveries with invoice documentation, review CGST/SGST/IGST tax rates, and commit stock to warehouse balance.
+            Match received deliveries with invoice documentation, review CGST/SGST/IGST tax rates, and commit stock to
+            warehouse balance.
           </p>
         </div>
 
@@ -171,7 +159,6 @@ function PurchaseEntries() {
         </button>
       </div>
 
-      {/* Search Filter Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -185,7 +172,6 @@ function PurchaseEntries() {
         </div>
       </div>
 
-      {/* Table grid */}
       {filteredEntries.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center gap-3">
           <Receipt className="w-12 h-12 text-slate-300" />
@@ -200,14 +186,17 @@ function PurchaseEntries() {
                   <th className="pl-4 pr-2 py-4 w-[42%] md:w-[28%] lg:w-[24%]">Product</th>
                   <th className="px-2 py-4 hidden md:table-cell md:w-[22%] lg:w-[20%]">Invoice Details</th>
                   <th className="px-2 py-4 text-right w-[26%] md:w-[20%] lg:w-[18%]">Tax & Grand Total</th>
-                  <th className="px-2 py-4 w-[16%] md:w-[15%] lg:w-[14%]"><span className="hidden md:inline">Status</span></th>
-                  <th className="pl-2 pr-4 py-4 text-right w-[16%] md:w-[15%] lg:w-[24%]"><span className="hidden md:inline">Actions</span></th>
+                  <th className="px-2 py-4 w-[16%] md:w-[15%] lg:w-[14%]">
+                    <span className="hidden md:inline">Status</span>
+                  </th>
+                  <th className="pl-2 pr-4 py-4 text-right w-[16%] md:w-[15%] lg:w-[24%]">
+                    <span className="hidden md:inline">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-800">
                 {filteredEntries.map((entry) => (
                   <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
-                    {/* Product Name(s) */}
                     <td className="pl-4 pr-2 py-4 text-slate-800 font-bold uppercase tracking-wide text-xs min-w-0">
                       <div className="truncate" title={getProductNamesString(entry)}>
                         {getProductNamesString(entry)}
@@ -217,10 +206,11 @@ function PurchaseEntries() {
                       </div>
                     </td>
 
-                    {/* Invoice Info */}
                     <td className="px-2 py-4 min-w-0 hidden md:table-cell">
                       <div className="min-w-0">
-                        <p className="text-slate-800 font-bold text-xs truncate" title={entry.invoice_number}>{entry.invoice_number}</p>
+                        <p className="text-slate-800 font-bold text-xs truncate" title={entry.invoice_number}>
+                          {entry.invoice_number}
+                        </p>
                         <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5 truncate">
                           <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                           <span>{formatDate(entry.invoice_date || entry.created_at)}</span>
@@ -228,28 +218,36 @@ function PurchaseEntries() {
                       </div>
                     </td>
 
-                    {/* Total & Tax */}
                     <td className="px-2 py-4 text-right whitespace-nowrap">
                       <div>
                         <p className="text-slate-800 font-bold tabular-nums">
-                          {entry.total_amount != null ? `₹${Number(entry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          {entry.total_amount != null
+                            ? `₹${Number(entry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                            : "—"}
                         </p>
                         <p className="text-[10px] text-slate-400 font-bold tabular-nums">
-                          {entry.total_tax != null ? `Tax: ₹${Number(entry.total_tax).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          {entry.total_tax != null
+                            ? `Tax: ₹${Number(entry.total_tax).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                            : "—"}
                         </p>
                       </div>
                     </td>
 
-                    {/* Status Badge */}
                     <td className="px-2 py-4 whitespace-nowrap">
                       {entry.status === "authorized" ? (
-                        <span title="Authorized" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-bold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
+                        <span
+                          title="Authorized"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-bold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-success-500" aria-hidden="true" />
                           <span className="sr-only md:hidden">Authorized</span>
                           <span className="hidden md:inline">Authorized</span>
                         </span>
                       ) : (
-                        <span title="Draft (Pending)" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-bold border bg-slate-100 text-slate-700 border-slate-200 whitespace-nowrap">
+                        <span
+                          title="Draft (Pending)"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-bold border bg-slate-100 text-slate-700 border-slate-200 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-slate-500" aria-hidden="true" />
                           <span className="sr-only md:hidden">Draft (Pending)</span>
                           <span className="hidden md:inline">Draft (Pending)</span>
@@ -257,7 +255,6 @@ function PurchaseEntries() {
                       )}
                     </td>
 
-                    {/* Row action tools */}
                     <td className="pl-2 pr-4 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1.5">
                         {entry.status === "draft" ? (
@@ -290,11 +287,9 @@ function PurchaseEntries() {
         </div>
       )}
 
-      {/* MODAL: Select Confirmed PO to Record Receipt */}
       {isSelectPOOpen && (
         <Modal onClose={() => setIsSelectPOOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-lg">Select Purchase Order</h3>
               <button
@@ -305,10 +300,10 @@ function PurchaseEntries() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
               <p className="text-xs font-semibold text-slate-500 leading-relaxed">
-                Select an open purchase order (confirmed, sent, acknowledged or partially received) to record a goods receipt. Stock is only updated after this entry is authorized.
+                Select an open purchase order (confirmed, sent, acknowledged or partially received) to record a goods
+                receipt. Stock is only updated after this entry is authorized.
               </p>
 
               {isLoadingPOs ? (
@@ -317,8 +312,11 @@ function PurchaseEntries() {
                 </div>
               ) : receivableOrders.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 font-bold text-xs">
-                  No open purchase orders found.<br />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Authorize a PO in the Orders screen first.</span>
+                  No open purchase orders found.
+                  <br />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Authorize a PO in the Orders screen first.
+                  </span>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-sm">
@@ -329,8 +327,12 @@ function PurchaseEntries() {
                       className="w-full px-4 py-3 hover:bg-brand-50/50 text-left transition-all flex items-center justify-between group"
                     >
                       <div>
-                        <p className="text-xs font-bold text-brand-700 tabular-nums group-hover:underline">{po.po_number}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{po.supplier_name || po.supplier?.name || po.supplier?.contact_name || "—"}</p>
+                        <p className="text-xs font-bold text-brand-700 tabular-nums group-hover:underline">
+                          {po.po_number}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                          {po.supplier_name || po.supplier?.name || po.supplier?.contact_name || "—"}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
@@ -344,7 +346,6 @@ function PurchaseEntries() {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 shrink-0">
               <button
                 onClick={() => {
@@ -367,11 +368,9 @@ function PurchaseEntries() {
         </Modal>
       )}
 
-      {/* MODAL: View Entry Tax and Details Summary */}
       {viewingEntry && (
         <Modal onClose={() => setViewingEntry(null)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-bold text-slate-900 text-lg">Goods Receipt Summary (GRN)</h3>
@@ -385,7 +384,6 @@ function PurchaseEntries() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
               {authError && (
                 <div className="p-4 bg-error-50 border border-error-100 rounded-xl text-xs font-semibold text-error-800 flex items-start gap-2.5 shrink-0 animate-in fade-in duration-200">
@@ -394,7 +392,12 @@ function PurchaseEntries() {
                     <p className="font-bold text-error-800">Authorization Failed</p>
                     <p className="mt-0.5">{authError}</p>
                   </div>
-                  <button onClick={() => setAuthError("")} className="text-error-500 hover:text-error-800 font-bold ml-auto text-sm">&times;</button>
+                  <button
+                    onClick={() => setAuthError("")}
+                    className="text-error-500 hover:text-error-800 font-bold ml-auto text-sm"
+                  >
+                    &times;
+                  </button>
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -405,10 +408,10 @@ function PurchaseEntries() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Invoice Number</span>
-                  <span className="text-sm font-bold text-slate-900 mt-0.5 block">
-                    {viewingEntry.invoice_number}
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    Invoice Number
                   </span>
+                  <span className="text-sm font-bold text-slate-900 mt-0.5 block">{viewingEntry.invoice_number}</span>
                 </div>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Invoice Date</span>
@@ -437,32 +440,49 @@ function PurchaseEntries() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Place of Supply</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    Place of Supply
+                  </span>
                   <span className="text-sm font-bold text-slate-800 mt-0.5 block">
                     {viewingEntry.ship_to_state || "—"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Rounding Adjustment</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    Rounding Adjustment
+                  </span>
                   <span className="text-sm tabular-nums font-bold text-slate-800 mt-0.5 block">
-                    {viewingEntry.rounding_adjustment != null ? `₹${Number(viewingEntry.rounding_adjustment).toFixed(2)}` : "—"}
+                    {viewingEntry.rounding_adjustment != null
+                      ? `₹${Number(viewingEntry.rounding_adjustment).toFixed(2)}`
+                      : "—"}
                   </span>
                 </div>
               </div>
 
-              {/* Items List */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">Received Items</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">
+                  Received Items
+                </h4>
                 <div className="w-full border border-slate-100 rounded-xl">
                   <table className="w-full text-left border-collapse table-fixed">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                         <th className="px-3 py-2.5 w-[55%] md:w-[30%] whitespace-normal leading-tight">Item Details</th>
-                        <th className="px-2 py-2.5 text-right w-[20%] md:w-[12%] whitespace-normal leading-tight">Qty Received</th>
-                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[13%] whitespace-normal leading-tight">Unit Price</th>
-                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[15%] whitespace-normal leading-tight">Taxable</th>
-                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[15%] whitespace-normal leading-tight">GST</th>
-                        <th className="px-3 py-2.5 text-right w-[25%] md:w-[15%] whitespace-normal leading-tight">Total Amount</th>
+                        <th className="px-2 py-2.5 text-right w-[20%] md:w-[12%] whitespace-normal leading-tight">
+                          Qty Received
+                        </th>
+                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[13%] whitespace-normal leading-tight">
+                          Unit Price
+                        </th>
+                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[15%] whitespace-normal leading-tight">
+                          Taxable
+                        </th>
+                        <th className="px-2 py-2.5 text-right hidden md:table-cell md:w-[15%] whitespace-normal leading-tight">
+                          GST
+                        </th>
+                        <th className="px-3 py-2.5 text-right w-[25%] md:w-[15%] whitespace-normal leading-tight">
+                          Total Amount
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-800">
@@ -471,32 +491,63 @@ function PurchaseEntries() {
                         return (
                           <tr key={item.id} className="hover:bg-slate-50/20">
                             <td className="px-3 py-3 min-w-0">
-                              <p className="font-bold text-slate-800 truncate" title={itemName || "Inventory Item"}>{itemName || "Inventory Item"}</p>
+                              <p className="font-bold text-slate-800 truncate" title={itemName || "Inventory Item"}>
+                                {itemName || "Inventory Item"}
+                              </p>
                               <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                                 <span>HSN: {item.hsn_code || "—"}</span>
-                                <span className="md:hidden"> • Rate: {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}</span>
+                                <span className="md:hidden">
+                                  {" "}
+                                  • Rate: {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}
+                                </span>
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap">
-                              <div className="truncate" title={item.quantity_received != null ? parseFloat(item.quantity_received).toFixed(2) : "—"}>
+                              <div
+                                className="truncate"
+                                title={
+                                  item.quantity_received != null ? parseFloat(item.quantity_received).toFixed(2) : "—"
+                                }
+                              >
                                 {item.quantity_received != null ? parseFloat(item.quantity_received).toFixed(2) : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
-                              <div className="truncate" title={item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}>
+                              <div
+                                className="truncate"
+                                title={item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}
+                              >
                                 {item.unit_price != null ? `₹${parseFloat(item.unit_price).toFixed(2)}` : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
-                              <div className="truncate" title={item.subtotal != null ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}>
-                                {item.subtotal != null ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                              <div
+                                className="truncate"
+                                title={
+                                  item.subtotal != null
+                                    ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                                    : "—"
+                                }
+                              >
+                                {item.subtotal != null
+                                  ? `₹${parseFloat(item.subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                                  : "—"}
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right tabular-nums text-slate-600 whitespace-nowrap hidden md:table-cell">
                               {viewingEntry.is_interstate ? (
                                 <>
-                                  <div className="truncate" title={item.igst_amount != null ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}` : "—"}>
-                                    {item.igst_amount != null ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}` : "—"}
+                                  <div
+                                    className="truncate"
+                                    title={
+                                      item.igst_amount != null
+                                        ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}`
+                                        : "—"
+                                    }
+                                  >
+                                    {item.igst_amount != null
+                                      ? `IGST ₹${parseFloat(item.igst_amount).toFixed(2)}`
+                                      : "—"}
                                   </div>
                                   <div className="text-[10px] text-slate-400 truncate" title={`@ ${item.gst_percent}%`}>
                                     @ {item.gst_percent}%
@@ -504,21 +555,51 @@ function PurchaseEntries() {
                                 </>
                               ) : (
                                 <>
-                                  <div className="truncate" title={item.cgst_amount != null ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}` : "—"}>
-                                    {item.cgst_amount != null ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}` : "—"}
+                                  <div
+                                    className="truncate"
+                                    title={
+                                      item.cgst_amount != null
+                                        ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}`
+                                        : "—"
+                                    }
+                                  >
+                                    {item.cgst_amount != null
+                                      ? `CGST ₹${parseFloat(item.cgst_amount).toFixed(2)}`
+                                      : "—"}
                                   </div>
-                                  <div className="truncate" title={item.sgst_amount != null ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}` : "—"}>
-                                    {item.sgst_amount != null ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}` : "—"}
+                                  <div
+                                    className="truncate"
+                                    title={
+                                      item.sgst_amount != null
+                                        ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}`
+                                        : "—"
+                                    }
+                                  >
+                                    {item.sgst_amount != null
+                                      ? `SGST ₹${parseFloat(item.sgst_amount).toFixed(2)}`
+                                      : "—"}
                                   </div>
-                                  <div className="text-[10px] text-slate-400 truncate" title={`@ ${item.gst_percent / 2}% each`}>
+                                  <div
+                                    className="text-[10px] text-slate-400 truncate"
+                                    title={`@ ${item.gst_percent / 2}% each`}
+                                  >
                                     @ {item.gst_percent / 2}% each
                                   </div>
                                 </>
                               )}
                             </td>
                             <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-800 whitespace-nowrap">
-                              <div className="truncate" title={item.total_amount != null ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}>
-                                {item.total_amount != null ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                              <div
+                                className="truncate"
+                                title={
+                                  item.total_amount != null
+                                    ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                                    : "—"
+                                }
+                              >
+                                {item.total_amount != null
+                                  ? `₹${parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                                  : "—"}
                               </div>
                             </td>
                           </tr>
@@ -529,15 +610,18 @@ function PurchaseEntries() {
                 </div>
               </div>
 
-              {/* Billing Summary Card */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 ml-auto max-w-sm space-y-3 shadow-inner">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1.5">Grand Billing Summary</h4>
-                
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1.5">
+                  Grand Billing Summary
+                </h4>
+
                 <div className="space-y-1.5 text-xs font-semibold text-slate-600">
                   <div className="flex justify-between">
                     <span>Taxable Subtotal</span>
                     <span className="tabular-nums text-slate-800 font-bold">
-                      {viewingEntry.taxable_subtotal != null ? `₹${Number(viewingEntry.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {viewingEntry.taxable_subtotal != null
+                        ? `₹${Number(viewingEntry.taxable_subtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
 
@@ -545,7 +629,9 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>IGST Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {viewingEntry.igst_amount != null ? `₹${Number(viewingEntry.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {viewingEntry.igst_amount != null
+                          ? `₹${Number(viewingEntry.igst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                   ) : (
@@ -553,13 +639,17 @@ function PurchaseEntries() {
                       <div className="flex justify-between">
                         <span>CGST Amount</span>
                         <span className="tabular-nums text-slate-800 font-bold">
-                          {viewingEntry.cgst_amount != null ? `₹${Number(viewingEntry.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          {viewingEntry.cgst_amount != null
+                            ? `₹${Number(viewingEntry.cgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                            : "—"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>SGST Amount</span>
                         <span className="tabular-nums text-slate-800 font-bold">
-                          {viewingEntry.sgst_amount != null ? `₹${Number(viewingEntry.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          {viewingEntry.sgst_amount != null
+                            ? `₹${Number(viewingEntry.sgst_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                            : "—"}
                         </span>
                       </div>
                     </>
@@ -569,7 +659,9 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Cess Amount</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {viewingEntry.total_cess != null ? `₹${parseFloat(viewingEntry.total_cess).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {viewingEntry.total_cess != null
+                          ? `₹${parseFloat(viewingEntry.total_cess).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                   )}
@@ -578,7 +670,9 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Shipping / Other Charges</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {viewingEntry.others != null ? `₹${parseFloat(viewingEntry.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {viewingEntry.others != null
+                          ? `₹${parseFloat(viewingEntry.others).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                   )}
@@ -587,7 +681,9 @@ function PurchaseEntries() {
                     <div className="flex justify-between">
                       <span>Rounding Adjustment</span>
                       <span className="tabular-nums text-slate-800 font-bold">
-                        {viewingEntry.rounding_adjustment != null ? `₹${Number(viewingEntry.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                        {viewingEntry.rounding_adjustment != null
+                          ? `₹${Number(viewingEntry.rounding_adjustment).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                          : "—"}
                       </span>
                     </div>
                   )}
@@ -598,14 +694,15 @@ function PurchaseEntries() {
                       <span>Grand Total</span>
                     </span>
                     <span className="tabular-nums text-brand-700">
-                      {viewingEntry.total_amount != null ? `₹${Number(viewingEntry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                      {viewingEntry.total_amount != null
+                        ? `₹${Number(viewingEntry.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                        : "—"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0">
               <button
                 onClick={() => setViewingEntry(null)}

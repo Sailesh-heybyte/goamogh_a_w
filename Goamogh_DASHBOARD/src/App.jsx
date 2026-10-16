@@ -32,7 +32,11 @@ function DashboardRedirect() {
   if (checkPerm("goods_receipt_manage")) return <Navigate to="/purchase/entries" replace />
   if (checkPerm("all")) return <Navigate to="/staff" replace />
 
-  return (<div className="p-10 text-center text-sm text-slate-500">Your role has no permissions yet. Ask an administrator to assign access.</div>)
+  return (
+    <div className="p-10 text-center text-sm text-slate-500">
+      Your role has no permissions yet. Ask an administrator to assign access.
+    </div>
+  )
 }
 const StaffManagement = lazy(() => import("@/screens/StaffManagement"))
 const RoleManagement = lazy(() => import("@/screens/RoleManagement"))
@@ -58,7 +62,6 @@ const InvoiceDetails = lazy(() => import("@/screens/InvoiceDetails"))
 const CustomerFeedback = lazy(() => import("@/screens/CustomerFeedback"))
 const CustomerEnquiries = lazy(() => import("@/screens/CustomerEnquiries"))
 const QualityCertificates = lazy(() => import("@/screens/QualityCertificates"))
-
 
 const router = createBrowserRouter([
   {

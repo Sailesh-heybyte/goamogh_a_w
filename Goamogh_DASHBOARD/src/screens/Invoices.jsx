@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  FileText,
-  Search,
-  AlertCircle,
-  Eye,
-  ExternalLink
-} from "lucide-react"
+import { FileText, Search, AlertCircle, Eye, ExternalLink } from "lucide-react"
 import { getInvoices } from "@/api/invoices"
 import Spinner from "@/components/ui/Spinner"
 import Pagination from "@/components/ui/Pagination"
@@ -14,12 +8,10 @@ import Pagination from "@/components/ui/Pagination"
 function Invoices() {
   const navigate = useNavigate()
 
-  // State Lists
   const [invoices, setInvoices] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Filter States
   const [searchQuery, setSearchQuery] = useState("")
   const [skip, setSkip] = useState(0)
   const limit = 50
@@ -61,11 +53,10 @@ function Invoices() {
     return new Date(isoString).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     })
   }
 
-  // Filter list by customer name/phone/invoice number in memory
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     if (!q) return invoices
@@ -84,8 +75,6 @@ function Invoices() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Top Header Block */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1.5">
@@ -100,7 +89,6 @@ function Invoices() {
         </div>
       </div>
 
-      {/* Toolbar filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-100 rounded-2xl shadow-sm">
         <div className="relative w-full sm:flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -121,9 +109,10 @@ function Invoices() {
         </div>
       )}
 
-      {/* Main Listing Table */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spinner size="lg" /></div>
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Spinner size="lg" />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
           <p className="text-slate-400 font-bold">No generated tax invoices found.</p>
@@ -138,8 +127,12 @@ function Invoices() {
                   <th className="px-3 py-3.5 hidden md:table-cell md:w-[26%] lg:w-[22%]">Customer & Type</th>
                   <th className="px-3 py-3.5 text-right w-[24%] md:w-[18%] lg:w-[16%]">Date & Value</th>
                   <th className="px-3 py-3.5 hidden lg:table-cell lg:w-[14%] text-center">Payment Status</th>
-                  <th className="px-3 py-3.5 w-[18%] md:w-[14%] lg:w-[12%] text-center"><span className="hidden md:inline">Status</span></th>
-                  <th className="pl-2 pr-5 py-3.5 w-[16%] md:w-[14%] lg:w-[14%] text-right"><span className="hidden md:inline">Actions</span></th>
+                  <th className="px-3 py-3.5 w-[18%] md:w-[14%] lg:w-[12%] text-center">
+                    <span className="hidden md:inline">Status</span>
+                  </th>
+                  <th className="pl-2 pr-5 py-3.5 w-[16%] md:w-[14%] lg:w-[14%] text-right">
+                    <span className="hidden md:inline">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -147,10 +140,14 @@ function Invoices() {
                   const sale = inv.sale_details || {}
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Column 1: Invoice # & Sale Order # */}
                       <td className="px-2 md:px-3.5 py-3 min-w-0">
                         <div className="flex flex-col items-start gap-0.5 min-w-0">
-                          <span className="tabular-nums text-brand-700 font-bold text-xs truncate" title={inv.invoice_number}>{inv.invoice_number}</span>
+                          <span
+                            className="tabular-nums text-brand-700 font-bold text-xs truncate"
+                            title={inv.invoice_number}
+                          >
+                            {inv.invoice_number}
+                          </span>
                           {sale.sale_number && (
                             <button
                               onClick={() => navigate(`/sales?search=${sale.sale_number}`)}
@@ -161,8 +158,12 @@ function Invoices() {
                               <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
                             </button>
                           )}
-                          <div className="text-[10px] text-slate-500 font-normal truncate md:hidden mt-0.5" title={sale.customer_name || ""}>
-                            {sale.customer_name || "Walk-in"}{sale.sale_type ? ` • ${sale.sale_type}` : ""}
+                          <div
+                            className="text-[10px] text-slate-500 font-normal truncate md:hidden mt-0.5"
+                            title={sale.customer_name || ""}
+                          >
+                            {sale.customer_name || "Walk-in"}
+                            {sale.sale_type ? ` • ${sale.sale_type}` : ""}
                           </div>
                           <div className="text-[10px] text-slate-400 tabular-nums lg:hidden">
                             Pay: {inv.payment_status || "—"}
@@ -170,63 +171,87 @@ function Invoices() {
                         </div>
                       </td>
 
-                      {/* Column 2: Customer Name & Sale Type */}
                       <td className="px-3 py-3 min-w-0 hidden md:table-cell">
                         <div className="min-w-0">
-                          <p className="font-bold text-slate-900 text-xs truncate" title={sale.customer_name || "Walk-in Customer"}>
+                          <p
+                            className="font-bold text-slate-900 text-xs truncate"
+                            title={sale.customer_name || "Walk-in Customer"}
+                          >
                             {sale.customer_name || "Walk-in Customer"}
                           </p>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {sale.sale_type === "retail" && (
-                              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 font-semibold text-[10px]">Retail</span>
+                              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 font-semibold text-[10px]">
+                                Retail
+                              </span>
                             )}
                             {sale.sale_type === "wholesale" && (
-                              <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200/60 font-semibold text-[10px]">Wholesale</span>
+                              <span className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200/60 font-semibold text-[10px]">
+                                Wholesale
+                              </span>
                             )}
                             {sale.sale_type === "indent_conversion" && (
-                              <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60 font-semibold text-[10px]">Indent Conv</span>
+                              <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60 font-semibold text-[10px]">
+                                Indent Conv
+                              </span>
                             )}
                           </div>
                         </div>
                       </td>
 
-                      {/* Column 3: Date & Amount */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <p className="tabular-nums font-extrabold text-slate-900 text-xs">{inv.total_amount != null ? `₹${parseFloat(inv.total_amount).toFixed(2)}` : "—"}</p>
-                        <p className="text-[11px] tabular-nums text-slate-400 mt-0.5">{formatShortDate(inv.invoice_date || inv.created_at)}</p>
+                        <p className="tabular-nums font-extrabold text-slate-900 text-xs">
+                          {inv.total_amount != null ? `₹${parseFloat(inv.total_amount).toFixed(2)}` : "—"}
+                        </p>
+                        <p className="text-[11px] tabular-nums text-slate-400 mt-0.5">
+                          {formatShortDate(inv.invoice_date || inv.created_at)}
+                        </p>
                       </td>
 
-                      {/* Column 4: Payment Status */}
                       <td className="px-3 py-3 text-center whitespace-nowrap hidden lg:table-cell">
                         {inv.payment_status === "unpaid" && (
-                          <span className="text-slate-500 bg-slate-50 px-1.5 md:px-2.5 py-0.5 rounded border border-slate-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">Unpaid</span>
+                          <span className="text-slate-500 bg-slate-50 px-1.5 md:px-2.5 py-0.5 rounded border border-slate-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">
+                            Unpaid
+                          </span>
                         )}
                         {inv.payment_status === "partial" && (
-                          <span className="text-amber-700 bg-amber-50 px-1.5 md:px-2.5 py-0.5 rounded border border-amber-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">Partial</span>
+                          <span className="text-amber-700 bg-amber-50 px-1.5 md:px-2.5 py-0.5 rounded border border-amber-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">
+                            Partial
+                          </span>
                         )}
                         {inv.payment_status === "paid" && (
-                          <span className="text-emerald-700 bg-emerald-50 px-1.5 md:px-2.5 py-0.5 rounded border border-emerald-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">Paid</span>
+                          <span className="text-emerald-700 bg-emerald-50 px-1.5 md:px-2.5 py-0.5 rounded border border-emerald-200 font-semibold text-[10px] md:text-xs whitespace-nowrap">
+                            Paid
+                          </span>
                         )}
                       </td>
 
-                      {/* Column 5: Status */}
                       <td className="px-3 py-3 text-center whitespace-nowrap">
                         {inv.status === "generated" && (
-                          <span title="Generated" className="inline-flex items-center text-blue-700 bg-blue-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-blue-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap">
+                          <span
+                            title="Generated"
+                            className="inline-flex items-center text-blue-700 bg-blue-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-blue-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap"
+                          >
                             <span className="w-1.5 h-1.5 rounded-full bg-current md:hidden" aria-hidden="true" />
                             <span className="sr-only md:hidden">Generated</span>
                             <span className="hidden md:inline">Generated</span>
                           </span>
                         )}
                         {inv.status === "paid" && (
-                          <span title="Paid" className="inline-flex items-center text-emerald-700 bg-emerald-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-emerald-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap">
+                          <span
+                            title="Paid"
+                            className="inline-flex items-center text-emerald-700 bg-emerald-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-emerald-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap"
+                          >
                             <span className="w-1.5 h-1.5 rounded-full bg-current md:hidden" aria-hidden="true" />
                             <span className="sr-only md:hidden">Paid</span>
                             <span className="hidden md:inline">Paid</span>
                           </span>
                         )}
                         {inv.status === "cancelled" && (
-                          <span title="Cancelled" className="inline-flex items-center text-rose-700 bg-rose-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-rose-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap">
+                          <span
+                            title="Cancelled"
+                            className="inline-flex items-center text-rose-700 bg-rose-50 px-1.5 xl:px-2.5 py-0.5 rounded border border-rose-200 font-semibold text-[10px] xl:text-xs whitespace-nowrap"
+                          >
                             <span className="w-1.5 h-1.5 rounded-full bg-current md:hidden" aria-hidden="true" />
                             <span className="sr-only md:hidden">Cancelled</span>
                             <span className="hidden md:inline">Cancelled</span>
@@ -234,7 +259,6 @@ function Invoices() {
                         )}
                       </td>
 
-                      {/* Column 6: Actions */}
                       <td className="pl-2 pr-5 py-3 text-right whitespace-nowrap">
                         <button
                           onClick={() => navigate(`/invoices/${inv.id}`)}
@@ -254,7 +278,6 @@ function Invoices() {
           <Pagination skip={skip} limit={limit} total={filtered.length} onChange={setSkip} />
         </div>
       )}
-
     </div>
   )
 }

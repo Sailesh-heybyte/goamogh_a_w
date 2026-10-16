@@ -13,7 +13,6 @@ function getPermissionLabel(permValue, permissionsList = []) {
   return found ? found.label : permValue
 }
 
-
 function RoleManagement() {
   const confirm = useConfirm()
   const { isSuperAdmin, isLoading: isAuthLoading } = useAuth()
@@ -27,12 +26,10 @@ function RoleManagement() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
 
-  // Create form state
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
@@ -41,7 +38,6 @@ function RoleManagement() {
   const [createErrors, setCreateErrors] = useState({})
   const [isCreating, setIsCreating] = useState(false)
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
@@ -51,7 +47,6 @@ function RoleManagement() {
   const [editErrors, setEditErrors] = useState({})
   const [isEditing, setIsEditing] = useState(false)
 
-  // Security check: redirect non-super_admins
   useEffect(() => {
     if (!isAuthLoading && !isSuperAdmin) {
       navigate("/", { replace: true })
@@ -106,8 +101,6 @@ function RoleManagement() {
     }
   }, [isSuperAdmin])
 
-
-  // Handle permission checklist toggle
   const handlePermissionToggle = (permissionValue, formType) => {
     const form = formType === "create" ? createForm : editForm
     const setForm = formType === "create" ? setCreateForm : setEditForm
@@ -120,7 +113,6 @@ function RoleManagement() {
     setForm({ ...form, permissions: newPermissions })
   }
 
-  // Create validation
   const validateCreate = () => {
     const errs = {}
     if (!createForm.name || !createForm.name.trim()) {
@@ -152,7 +144,7 @@ function RoleManagement() {
     const ok = await confirm({
       title: `Create role ${createForm.name.trim()}?`,
       message: `Are you sure you want to create the role "${createForm.name.trim()}"?`,
-      confirmLabel: "Create role"
+      confirmLabel: "Create role",
     })
     if (!ok) return
 
@@ -186,7 +178,6 @@ function RoleManagement() {
     }
   }
 
-  // Edit validation
   const validateEdit = () => {
     const errs = {}
     if (!editForm.name || !editForm.name.trim()) {
@@ -229,7 +220,7 @@ function RoleManagement() {
     const ok = await confirm({
       title: `Save changes for role ${editForm.name.trim()}?`,
       message: `Are you sure you want to update the role "${editForm.name.trim()}"?`,
-      confirmLabel: "Save changes"
+      confirmLabel: "Save changes",
     })
     if (!ok) return
 
@@ -289,12 +280,12 @@ function RoleManagement() {
 
   return (
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-200">
-
-      {/* Header title block */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Access Control Roles</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Configure role descriptions and assign granular feature permissions.</p>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Configure role descriptions and assign granular feature permissions.
+          </p>
         </div>
 
         <button
@@ -306,7 +297,6 @@ function RoleManagement() {
         </button>
       </div>
 
-      {/* Roles list table */}
       <div className="bg-white border border-slate-100 shadow-lg rounded-2xl overflow-hidden w-full">
         <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed">
@@ -315,7 +305,9 @@ function RoleManagement() {
                 <th className="px-6 py-4 w-[55%] md:w-[35%] lg:w-[22%]">Role Name</th>
                 <th className="hidden md:table-cell px-6 py-4 w-[35%] lg:w-[28%]">Description</th>
                 <th className="hidden lg:table-cell px-6 py-4 w-[28%]">Assigned Permissions</th>
-                <th className="px-6 py-4 w-[25%] md:w-[15%] lg:w-[10%]"><span className="hidden md:inline">Status</span></th>
+                <th className="px-6 py-4 w-[25%] md:w-[15%] lg:w-[10%]">
+                  <span className="hidden md:inline">Status</span>
+                </th>
                 <th className="pl-2 pr-6 py-4 w-[20%] md:w-[15%] lg:w-[12%] text-right">Actions</th>
               </tr>
             </thead>
@@ -332,7 +324,10 @@ function RoleManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-brand-600 shrink-0" />
-                        <span className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate" title={role.name}>
+                        <span
+                          className="text-slate-800 font-bold uppercase tracking-wider text-xs truncate"
+                          title={role.name}
+                        >
                           {role.name}
                         </span>
                       </div>
@@ -340,10 +335,15 @@ function RoleManagement() {
                         {role.description || "—"}
                       </div>
                       <div className="lg:hidden text-[10px] text-slate-400 truncate">
-                        {role.permissions && role.permissions.length > 0 ? `${role.permissions.length} permissions` : "No permissions"}
+                        {role.permissions && role.permissions.length > 0
+                          ? `${role.permissions.length} permissions`
+                          : "No permissions"}
                       </div>
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 font-normal text-slate-500 truncate" title={role.description}>
+                    <td
+                      className="hidden md:table-cell px-6 py-4 font-normal text-slate-500 truncate"
+                      title={role.description}
+                    >
                       {role.description || "—"}
                     </td>
                     <td className="hidden lg:table-cell px-6 py-4">
@@ -374,13 +374,19 @@ function RoleManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {role.is_active ? (
-                        <span title="Active" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap">
+                        <span
+                          title="Active"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-success-50 text-success-700 border-success-100 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-success-500" aria-hidden="true" />
                           <span className="sr-only md:hidden">Active</span>
                           <span className="hidden md:inline">Active</span>
                         </span>
                       ) : (
-                        <span title="Inactive" className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-slate-50 text-slate-500 border-slate-200 whitespace-nowrap">
+                        <span
+                          title="Inactive"
+                          className="inline-flex items-center px-1.5 xl:px-2.5 py-0.5 rounded-full text-[10px] xl:text-xs font-semibold border bg-slate-50 text-slate-500 border-slate-200 whitespace-nowrap"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full md:mr-1.5 bg-slate-400" aria-hidden="true" />
                           <span className="sr-only md:hidden">Inactive</span>
                           <span className="hidden md:inline">Inactive</span>
@@ -404,7 +410,6 @@ function RoleManagement() {
         </div>
       </div>
 
-      {/* Create Role Modal */}
       {isCreateOpen && (
         <Modal onClose={() => setIsCreateOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -420,95 +425,97 @@ function RoleManagement() {
 
             <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
-              {createErrors.global && (
-                <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
-                  <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
-                  <p className="flex-1">{createErrors.global}</p>
-                </div>
-              )}
+                {createErrors.global && (
+                  <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
+                    <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
+                    <p className="flex-1">{createErrors.global}</p>
+                  </div>
+                )}
 
-              <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Role Name <span className="text-error-500">*</span>
-                </label>
-                <div className="relative">
-                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                    placeholder="E.g., Procurement Manager"
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                {createErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>}
-              </div>
-
-              <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Role Description <span className="text-error-500">*</span>
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
-                  <textarea
-                    value={createForm.description}
-                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                    placeholder="Describe role responsibilities..."
-                    rows="3"
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
-                {createErrors.description && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.description}</p>}
-              </div>
-
-              {/* Permissions Checklist Grid */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Configure Permissions <span className="text-error-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  {permissionsLoading ? (
-                    <div className="col-span-full flex items-center justify-center py-6">
-                      <Spinner size="sm" />
-                    </div>
-                  ) : permissionsError ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
-                      <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
-                      <button
-                        type="button"
-                        onClick={fetchPermissions}
-                        className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : systemPermissions.length === 0 ? (
-                    <p className="col-span-full text-center py-4 text-xs text-slate-400">
-                      No permissions available.
-                    </p>
-                  ) : (
-                    systemPermissions.map((perm) => (
-                      <label
-                        key={perm.value}
-                        className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={createForm.permissions.includes(perm.value)}
-                          onChange={() => handlePermissionToggle(perm.value, "create")}
-                          className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
-                        />
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                          <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
-                        </div>
-                      </label>
-                    ))
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Role Name <span className="text-error-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      placeholder="E.g., Procurement Manager"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                  {createErrors.name && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.name}</p>
                   )}
                 </div>
-                {createErrors.permissions && <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.permissions}</p>}
-              </div>
 
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Role Description <span className="text-error-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
+                    <textarea
+                      value={createForm.description}
+                      onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                      placeholder="Describe role responsibilities..."
+                      rows="3"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"
+                    />
+                  </div>
+                  {createErrors.description && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.description}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Configure Permissions <span className="text-error-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                    {permissionsLoading ? (
+                      <div className="col-span-full flex items-center justify-center py-6">
+                        <Spinner size="sm" />
+                      </div>
+                    ) : permissionsError ? (
+                      <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
+                        <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
+                        <button
+                          type="button"
+                          onClick={fetchPermissions}
+                          className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : systemPermissions.length === 0 ? (
+                      <p className="col-span-full text-center py-4 text-xs text-slate-400">No permissions available.</p>
+                    ) : (
+                      systemPermissions.map((perm) => (
+                        <label
+                          key={perm.value}
+                          className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={createForm.permissions.includes(perm.value)}
+                            onChange={() => handlePermissionToggle(perm.value, "create")}
+                            className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{perm.label}</p>
+                            <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {createErrors.permissions && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{createErrors.permissions}</p>
+                  )}
+                </div>
               </div>
 
               <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0">
@@ -533,7 +540,6 @@ function RoleManagement() {
         </Modal>
       )}
 
-      {/* Edit Role Modal */}
       {isEditOpen && (
         <Modal onClose={() => setIsEditOpen(false)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
@@ -549,107 +555,107 @@ function RoleManagement() {
 
             <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
-              {editErrors.global && (
-                <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
-                  <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
-                  <p className="flex-1">{editErrors.global}</p>
-                </div>
-              )}
+                {editErrors.global && (
+                  <div className="flex items-start gap-2.5 p-4 bg-error-50 border border-error-100 rounded-xl text-sm font-semibold text-error-800">
+                    <ShieldAlert className="w-5 h-5 text-error-800 shrink-0" />
+                    <p className="flex-1">{editErrors.global}</p>
+                  </div>
+                )}
 
-              <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Role Name <span className="text-error-500">*</span>
-                </label>
-                <div className="relative">
-                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    placeholder="E.g., Procurement Manager"
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
-                  />
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Role Name <span className="text-error-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="E.g., Procurement Manager"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                  {editErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.name}</p>}
                 </div>
-                {editErrors.name && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.name}</p>}
-              </div>
 
-              <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Role Description <span className="text-error-500">*</span>
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Describe role responsibilities..."
-                    rows="3"
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
-                {editErrors.description && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.description}</p>}
-              </div>
-
-              {/* Permissions Checklist Grid */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Configure Permissions <span className="text-error-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  {permissionsLoading ? (
-                    <div className="col-span-full flex items-center justify-center py-6">
-                      <Spinner size="sm" />
-                    </div>
-                  ) : permissionsError ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
-                      <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
-                      <button
-                        type="button"
-                        onClick={fetchPermissions}
-                        className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : systemPermissions.length === 0 ? (
-                    <p className="col-span-full text-center py-4 text-xs text-slate-400">
-                      No permissions available.
-                    </p>
-                  ) : (
-                    systemPermissions.map((perm) => (
-                      <label
-                        key={perm.value}
-                        className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editForm.permissions.includes(perm.value)}
-                          onChange={() => handlePermissionToggle(perm.value, "edit")}
-                          className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
-                        />
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">{perm.label}</p>
-                          <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
-                        </div>
-                      </label>
-                    ))
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Role Description <span className="text-error-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      placeholder="Describe role responsibilities..."
+                      rows="3"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"
+                    />
+                  </div>
+                  {editErrors.description && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.description}</p>
                   )}
                 </div>
-                {editErrors.permissions && <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.permissions}</p>}
-              </div>
 
-              <div className="flex items-center gap-2 mt-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={editForm.is_active}
-                    onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
-                  />
-                  Active Status
-                </label>
-              </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Configure Permissions <span className="text-error-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                    {permissionsLoading ? (
+                      <div className="col-span-full flex items-center justify-center py-6">
+                        <Spinner size="sm" />
+                      </div>
+                    ) : permissionsError ? (
+                      <div className="col-span-full flex flex-col items-center justify-center py-4 gap-2 text-center">
+                        <p className="text-xs font-semibold text-error-800">{permissionsError}</p>
+                        <button
+                          type="button"
+                          onClick={fetchPermissions}
+                          className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : systemPermissions.length === 0 ? (
+                      <p className="col-span-full text-center py-4 text-xs text-slate-400">No permissions available.</p>
+                    ) : (
+                      systemPermissions.map((perm) => (
+                        <label
+                          key={perm.value}
+                          className="flex items-start gap-2.5 p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editForm.permissions.includes(perm.value)}
+                            onChange={() => handlePermissionToggle(perm.value, "edit")}
+                            className="mt-0.5 w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{perm.label}</p>
+                            <p className="text-[10px] font-medium text-slate-400 leading-snug">{perm.description}</p>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {editErrors.permissions && (
+                    <p className="text-xs text-error-800 font-semibold mt-1">{editErrors.permissions}</p>
+                  )}
+                </div>
 
+                <div className="flex items-center gap-2 mt-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_active}
+                      onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                      className="w-4 h-4 rounded-lg border-slate-200 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-2 transition-all cursor-pointer"
+                    />
+                    Active Status
+                  </label>
+                </div>
               </div>
 
               <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 shrink-0">
@@ -674,7 +680,6 @@ function RoleManagement() {
         </Modal>
       )}
 
-      {/* View Permissions Modal */}
       {selectedRolePermissions && (
         <Modal onClose={() => setSelectedRolePermissions(null)}>
           <div className="bg-white border border-slate-100 shadow-2xl rounded-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden">
@@ -694,9 +699,7 @@ function RoleManagement() {
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
-              <p className="text-xs font-semibold text-slate-500">
-                All permissions assigned to this security role:
-              </p>
+              <p className="text-xs font-semibold text-slate-500">All permissions assigned to this security role:</p>
               <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                 {selectedRolePermissions.permissions.map((perm) => (
                   <div
@@ -721,7 +724,6 @@ function RoleManagement() {
           </div>
         </Modal>
       )}
-
     </div>
   )
 }

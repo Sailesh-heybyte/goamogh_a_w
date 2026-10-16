@@ -47,13 +47,10 @@ export default function ForgotPassword() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-6 bg-slate-50 overflow-hidden">
-      {/* Background visual accents */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse pointer-events-none" />
 
-      {/* Main card */}
       <div className="relative w-full max-w-md bg-white/80 backdrop-blur-md border border-slate-100 shadow-2xl rounded-2xl p-8 md:p-10 animate-in fade-in zoom-in-95 duration-300">
-        {/* Logo and Header */}
         <div className="flex flex-col items-center text-center">
           <img src="/brand/goamogh-golden.png" alt="Goamogh" className="h-9 w-auto object-contain mx-auto" />
           <p className="text-sm font-medium text-slate-500 mt-1">Reset your administrator password</p>
@@ -77,7 +74,6 @@ export default function ForgotPassword() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            {/* Global Alert Notification */}
             {globalError && (
               <div className="flex items-start gap-2.5 p-4 rounded-xl text-sm font-semibold animate-in fade-in duration-200 border bg-error-50 border-error-100 text-error-800">
                 <AlertCircle className="w-5 h-5 text-error-800 shrink-0 mt-0.5" />
@@ -85,7 +81,6 @@ export default function ForgotPassword() {
               </div>
             )}
 
-            {/* Email field */}
             <div className="flex flex-col">
               <label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Email Address
@@ -114,7 +109,6 @@ export default function ForgotPassword() {
               )}
             </div>
 
-            {/* Submit button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -130,7 +124,6 @@ export default function ForgotPassword() {
               )}
             </button>
 
-            {/* Back to login link */}
             <div className="text-center pt-2">
               <button
                 type="button"

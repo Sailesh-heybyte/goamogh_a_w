@@ -34,4 +34,3 @@ export const previewDirectSale = async (payload) =>
     method: "POST",
     body: JSON.stringify(payload),
   })
-

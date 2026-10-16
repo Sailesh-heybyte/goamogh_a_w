@@ -1,6 +1,5 @@
 import { customFetch } from "./api"
 
-
 export const getWorkOrders = async (params = {}) => {
   const cleanParams = {}
   Object.entries(params).forEach(([key, val]) => {
@@ -12,11 +11,9 @@ export const getWorkOrders = async (params = {}) => {
   return customFetch(`/api/v1/work-orders?${query}`)
 }
 
-
 export const getWorkOrderDetails = async (woId) => {
   return customFetch(`/api/v1/work-orders/${woId}`)
 }
-
 
 export const createWorkOrder = async (woData) => {
   return customFetch("/api/v1/work-orders", {
@@ -24,7 +21,6 @@ export const createWorkOrder = async (woData) => {
     body: JSON.stringify(woData),
   })
 }
-
 
 export const updateWorkOrderStatus = async (woId, action, closeFields = {}) => {
   return customFetch(`/api/v1/work-orders/${woId}/status`, {
@@ -38,4 +34,3 @@ export const previewWorkOrderClose = async (woId, body) =>
     method: "POST",
     body: JSON.stringify(body),
   })
-

@@ -34,17 +34,11 @@ export function ConfirmProvider({ children }) {
                 isDanger ? "bg-error-50 text-error-800" : "bg-brand-50 text-brand-600"
               }`}
             >
-              {isDanger ? (
-                <AlertTriangle className="w-5 h-5" />
-              ) : (
-                <HelpCircle className="w-5 h-5" />
-              )}
+              {isDanger ? <AlertTriangle className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
             </div>
 
             <h3 className="mt-4 text-base font-bold text-slate-900">{dialog.title}</h3>
-            {dialog.message && (
-              <p className="mt-2 text-sm text-slate-500">{dialog.message}</p>
-            )}
+            {dialog.message && <p className="mt-2 text-sm text-slate-500">{dialog.message}</p>}
 
             <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
               <button
@@ -59,9 +53,7 @@ export function ConfirmProvider({ children }) {
                 autoFocus
                 onClick={() => finish(true)}
                 className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-bold text-white ${
-                  isDanger
-                    ? "bg-error-800 hover:bg-error-900"
-                    : "bg-brand-600 hover:bg-brand-700"
+                  isDanger ? "bg-error-800 hover:bg-error-900" : "bg-brand-600 hover:bg-brand-700"
                 }`}
               >
                 {dialog.confirmLabel || "Yes, continue"}
