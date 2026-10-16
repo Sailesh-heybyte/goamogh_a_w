@@ -411,12 +411,16 @@ export default function Header() {
                                 <span className="h-1.5 w-1.5 rounded-full bg-[#c5a47e]" />
                                 <span>Pure Hand-Pounded Blends</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#c5a47e]" />
-                                <span>Goa, India</span>
+                            <div className="flex items-start gap-2 pr-4">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#c5a47e] mt-1.5 shrink-0" />
+                                <span className="text-[11px] normal-case tracking-normal text-[#efe3bf]/75 font-sans leading-relaxed">
+                                    Door No. 3-11-8, Lakshmi Gayatri Nivas, Kandukuri Vari Street, Ramnagar, Nidadavole, East Godavari, Andhra Pradesh – 534301
+                                </span>
                             </div>
-                            <div className="flex justify-between items-center mt-2 text-[10px] lowercase tracking-[0.1em] text-[#efe3bf]/40 border-t border-[#c5a47e]/5 pt-3">
-                                <span>heritage@goamogh.com</span>
+                            <div className="flex justify-between items-center mt-2 text-[10px] lowercase tracking-[0.1em] text-[#efe3bf]/40 border-t border-[#c5a47e]/5 pt-3 pr-4">
+                                <a href="mailto:hello@goamogh.com" className="hover:text-[#d8b66a] transition-colors">
+                                    hello@goamogh.com
+                                </a>
                                 <span>@goamogh</span>
                             </div>
                         </motion.div>
