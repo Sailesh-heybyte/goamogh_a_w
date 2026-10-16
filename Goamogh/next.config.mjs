@@ -1,5 +1,5 @@
-/** Next.js minimal config (CommonJS) */
-module.exports = {
+/** Next.js config (ESM) */
+const nextConfig = {
   reactStrictMode: false,
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -13,7 +13,6 @@ module.exports = {
     config.cache = false;
     return config;
   }
-}
+};
 
-
-
+export default nextConfig;
