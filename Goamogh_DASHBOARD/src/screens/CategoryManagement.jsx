@@ -35,7 +35,6 @@ function CategoryManagement() {
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
-    image: "",
   })
   const [createErrors, setCreateErrors] = useState({})
   const [isCreating, setIsCreating] = useState(false)
@@ -43,7 +42,6 @@ function CategoryManagement() {
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
-    image: "",
     is_active: true,
   })
   const [editErrors, setEditErrors] = useState({})
@@ -134,7 +132,6 @@ function CategoryManagement() {
       const payload = {
         name: createForm.name.trim(),
         description: createForm.description.trim() || null,
-        image: createForm.image.trim() || null,
       }
 
       const res = await createCategory(payload)
@@ -152,7 +149,7 @@ function CategoryManagement() {
       }
 
       setIsCreateOpen(false)
-      setCreateForm({ name: "", description: "", image: "" })
+      setCreateForm({ name: "", description: "" })
       clearCategoriesCache()
       fetchCategories()
     } catch (err) {
@@ -181,7 +178,6 @@ function CategoryManagement() {
       setEditForm({
         name: details.name,
         description: details.description || "",
-        image: details.image || "",
         is_active: details.is_active,
       })
     } catch (err) {
@@ -212,7 +208,6 @@ function CategoryManagement() {
       const payload = {
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
-        image: editForm.image.trim() || null,
         is_active: editForm.is_active,
       }
 
@@ -286,7 +281,7 @@ function CategoryManagement() {
 
         <button
           onClick={() => {
-            setCreateForm({ name: "", description: "", image: "" })
+            setCreateForm({ name: "", description: "" })
             setCreateErrors({})
             setIsCreateOpen(true)
           }}
@@ -339,18 +334,7 @@ function CategoryManagement() {
                     <td className="px-3 md:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-slate-700 shrink-0">
-                          {cat.image ? (
-                            <img
-                              src={cat.image}
-                              alt={cat.name}
-                              className="w-full h-full rounded-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = "none"
-                              }}
-                            />
-                          ) : (
-                            <FolderOpen className="w-4 h-4 text-slate-500" />
-                          )}
+                          <FolderOpen className="w-4 h-4 text-slate-500" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p
@@ -472,19 +456,6 @@ function CategoryManagement() {
                 />
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Category Image URL
-                </label>
-                <input
-                  type="text"
-                  value={createForm.image}
-                  onChange={(e) => handleCreateChange("image", e.target.value)}
-                  placeholder="E.g., https://cdn.example.com/category-spices.jpg"
-                  className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
-                />
-              </div>
-
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100 mt-6">
                 <button
                   type="button"
@@ -560,19 +531,6 @@ function CategoryManagement() {
                     placeholder="Describe items in this classification..."
                     rows="3"
                     className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
-
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Category Image URL
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.image}
-                    onChange={(e) => handleEditChange("image", e.target.value)}
-                    placeholder="E.g., https://cdn.example.com/category-spices.jpg"
-                    className="w-full px-4 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   />
                 </div>
 
