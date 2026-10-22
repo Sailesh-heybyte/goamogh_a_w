@@ -1,14 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, RotateCw, FileText } from 'lucide-react';
+import { CheckCircle2, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { getCertificatesOnce, clearCertificatesCache } from '../../api/certificateService';
 
 export default function TransparencySection() {
     const [cardRotation, setCardRotation] = useState({ x: 0, y: 0 });
-    const [certificates, setCertificates] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     const cardRef = useRef(null);
     const containerRef = useRef(null);
@@ -31,51 +27,6 @@ export default function TransparencySection() {
         },
     ];
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const res = await getCertificatesOnce();
-            const list = Array.isArray(res?.data) ? res.data : [];
-            setCertificates(list);
-        } catch {
-            setError("Couldn't load certificates.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-        const loadOnMount = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const res = await getCertificatesOnce();
-                if (cancelled) return;
-                const list = Array.isArray(res?.data) ? res.data : [];
-                setCertificates(list);
-            } catch {
-                if (!cancelled) {
-                    setError("Couldn't load certificates.");
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsLoading(false);
-                }
-            }
-        };
-        loadOnMount();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const handleRetry = () => {
-        clearCertificatesCache();
-        loadData();
-    };
-
     const handleMouseMove = (e) => {
         if (!cardRef.current) return;
         const rect = cardRef.current.getBoundingClientRect();
@@ -87,24 +38,6 @@ export default function TransparencySection() {
     const handleMouseLeave = () => {
         setCardRotation({ x: 0, y: 0 });
     };
-
-    const formatIssuedDate = (dateStr) => {
-        if (!dateStr) return null;
-        try {
-            const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`);
-            if (isNaN(d.getTime())) return dateStr;
-            return d.toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-            });
-        } catch {
-            return dateStr;
-        }
-    };
-
-    const latest = certificates[0] || null;
-    const count = certificates.length;
 
     return (
         <section
@@ -182,25 +115,23 @@ export default function TransparencySection() {
                         ))}
                     </div>
 
-                    {!isLoading && count === 0 ? null : (
-                        <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="inline-block mt-10"
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="inline-block mt-10"
+                    >
+                        <Link
+                            href="/certificates"
+                            className="inline-block rounded-xl border-2 px-9 py-4 text-sm md:text-base font-semibold uppercase tracking-wider transition-all duration-300"
+                            style={{
+                                borderColor: '#c5a47e',
+                                color: '#c5a47e',
+                                backgroundColor: 'transparent',
+                            }}
                         >
-                            <Link
-                                href="/certificates"
-                                className="inline-block rounded-xl border-2 px-9 py-4 text-sm md:text-base font-semibold uppercase tracking-wider transition-all duration-300"
-                                style={{
-                                    borderColor: '#c5a47e',
-                                    color: '#c5a47e',
-                                    backgroundColor: 'transparent',
-                                }}
-                            >
-                                View All Certificates
-                            </Link>
-                        </motion.div>
-                    )}
+                            View All Certificates
+                        </Link>
+                    </motion.div>
                 </motion.div>
 
                 <motion.div
@@ -224,92 +155,45 @@ export default function TransparencySection() {
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                         }}
                     >
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                            className="absolute -right-2 -top-2 md:-right-4 md:-top-4 z-20 flex h-16 w-16 md:h-24 md:w-24 items-center justify-center rounded-full border border-dashed"
-                            style={{
-                                borderColor: '#c5a47e',
-                                backgroundColor: 'rgba(197, 164, 126, 0.1)',
-                            }}
-                        >
-                            <div className="text-center text-[9px] md:text-xs font-bold" style={{ color: '#c5a47e' }}>
-                                <RotateCw size={12} className="mx-auto mb-1 md:w-4 md:h-4" />
-                                VERIFIED
-                            </div>
-                        </motion.div>
-
-                        <div className="mb-6 pr-10 md:pr-0">
+                        <div className="mb-6">
                             <h3 className="text-center text-xl md:text-4xl font-bold" style={{ color: '#1a1a1a' }}>
                                 CERTIFICATE OF ANALYSIS
                             </h3>
                         </div>
 
-                        {isLoading ? (
-                            <div className="py-8 space-y-4">
-                                <div className="h-6 bg-gray-200 rounded animate-pulse w-3/4 mx-auto" />
-                                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2 mx-auto" />
-                                <div className="h-10 bg-gray-200 rounded animate-pulse w-1/3 mx-auto mt-6" />
+                        <div className="py-4 space-y-5 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                                <FileText size={28} className="md:w-8 md:h-8" style={{ color: '#c5a47e' }} />
                             </div>
-                        ) : error ? (
-                            <div className="py-8 text-center space-y-2">
-                                <p className="text-sm md:text-base font-medium" style={{ color: '#666' }}>
-                                    {error}
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={handleRetry}
-                                    className="text-sm font-semibold underline hover:opacity-80 transition cursor-pointer"
-                                    style={{ color: '#c5a47e' }}
+                            <div>
+                                <h4
+                                    className="text-lg md:text-2xl font-bold leading-snug px-2"
+                                    style={{ color: '#1a1a1a' }}
                                 >
-                                    Retry
-                                </button>
-                            </div>
-                        ) : count === 0 || !latest ? (
-                            <div className="py-8 text-center">
-                                <p className="text-sm md:text-lg font-medium" style={{ color: '#666' }}>
-                                    Certificates coming soon.
+                                    Batch-wise Lab Reports
+                                </h4>
+                                <p className="mt-2 text-xs md:text-sm font-medium" style={{ color: '#666' }}>
+                                    Moisture, purity and consistency results for our batches.
                                 </p>
                             </div>
-                        ) : (
-                            <div className="py-4 space-y-5 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                    <FileText size={28} className="md:w-8 md:h-8" style={{ color: '#c5a47e' }} />
-                                </div>
-                                <div>
-                                    <h4
-                                        className="text-lg md:text-2xl font-bold leading-snug px-2"
-                                        style={{ color: '#1a1a1a' }}
-                                    >
-                                        {latest.title}
-                                    </h4>
-                                    {latest.issued_on && (
-                                        <p className="mt-2 text-xs md:text-sm font-medium" style={{ color: '#666' }}>
-                                            Issued {formatIssuedDate(latest.issued_on)}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="pt-2">
-                                    <a
-                                        href={latest.file_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-lg border-2 px-5 py-2 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"
-                                        style={{
-                                            borderColor: '#c5a47e',
-                                            color: '#c5a47e',
-                                            backgroundColor: 'transparent',
-                                        }}
-                                    >
-                                        Open PDF ↗
-                                    </a>
-                                </div>
+                            <div className="pt-2">
+                                <Link
+                                    href="/certificates"
+                                    className="inline-flex items-center gap-1.5 rounded-lg border-2 px-5 py-2 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"
+                                    style={{
+                                        borderColor: '#c5a47e',
+                                        color: '#c5a47e',
+                                        backgroundColor: 'transparent',
+                                    }}
+                                >
+                                    View Certificates →
+                                </Link>
                             </div>
-                        )}
+                        </div>
 
                         <div className="border-t border-gray-200 pt-5 mt-4 text-center">
                             <p className="text-xs md:text-sm font-medium" style={{ color: '#666' }}>
-                                {count} {count === 1 ? 'certificate' : 'certificates'} published
+                                Certificates open as PDF documents
                             </p>
                         </div>
                     </div>

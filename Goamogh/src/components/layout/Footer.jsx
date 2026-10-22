@@ -1,29 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, ShieldCheck, ChevronRight } from 'lucide-react';
 import { SOCIAL_LINKS } from '../social/socialLinks';
-import { getCategoriesOnce } from '../../api/productService';
 
 export default function Footer() {
     const { openLegalModal } = useAuth();
-    const [shopCategories, setShopCategories] = useState([]);
-
-    useEffect(() => {
-        let isMounted = true;
-        getCategoriesOnce()
-            .then((res) => {
-                if (isMounted && res && res.success && Array.isArray(res.data)) {
-                    setShopCategories(res.data.slice(0, 4));
-                }
-            })
-            .catch(() => {});
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
     return (
         <footer className="relative w-full bg-black text-white pt-20 pb-8 px-6 md:px-12 border-t border-white/10">
             <div className="max-w-[1920px] mx-auto">
@@ -38,16 +20,16 @@ export default function Footer() {
                                     All Products
                                 </Link>
                             </li>
-                            {shopCategories.map((c) => (
-                                <li key={c.id}>
-                                    <Link
-                                        href={`/shop?category_id=${c.id}`}
-                                        className="hover:text-[#d8b66a] transition-colors"
-                                    >
-                                        {c.name}
-                                    </Link>
-                                </li>
-                            ))}
+                            <li>
+                                <Link href="/certificates" className="hover:text-[#d8b66a] transition-colors">
+                                    Quality Certificates
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/recipes" className="hover:text-[#d8b66a] transition-colors">
+                                    Recipes
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
