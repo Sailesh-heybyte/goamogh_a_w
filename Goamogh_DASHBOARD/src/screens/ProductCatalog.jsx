@@ -1231,6 +1231,7 @@ function ProductCatalog() {
                   disabled={isCreating}
                   onUploadingChange={setIsCreateUploading}
                 />
+                <p className="text-[11px] text-slate-500 mt-1">The first image is the cover shown on the shop. Add at least one product image — variant images alone won't show on the shop list.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1804,6 +1805,7 @@ function ProductCatalog() {
                         onUploadingChange={setIsEditUploading}
                       />
                     )}
+                    <p className="text-[11px] text-slate-500 mt-1">The first image is the cover shown on the shop. Add at least one product image — variant images alone won't show on the shop list.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
