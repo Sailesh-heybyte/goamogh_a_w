@@ -120,7 +120,8 @@ function SupplierDirectory() {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const { showSuccessToast } = useToast()
+  const { showSuccessToast, showErrorToast } = useToast()
+  const [viewingKycId, setViewingKycId] = useState(null)
 
   const [isKycUploadingCreate, setIsKycUploadingCreate] = useState(false)
   const [isKycUploadingEdit, setIsKycUploadingEdit] = useState(false)
@@ -951,29 +952,34 @@ function SupplierDirectory() {
     }
   }
 
-  const handleViewKycDocument = async () => {
-    if (!selectedSupplier?.id) return
+  const handleViewKycDocument = async (supplierId, onError) => {
+    if (!supplierId || viewingKycId === supplierId) return
     const win = window.open("about:blank", "_blank")
-    setKycErrorEdit("")
+    setViewingKycId(supplierId)
     try {
-      const res = await getSupplierKycViewUrl(selectedSupplier.id)
+      const res = await getSupplierKycViewUrl(supplierId)
       const json = await res.json().catch(() => ({}))
-      if (res.ok && json.data?.url) {
+      const viewUrl = json.data?.view_url
+      if (res.ok && viewUrl) {
         if (win) {
           win.opener = null
-          win.location.href = json.data.url
+          win.location.href = viewUrl
         }
       } else {
         win?.close()
-        setKycErrorEdit(
+        const errorMsg =
           res.status === 404
             ? "No KYC document uploaded for this supplier."
+            : res.status === 403
+            ? "You don't have permission to view KYC documents."
             : json.message || "Couldn't open document. Try again."
-        )
+        onError?.(errorMsg)
       }
     } catch {
       win?.close()
-      setKycErrorEdit("Couldn't open document. Try again.")
+      onError?.("Couldn't open document. Try again.")
+    } finally {
+      setViewingKycId(null)
     }
   }
 
@@ -1754,6 +1760,21 @@ function SupplierDirectory() {
 
                     <td className="px-3 py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1.5">
+                        {vendor.kyc_document_url && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewKycDocument(vendor.id, (msg) => showErrorToast(msg))}
+                            disabled={viewingKycId === vendor.id}
+                            className="p-1.5 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center"
+                            title="View KYC document"
+                          >
+                            {viewingKycId === vendor.id ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              <FileText className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEditOpen(vendor)}
                           className="p-1.5 border border-slate-200 hover:border-brand-200 hover:bg-brand-50/60 rounded-lg text-slate-400 hover:text-brand-700 transition-all active:scale-95 inline-flex items-center"
@@ -3311,10 +3332,14 @@ function SupplierDirectory() {
                           {selectedSupplier?.kyc_document_url && (
                             <button
                               type="button"
-                              onClick={handleViewKycDocument}
-                              className="text-xs font-bold text-brand-600 hover:text-brand-700 px-2.5 py-1 rounded-lg hover:bg-brand-50 transition-colors"
+                              onClick={() => {
+                                setKycErrorEdit("")
+                                handleViewKycDocument(selectedSupplier.id, setKycErrorEdit)
+                              }}
+                              disabled={viewingKycId === selectedSupplier.id}
+                              className="text-xs font-bold text-brand-600 hover:text-brand-700 px-2.5 py-1 rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-50"
                             >
-                              View document
+                              {viewingKycId === selectedSupplier.id ? "Opening..." : "View document"}
                             </button>
                           )}
                           <button
